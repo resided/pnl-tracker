@@ -395,6 +395,20 @@ export default function PNLTrackerApp() {
   const [activeTab, setActiveTab] = useState('overview');
   const [manualMode, setManualMode] = useState(false);
   
+  // Signal to Farcaster that UI is ready once React has mounted
+  useEffect(() => {
+    const signalReady = async () => {
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        await sdk.actions.ready();
+      } catch (err) {
+        console.log('Mini app SDK not available, skipping sdk.actions.ready()', err);
+      }
+    };
+
+    signalReady();
+  }, []);
+  
   // Token gate state
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
@@ -402,6 +416,14 @@ export default function PNLTrackerApp() {
 
   // Check token balance for gating
   const checkTokenGate = async (address) => {
+    // Temporary: skip token gate while PNL token is not configured
+    if (!PNL_TOKEN_ADDRESS || PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      setTokenBalance(0);
+      setCheckingGate(false);
+      setIsGated(false);
+      return true;
+    }
+
     if (DEMO_MODE) {
       await new Promise(r => setTimeout(r, 500));
       setTokenBalance(2500000);
