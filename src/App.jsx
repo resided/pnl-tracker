@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic
-// Token gated: requires 1,000,000 $PNL tokens to access
+// Token gated: requires 3,000,000 $PNL tokens to access
 
 const DEMO_MODE = true; // Set to false when deployed with real APIs
 
 // Token gate configuration
-const PNL_TOKEN_ADDRESS = '0xYOUR_PNL_TOKEN_ADDRESS'; // Replace with actual $PNL token contract on Base
-const REQUIRED_PNL_BALANCE = 1000000; // 1 million tokens required
+const PNL_TOKEN_ADDRESS =
+  import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000';
+const REQUIRED_PNL_BALANCE = 3000000; // 3 million tokens required
 
 // Mock data for demo/preview mode
 const MOCK_USER = {
@@ -398,6 +399,20 @@ export default function PNLTrackerApp() {
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [checkingGate, setCheckingGate] = useState(true);
+
+  // Signal to Farcaster Mini App runtime that the app is ready
+  useEffect(() => {
+    const signalReady = async () => {
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        await sdk.actions.ready();
+      } catch (err) {
+        console.log('Mini app SDK not available, skipping sdk.actions.ready()', err);
+      }
+    };
+
+    signalReady();
+  }, []);
 
   // Check token balance for gating
   const checkTokenGate = async (address) => {
