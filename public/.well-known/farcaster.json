@@ -15,7 +15,7 @@
     "tags": ["finance", "analytics", "base"],
     "subtitle": "Farcaster Wallet PnL",
     "description": "See how your Farcaster trading actually performs.",
-    "ogTitle": "PNL Tracker mini app",
+    "ogTitle": "PNL Tracker miniapp",
     "ogDescription": "Track your PnL in a clean psycast-style dashboard.",
     "ogImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
   }
