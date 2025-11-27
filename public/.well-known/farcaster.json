@@ -2,10 +2,10 @@
   "frame": {
     "name": "$PNL",
     "version": "1",
-    "iconUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
+    "iconUrl": "https://pnl-tracker-three.vercel.app/pnl-logo.png",
     "homeUrl": "https://pnl-tracker-three.vercel.app",
-    "imageUrl": "https://pnl-tracker-three.vercel.app/image.png",
-    "splashImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
+    "imageUrl": "https://pnl-tracker-three.vercel.app/pnl-logo.png",
+    "splashImageUrl": "https://pnl-tracker-three.vercel.app/pnl-logo.png",
     "splashBackgroundColor": "#050816",
     "webhookUrl": "https://pnl-tracker-three.vercel.app/api/webhook",
     "subtitle": "Farcaster Wallet PnL",
