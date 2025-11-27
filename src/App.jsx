@@ -395,6 +395,8 @@ export default function PNLTrackerApp() {
   const [activeTab, setActiveTab] = useState('overview');
   const [manualMode, setManualMode] = useState(false);
   
+  const [miniAppSdk, setMiniAppSdk] = useState(null);
+  
   // Token gate state
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
@@ -405,6 +407,7 @@ export default function PNLTrackerApp() {
     const signalReady = async () => {
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk');
+        setMiniAppSdk(sdk);
         await sdk.actions.ready();
       } catch (err) {
         console.log('Mini app SDK not available, skipping sdk.actions.ready()', err);
@@ -597,7 +600,28 @@ export default function PNLTrackerApp() {
     }
   };
 
-  // Show token gate screen
+    const handleSharePnl = async () => {
+    if (!miniAppSdk || !pnlData) return;
+
+    try {
+      const summary = pnlData.summary || {};
+      const total = typeof summary.totalRealizedProfit === 'number' ? summary.totalRealizedProfit : 0;
+      const winRateValue = typeof summary.winRate === 'number' ? summary.winRate : 0;
+      const winRateText = winRateValue.toFixed(1);
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+
+      const text = `My Base PnL: ${formatCurrency(total)} realized (${winRateText}% win rate) using the PNL Tracker mini app.`;
+
+      await miniAppSdk.actions.composeCast({
+        text,
+        embeds: [appUrl]
+      });
+    } catch (err) {
+      console.error('Failed to share PnL', err);
+    }
+  };
+
+// Show token gate screen
   if (isGated && !DEMO_MODE) {
     return (
       <TokenGateScreen 
@@ -727,24 +751,48 @@ export default function PNLTrackerApp() {
           </div>
           
           <div style={{
-            padding: '4px 10px',
-            borderRadius: '999px',
-            background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
-            color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            fontSize: '10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '8px'
           }}>
+            <button
+              onClick={handleSharePnl}
+              disabled={!miniAppSdk || !pnlData}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '999px',
+                border: 'none',
+                fontSize: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                background: colors.ink,
+                color: '#020617',
+                cursor: !miniAppSdk || !pnlData ? 'default' : 'pointer',
+                opacity: !miniAppSdk || !pnlData ? 0.5 : 1
+              }}
+            >
+              Share PNL
+            </button>
             <div style={{
-              width: '7px',
-              height: '7px',
-              borderRadius: '50%',
-              background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error
-            }} />
-            {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
+              padding: '4px 10px',
+              borderRadius: '999px',
+              background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
+              color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              fontSize: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <div style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error
+              }} />
+              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
+            </div>
           </div>
         </header>
 
