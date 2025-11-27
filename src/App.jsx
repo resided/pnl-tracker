@@ -395,6 +395,29 @@ export default function PNLTrackerApp() {
   const [activeTab, setActiveTab] = useState('overview');
   const [manualMode, setManualMode] = useState(false);
   
+  const handleSharePnl = async () => {
+    try {
+      if (!pnlData || !pnlData.summary) return;
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+
+      const realized = pnlData.summary.totalRealizedProfit ?? 0;
+      const winRate = pnlData.summary.winRate ?? 0;
+
+      const realizedLabel = formatCurrency(realized);
+      const winRateLabel =
+        typeof winRate === 'number' ? `${winRate.toFixed(1)}%` : `${winRate || ''}`;
+
+      const appUrl = (import.meta.env.VITE_APP_URL || window.location.href).replace(/\/$/, '');
+
+      await sdk.actions.composeCast({
+        text: `My Base PnL: ${realizedLabel} realized (${winRateLabel} win rate) using the PNL Tracker mini app.`,
+        embeds: [appUrl]
+      });
+    } catch (err) {
+      console.error('Failed to share PnL (likely not in Mini App context):', err);
+    }
+  };
+
   // Token gate state
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
@@ -697,15 +720,18 @@ if (DEMO_MODE) {
       
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px' }}>
         {/* Header */}
-        <header style={{
+        <header
+        style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
           marginBottom: '32px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
               width: '24px',
               height: '24px',
               borderRadius: '50%',
@@ -714,36 +740,87 @@ if (DEMO_MODE) {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '11px'
-            }}>📊</div>
-            <span style={{
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontSize: '12px',
-              fontWeight: '500'
-            }}>PNL Tracker</span>
+            }}
+          >
+            📊
           </div>
-          
-          <div style={{
-            padding: '4px 10px',
-            borderRadius: '999px',
-            background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
-            color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            fontSize: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <div style={{
-              width: '7px',
-              height: '7px',
-              borderRadius: '50%',
-              background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error
-            }} />
+          <div>
+            <div
+              style={{
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: '12px',
+                fontWeight: 500
+              }}
+            >
+              PNL Tracker
+            </div>
+            <div
+              style={{
+                fontSize: '11px',
+                color: colors.muted
+              }}
+            >
+              Base PnL dashboard
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={handleSharePnl}
+            disabled={!pnlData || !pnlData.summary}
+            style={{
+              padding: '7px 16px',
+              borderRadius: '999px',
+              border: `1px solid ${colors.border}`,
+              background: colors.pill,
+              color: colors.pillText,
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: !pnlData || !pnlData.summary ? 'default' : 'pointer',
+              opacity: !pnlData || !pnlData.summary ? 0.4 : 1
+            }}
+          >
+            <span style={{ fontSize: '13px' }}>📤</span>
+            <span>Share PnL</span>
+          </button>
+
+          <div
+            style={{
+              padding: '4px 10px',
+              borderRadius: '999px',
+              background:
+                pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
+              color:
+                pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              fontSize: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <div
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background:
+                  pnlData?.summary?.totalRealizedProfit >= 0
+                    ? colors.success
+                    : colors.error
+              }}
+            />
             {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
           </div>
-        </header>
+        </div>
+      </header>
 
         {/* User Info */}
         {user && (
