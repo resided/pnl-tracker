@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#fafafa" />
+    
+    <!-- Farcaster MiniApp Meta Tags -->
+    <meta name="fc:miniapp" content='{
+      "version": "1",
+      "imageUrl": "https://your-domain.com/og-image.png",
+      "button": {
+        "title": "🪪 Track PNL",
+        "action": {
+          "type": "launch_miniapp",
+          "name": "PNL Tracker",
+          "url": "https://your-domain.com",
+          "splashImageUrl": "https://your-domain.com/splash.png",
+          "splashBackgroundColor": "#fafafa"
+        }
+      }
+    }' />
+    
+    <!-- For backward compatibility -->
+    <meta name="fc:frame" content='{
+      "version": "1",
+      "imageUrl": "https://your-domain.com/og-image.png",
+      "button": {
+        "title": "📊 Track PNL",
+        "action": {
+          "type": "launch_frame",
+          "name": "PNL Tracker",
+          "url": "https://your-domain.com",
+          "splashImageUrl": "https://your-domain.com/splash.png",
+          "splashBackgroundColor": "#fafafa"
+        }
+      }
+    }' />
+    
+    <!-- Standard Meta Tags -->
+    <meta property="og:title" content="PNL Tracker - Farcaster MiniApp" />
+    <meta property="og:description" content="Track your wallet's trading profit and loss on Base chain" />
+    <meta property="og:image" content="https://your-domain.com/og-image.png" />
+    
+    <title>PNL Tracker | Farcaster MiniApp</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

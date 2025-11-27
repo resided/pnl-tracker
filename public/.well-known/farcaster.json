@@ -1,0 +1,16 @@
+{
+  "accountAssociation": {
+    "header": "YOUR_FARCASTER_HEADER",
+    "payload": "YOUR_FARCASTER_PAYLOAD", 
+    "signature": "YOUR_FARCASTER_SIGNATURE"
+  },
+  "frame": {
+    "version": "1",
+    "name": "PNL Tracker",
+    "iconUrl": "https://your-domain.com/icon.png",
+    "splashImageUrl": "https://your-domain.com/splash.png",
+    "splashBackgroundColor": "#fafafa",
+    "homeUrl": "https://your-domain.com",
+    "webhookUrl": "https://your-domain.com/api/webhook"
+  }
+}
