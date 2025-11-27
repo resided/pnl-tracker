@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 // Styled to match psycast.pages.dev aesthetic
 // Token gated: requires 3,000,000 $PNL tokens to access
 
-const DEMO_MODE = false; // Set to false when deployed with real APIs
+const DEMO_MODE = true; // Set to false when deployed with real APIs
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
@@ -390,8 +390,6 @@ const WalletInput = ({ onSubmit }) => {
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
-  const [primaryWallet, setPrimaryWallet] = useState(null);
-  const [activeScope, setActiveScope] = useState('primary');
   const [pnlData, setPnlData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -404,17 +402,6 @@ export default function PNLTrackerApp() {
 
   // Check token balance for gating
   const checkTokenGate = async (address) => {
-    // Temporary: skip token gate while PNL token is not configured
-    if (
-      !PNL_TOKEN_ADDRESS ||
-      PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000'
-    ) {
-      setTokenBalance(0);
-      setCheckingGate(false);
-      setIsGated(false);
-      return true;
-    }
-
     if (DEMO_MODE) {
       await new Promise(r => setTimeout(r, 500));
       setTokenBalance(2500000);
@@ -498,32 +485,17 @@ export default function PNLTrackerApp() {
             }
           );
           const neynarData = await neynarResponse.json();
-          const primaryEth =
-            neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
-          const allEth =
-            neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+          const userAddresses = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+          setWallets(userAddresses);
 
-          setWallets(allEth);
-          if (primaryEth) {
-            setPrimaryWallet(primaryEth);
-            setActiveScope('primary');
-          } else {
-            setPrimaryWallet(allEth[0] || null);
-            setActiveScope(allEth.length > 1 ? 'all' : 'primary');
-          }
-
-          const initialAddresses = primaryEth ? [primaryEth] : allEth;
-
-          if (initialAddresses.length > 0) {
-            const hasAccess = await checkTokenGate(initialAddresses[0]);
+          if (userAddresses.length > 0) {
+            const hasAccess = await checkTokenGate(userAddresses[0]);
             if (hasAccess) {
-              await fetchPNLData(initialAddresses);
+              await fetchPNLData(userAddresses);
             }
           }
         }
 
-        // Ensure we always clear the token-gate spinner once initialization finishes
-        setCheckingGate(false);
         setLoading(false);
       } catch (err) {
         setLoading(false);
@@ -598,33 +570,8 @@ export default function PNLTrackerApp() {
     const hasAccess = await checkTokenGate(address);
     if (hasAccess) {
       setWallets([address]);
-      setPrimaryWallet(address);
-      setActiveScope('primary');
       fetchPNLData([address]);
       setManualMode(false);
-    }
-  };
-
-  const handleWalletScopeChange = async (event) => {
-    const scope = event.target.value;
-    setActiveScope(scope);
-
-    if (DEMO_MODE) return;
-
-    let addresses = [];
-    if (scope === 'all') {
-      addresses = wallets;
-    } else if (scope === 'primary') {
-      addresses = primaryWallet ? [primaryWallet] : wallets.slice(0, 1);
-    } else {
-      addresses = [scope];
-    }
-
-    if (addresses.length > 0) {
-      const hasAccess = await checkTokenGate(addresses[0]);
-      if (hasAccess) {
-        await fetchPNLData(addresses);
-      }
     }
   };
 
@@ -787,22 +734,6 @@ export default function PNLTrackerApp() {
           </div>
         </header>
 
-        {/* Token Gate Badge */}
-        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-start' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '10px',
-            color: colors.muted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em'
-          }}>
-            <span>🔐</span>
-            <span>Token Gated · {formatNumber(REQUIRED_PNL_BALANCE)} $PNL Required</span>
-          </div>
-        </div>
-
         {/* User Info */}
         {user && (
           <div style={{
@@ -830,105 +761,25 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        {/* Wallet Badge + Scope Selector */}
+        {/* Wallet Badge */}
         {wallets.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: '11px',
-              color: colors.accent,
-              background: '#f3f4f6',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: `1px solid ${colors.border}`
-            }}>
-              <span style={{ color: colors.muted }}>wallet</span>
-              <span style={{ fontWeight: '600' }}>
-                {activeScope === 'all'
-                  ? 'All verified wallets'
-                  : activeScope === 'primary' && primaryWallet
-                    ? truncateAddress(primaryWallet)
-                    : truncateAddress(wallets[0])}
-              </span>
-            </div>
-
-            {wallets.length > 1 && (
-              <div style={{ marginTop: '10px' }}>
-                <div style={{ fontSize: '11px', color: colors.muted, marginBottom: '4px' }}>
-                  View PnL for:
-                </div>
-                <select
-                  value={activeScope}
-                  onChange={handleWalletScopeChange}
-                  style={{
-                    width: '100%',
-                    fontSize: '12px',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: `1px solid ${colors.border}`,
-                    background: colors.panelBg,
-                    color: colors.ink,
-                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-                  }}
-                >
-                  {primaryWallet && (
-                    <option value="primary">
-                      Primary · {truncateAddress(primaryWallet)}
-                    </option>
-                  )}
-                  <option value="all">
-                    All verified wallets combined
-                  </option>
-                  {wallets.map((addr) => (
-                    <option key={addr} value={addr}>
-                      {truncateAddress(addr)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: '11px',
+            color: colors.accent,
+            background: '#f3f4f6',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            border: `1px solid ${colors.border}`,
+            marginBottom: '24px'
+          }}>
+            <span style={{ color: colors.muted }}>wallet</span>
+            <span style={{ fontWeight: '600' }}>{truncateAddress(wallets[0])}</span>
           </div>
         )}
-
-        {/* Explainer copy */}
-        <div
-          style={{
-            marginBottom: '24px',
-            padding: '12px 14px',
-            borderRadius: '12px',
-            background: colors.panelBg,
-            border: `1px dashed ${colors.border}`,
-            fontSize: '12px',
-            color: colors.muted,
-            lineHeight: '1.6'
-          }}
-        >
-          <div
-            style={{
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.16em',
-              marginBottom: '6px',
-              color: colors.metricLabel
-            }}
-          >
-            What this app does
-          </div>
-          <p style={{ margin: 0 }}>
-            PNL Tracker looks at your <strong>primary Farcaster wallet on Base</strong> and shows
-            live realized PnL, volume, and win rate. Open it any time to check how your trading is
-            doing with instant live data.
-          </p>
-          {wallets.length > 1 && (
-            <p style={{ margin: '6px 0 0' }}>
-              Use the wallet menu to switch between your <strong>primary wallet</strong>,{' '}
-              <strong>all verified wallets combined</strong>, or any individual connected wallet.
-            </p>
-          )}
-        </div>
 
         {/* Main PNL Display */}
         {pnlData?.summary && (
@@ -1046,7 +897,21 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-
+        {/* Token Gate Badge */}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '10px',
+            color: colors.muted,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em'
+          }}>
+            <span>🔐</span>
+            <span>Token Gated · {formatNumber(REQUIRED_PNL_BALANCE)} $PNL Required</span>
+          </div>
+        </div>
       </div>
     </div>
   );
