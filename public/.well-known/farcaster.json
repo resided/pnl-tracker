@@ -24,5 +24,10 @@
     "header": "eyJmaWQiOjM0MjQzMywidHlwZSI6ImF1dGgiLCJrZXkiOiIweDlGYUEzZWMxNjZDMjlCOTU0MjZENWJiQjc5RDNCNDVBZDUxQ0QxYzIifQ",
     "payload": "eyJkb21haW4iOiJwbmwtdHJhY2tlci10aHJlZS52ZXJjZWwuYXBwIn0",
     "signature": "QF4WX8QPruXOXgAlY8r+3AKw7Qz5kPFaF9mkH05+S8t252WwyYgkP0AQn/R6X60eYzG2BAmciJuBSuY+5UmTYBs="
+    
+  "baseBuilder": {
+    "ownerAddress": "0x748961617e27Df857F38ca1F2EBb473435C1ad09"
+  }
+
   }
 }
