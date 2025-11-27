@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 // Styled to match psycast.pages.dev aesthetic
 // Token gated: requires 3,000,000 $PNL tokens to access
 
-const DEMO_MODE = true; // Set to false when deployed with real APIs
+const DEMO_MODE = false; // Set to false when deployed with real APIs
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
@@ -404,6 +404,17 @@ export default function PNLTrackerApp() {
 
   // Check token balance for gating
   const checkTokenGate = async (address) => {
+    // Temporary: skip token gate while PNL token is not configured
+    if (
+      !PNL_TOKEN_ADDRESS ||
+      PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000'
+    ) {
+      setTokenBalance(0);
+      setCheckingGate(false);
+      setIsGated(false);
+      return true;
+    }
+
     if (DEMO_MODE) {
       await new Promise(r => setTimeout(r, 500));
       setTokenBalance(2500000);
@@ -511,6 +522,8 @@ export default function PNLTrackerApp() {
           }
         }
 
+        // Ensure we always clear the token-gate spinner once initialization finishes
+        setCheckingGate(false);
         setLoading(false);
       } catch (err) {
         setLoading(false);
