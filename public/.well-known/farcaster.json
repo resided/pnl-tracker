@@ -1,16 +1,22 @@
 {
   "accountAssociation": {
-    "header": "YOUR_FARCASTER_HEADER",
-    "payload": "YOUR_FARCASTER_PAYLOAD", 
-    "signature": "YOUR_FARCASTER_SIGNATURE"
+    "header": "",
+    "payload": "",
+    "signature": ""
   },
-  "frame": {
+  "miniapp": {
     "version": "1",
-    "name": "PNL Tracker",
-    "iconUrl": "https://your-domain.com/icon.png",
-    "splashImageUrl": "https://your-domain.com/splash.png",
-    "splashBackgroundColor": "#fafafa",
-    "homeUrl": "https://your-domain.com",
-    "webhookUrl": "https://your-domain.com/api/webhook"
+    "name": "$PNL",
+    "homeUrl": "https://pnl-tracker-three.vercel.app/",
+    "iconUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
+    "splashImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
+    "splashBackgroundColor": "#050816",
+    "primaryCategory": "finance",
+    "tags": ["finance", "analytics", "base"],
+    "subtitle": "Farcaster Wallet PnL",
+    "description": "See how your Farcaster trading actually performs.",
+    "ogTitle": "PNL Tracker mini app",
+    "ogDescription": "Track your PnL in a clean psycast-style dashboard.",
+    "ogImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
   }
 }
