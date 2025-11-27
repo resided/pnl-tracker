@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 // Styled to match psycast.pages.dev aesthetic
 // Token gated: requires 3,000,000 $PNL tokens to access
 
-const DEMO_MODE = true; // Set to false when deployed with real APIs
+const DEMO_MODE = false; // Set to false when deployed with real APIs
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
@@ -395,31 +395,25 @@ export default function PNLTrackerApp() {
   const [activeTab, setActiveTab] = useState('overview');
   const [manualMode, setManualMode] = useState(false);
   
-  const [miniAppSdk, setMiniAppSdk] = useState(null);
-  
   // Token gate state
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [checkingGate, setCheckingGate] = useState(true);
 
-  // Signal to Farcaster Mini App runtime that the app is ready
-  useEffect(() => {
-    const signalReady = async () => {
-      try {
-        const { sdk } = await import('@farcaster/miniapp-sdk');
-        setMiniAppSdk(sdk);
-        await sdk.actions.ready();
-      } catch (err) {
-        console.log('Mini app SDK not available, skipping sdk.actions.ready()', err);
-      }
-    };
-
-    signalReady();
-  }, []);
-
   // Check token balance for gating
   const checkTokenGate = async (address) => {
-    if (DEMO_MODE) {
+    // Temporary: skip token gate while no real PNL token is configured
+    if (
+      !PNL_TOKEN_ADDRESS ||
+      PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000'
+    ) {
+      setTokenBalance(0);
+      setCheckingGate(false);
+      setIsGated(false);
+      return true;
+    }
+
+if (DEMO_MODE) {
       await new Promise(r => setTimeout(r, 500));
       setTokenBalance(2500000);
       setCheckingGate(false);
@@ -600,28 +594,7 @@ export default function PNLTrackerApp() {
     }
   };
 
-    const handleSharePnl = async () => {
-    if (!miniAppSdk || !pnlData) return;
-
-    try {
-      const summary = pnlData.summary || {};
-      const total = typeof summary.totalRealizedProfit === 'number' ? summary.totalRealizedProfit : 0;
-      const winRateValue = typeof summary.winRate === 'number' ? summary.winRate : 0;
-      const winRateText = winRateValue.toFixed(1);
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-
-      const text = `My Base PnL: ${formatCurrency(total)} realized (${winRateText}% win rate) using the PNL Tracker mini app.`;
-
-      await miniAppSdk.actions.composeCast({
-        text,
-        embeds: [appUrl]
-      });
-    } catch (err) {
-      console.error('Failed to share PnL', err);
-    }
-  };
-
-// Show token gate screen
+  // Show token gate screen
   if (isGated && !DEMO_MODE) {
     return (
       <TokenGateScreen 
@@ -724,107 +697,54 @@ export default function PNLTrackerApp() {
       
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px' }}>
         {/* Header */}
-        <header
-          style={{
+        <header style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          marginBottom: '32px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              border: `1px solid ${colors.accent}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px'
+            }}>📊</div>
+            <span style={{
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              fontSize: '12px',
+              fontWeight: '500'
+            }}>PNL Tracker</span>
+          </div>
+          
+          <div style={{
+            padding: '4px 10px',
+            borderRadius: '999px',
+            background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
+            color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            fontSize: '10px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-            marginBottom: '28px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                border: `1px solid ${colors.accent}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px'
-              }}
-            >
-              📊
-            </div>
-            <div>
-              <div
-                style={{
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  fontSize: '12px',
-                  fontWeight: 500
-                }}
-              >
-                PNL Tracker
-              </div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  color: colors.muted
-                }}
-              >
-                Base PnL dashboard
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={handleSharePnl}
-              disabled={!miniAppSdk || !pnlData}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '999px',
-                border: `1px solid ${colors.border}`,
-                background: colors.pill,
-                color: colors.pillText,
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: !miniAppSdk || !pnlData ? 'default' : 'pointer',
-                opacity: !miniAppSdk || !pnlData ? 0.4 : 1
-              }}
-            >
-              <span style={{ fontSize: '13px' }}>📤</span>
-              <span>Share PnL</span>
-            </button>
-
-            <div
-              style={{
-                padding: '4px 10px',
-                borderRadius: '999px',
-                background:
-                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
-                color:
-                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                fontSize: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <div
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background:
-                    pnlData?.summary?.totalRealizedProfit >= 0
-                      ? colors.success
-                      : colors.error
-                }}
-              />
-              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
-            </div>
+            gap: '6px'
+          }}>
+            <div style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error
+            }} />
+            {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
           </div>
         </header>
+
         {/* User Info */}
         {user && (
           <div style={{
