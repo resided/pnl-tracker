@@ -309,7 +309,7 @@ const TokenRow = ({ token }) => (
       <div style={{
         fontSize: '14px',
         fontWeight: '500',
-        color: token.isProfitable ? colors.success : colors.error,
+        color: token.realizedProfitUsd >= 0 ? colors.success : colors.error,
         fontFeatureSettings: '"tnum" 1, "lnum" 1'
       }}>
         {token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}
@@ -320,6 +320,115 @@ const TokenRow = ({ token }) => (
     </div>
   </div>
 );
+
+// Biggest Win / Loss card
+const BigMoveCard = ({ label, token, isWin }) => {
+  if (!token) return null;
+  const invested = token.totalUsdInvested || 0;
+  const pnl = token.realizedProfitUsd || 0;
+  const realizedValue = invested + pnl;
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        minWidth: 0,
+        padding: '12px 14px',
+        borderRadius: '14px',
+        border: `1px solid ${colors.border}`,
+        background: '#f9fafb',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.16em',
+            color: colors.metricLabel
+          }}
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            padding: '3px 8px',
+            borderRadius: '999px',
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            background: isWin ? '#dcfce7' : '#fee2e2',
+            color: isWin ? '#166534' : '#991b1b'
+          }}
+        >
+          {token.symbol}
+        </div>
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: colors.ink,
+            marginBottom: '4px'
+          }}
+        >
+          {token.name}
+        </div>
+        <div
+          style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: isWin ? colors.success : colors.error,
+            fontFeatureSettings: '"tnum" 1, "lnum" 1'
+          }}
+        >
+          {pnl >= 0 ? '+' : ''}
+          {formatCurrency(pnl)}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '12px',
+          fontSize: '11px',
+          color: colors.muted
+        }}
+      >
+        <div>
+          <div
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              marginBottom: '2px'
+            }}
+          >
+            Invested
+          </div>
+          <div style={{ color: colors.ink }}>{formatCurrency(invested)}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              marginBottom: '2px'
+            }}
+          >
+            Realized value
+          </div>
+          <div style={{ color: colors.ink }}>{formatCurrency(realizedValue)}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Wallet Input Component
 const WalletInput = ({ onSubmit }) => {
@@ -728,6 +837,23 @@ export default function PNLTrackerApp() {
     );
   }
 
+  // derive biggest win / loss from tokens
+  const tokens = pnlData?.tokens || [];
+  const winningTokens = tokens.filter(t => (t.realizedProfitUsd || 0) > 0);
+  const losingTokens = tokens.filter(t => (t.realizedProfitUsd || 0) < 0);
+
+  const biggestWin = winningTokens.reduce(
+    (best, t) =>
+      !best || (t.realizedProfitUsd || 0) > (best.realizedProfitUsd || 0) ? t : best,
+    null
+  );
+
+  const biggestLoss = losingTokens.reduce(
+    (worst, t) =>
+      !worst || (t.realizedProfitUsd || 0) < (worst.realizedProfitUsd || 0) ? t : worst,
+    null
+  );
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -973,6 +1099,47 @@ export default function PNLTrackerApp() {
               <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
             </div>
           </Panel>
+        )}
+
+        {/* Biggest Win / Loss section (above overview) */}
+        {tokens.length > 0 && (biggestWin || biggestLoss) && (
+          <div style={{ marginTop: '20px' }}>
+            <Panel title="Biggest Win · Biggest Loss">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '16px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                {biggestWin && (
+                  <BigMoveCard
+                    label="Biggest win"
+                    token={biggestWin}
+                    isWin={true}
+                  />
+                )}
+                {biggestLoss && (
+                  <BigMoveCard
+                    label="Biggest loss"
+                    token={biggestLoss}
+                    isWin={false}
+                  />
+                )}
+                {!biggestLoss && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: colors.muted,
+                      marginTop: '4px'
+                    }}
+                  >
+                    no losing trades yet.
+                  </div>
+                )}
+              </div>
+            </Panel>
+          </div>
         )}
 
         {/* Tabs */}
