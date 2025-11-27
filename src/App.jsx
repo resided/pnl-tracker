@@ -724,78 +724,107 @@ export default function PNLTrackerApp() {
       
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px' }}>
         {/* Header */}
-        <header style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          marginBottom: '32px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              border: `1px solid ${colors.accent}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px'
-            }}>📊</div>
-            <span style={{
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontSize: '12px',
-              fontWeight: '500'
-            }}>PNL Tracker</span>
-          </div>
-          
-          <div style={{
+        <header
+          style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
-          }}>
+            justifyContent: 'space-between',
+            gap: '16px',
+            marginBottom: '28px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                border: `1px solid ${colors.accent}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px'
+              }}
+            >
+              📊
+            </div>
+            <div>
+              <div
+                style={{
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  fontSize: '12px',
+                  fontWeight: 500
+                }}
+              >
+                PNL Tracker
+              </div>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: colors.muted
+                }}
+              >
+                Base PnL dashboard
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
               onClick={handleSharePnl}
               disabled={!miniAppSdk || !pnlData}
               style={{
-                padding: '6px 10px',
+                padding: '7px 14px',
                 borderRadius: '999px',
-                border: 'none',
-                fontSize: '10px',
+                border: `1px solid ${colors.border}`,
+                background: colors.pill,
+                color: colors.pillText,
+                fontSize: '11px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
-                background: colors.ink,
-                color: '#020617',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
                 cursor: !miniAppSdk || !pnlData ? 'default' : 'pointer',
-                opacity: !miniAppSdk || !pnlData ? 0.5 : 1
+                opacity: !miniAppSdk || !pnlData ? 0.4 : 1
               }}
             >
-              Share PNL
+              <span style={{ fontSize: '13px' }}>📤</span>
+              <span>Share PnL</span>
             </button>
-            <div style={{
-              padding: '4px 10px',
-              borderRadius: '999px',
-              background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
-              color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              fontSize: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <div style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error
-              }} />
+
+            <div
+              style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                background:
+                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
+                color:
+                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <div
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background:
+                    pnlData?.summary?.totalRealizedProfit >= 0
+                      ? colors.success
+                      : colors.error
+                }}
+              />
               {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
             </div>
           </div>
         </header>
-
         {/* User Info */}
         {user && (
           <div style={{
