@@ -493,11 +493,16 @@ export default function PNLTrackerApp() {
             if (hasAccess) {
               await fetchPNLData(userAddresses);
             }
+          } else {
+            // Important fix: no verified wallets so stop showing splash and allow manual mode
+            setManualMode(true);
+            setCheckingGate(false);
           }
         }
 
         setLoading(false);
       } catch (err) {
+        console.error('initialize error', err);
         setLoading(false);
         setCheckingGate(false);
       }
@@ -562,6 +567,7 @@ export default function PNLTrackerApp() {
       setPnlData({ summary, tokens: allTokenData });
       setLoading(false);
     } catch (err) {
+      console.error('fetchPNLData error', err);
       setLoading(false);
     }
   };
