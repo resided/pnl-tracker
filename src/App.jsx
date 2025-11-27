@@ -1044,7 +1044,7 @@ export default function PNLTrackerApp() {
             What this app does
           </div>
           <p style={{ margin: 0 }}>
-            PNL Tracker looks at your <strong>primary Farcaster wallet on Base</strong> and shows
+            PNL Tracker looks at your <strong>primary Farcaster wallet</strong> and shows
             live realized PnL, volume, and win rate. Open it any time to check how your trading is
             doing with instant live data.
           </p>
