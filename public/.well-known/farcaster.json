@@ -1,22 +1,29 @@
+Manifest JSON
 {
-  "accountAssociation": {
-    "header": "",
-    "payload": "",
-    "signature": ""
-  },
-  "miniapp": {
-    "version": "1",
+  "frame": {
     "name": "$PNL",
-    "homeUrl": "https://pnl-tracker-three.vercel.app/",
+    "version": "1",
     "iconUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
+    "homeUrl": "https://pnl-tracker-three.vercel.app",
+    "imageUrl": "https://pnl-tracker-three.vercel.app/image.png",
     "splashImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
     "splashBackgroundColor": "#050816",
-    "primaryCategory": "finance",
-    "tags": ["finance", "analytics", "base"],
+    "webhookUrl": "https://pnl-tracker-three.vercel.app/api/webhook",
     "subtitle": "Farcaster Wallet PnL",
     "description": "See how your Farcaster trading actually performs.",
+    "primaryCategory": "finance",
+    "tags": [
+      "finance",
+      "analytics",
+      "base"
+    ],
     "ogTitle": "PNL Tracker miniapp",
     "ogDescription": "Track your PnL in a clean psycast-style dashboard.",
-    "ogImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg",
+    "ogImageUrl": "https://pnl-tracker-three.vercel.app/icon.svg"
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjM0MjQzMywidHlwZSI6ImF1dGgiLCJrZXkiOiIweDlGYUEzZWMxNjZDMjlCOTU0MjZENWJiQjc5RDNCNDVBZDUxQ0QxYzIifQ",
+    "payload": "eyJkb21haW4iOiJwbmwtdHJhY2tlci10aHJlZS52ZXJjZWwuYXBwIn0",
+    "signature": "QF4WX8QPruXOXgAlY8r+3AKw7Qz5kPFaF9mkH05+S8t252WwyYgkP0AQn/R6X60eYzG2BAmciJuBSuY+5UmTYBs="
   }
 }
