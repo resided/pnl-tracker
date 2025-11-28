@@ -724,21 +724,28 @@ export default function PNLTrackerApp() {
       const { sdk } = await import('@farcaster/miniapp-sdk');
 
       const summary = pnlData?.summary;
-      let text = 'Checking my PnL on Base with the PNL Tracker miniapp.';
+      if (!summary) return;
 
-      if (summary) {
-        const realized = formatCurrency(summary.totalRealizedProfit || 0);
-        const winRate =
-          typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
-        const tokensCount = summary.totalTokensTraded || 0;
-        const direction = (summary.totalRealizedProfit || 0) >= 0 ? 'up' : 'down';
+      const pnlValue = summary.totalRealizedProfit || 0;
+      const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
+      const tokensCount = summary.totalTokensTraded || 0;
+      const username = user?.username || 'user';
+      
+      // Construct the Dynamic Image URL
+      // We use the current window location to ensure it works on Vercel preview & prod
+      const baseUrl = window.location.origin; 
+      const imageUrl = `${baseUrl}/api/og?pnl=${pnlValue}&win=${winRate}&tokens=${tokensCount}&user=${username}`;
 
-        text = `My PnL on Base is ${realized} realised (${direction}), ${winRate}% win rate across ${tokensCount} tokens. Full PNL Tracker is gated by $PNL. Check yours here.`;
-      }
+      const realized = formatCurrency(pnlValue);
+      const direction = pnlValue >= 0 ? 'up' : 'down';
+      const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours here:`;
 
       await sdk.actions.composeCast({
-        text,
-        embeds: ['https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl']
+        text: castText,
+        embeds: [
+          imageUrl, // Vercel generates the image instantly
+          'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl'
+        ]
       });
     } catch (err) {
       console.error('share pnl failed', err);
