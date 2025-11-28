@@ -759,7 +759,8 @@ export default function PNLTrackerApp() {
 
       await sdk.actions.composeCast({
         text: castText,
-        embeds: [imageUrl] 
+        // Embed BOTH the image AND the app link to get visual + frame
+        embeds: [imageUrl, appLink] 
       });
     } catch (err) {
       console.error('share pnl failed', err);
