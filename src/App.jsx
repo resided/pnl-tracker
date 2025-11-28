@@ -2,25 +2,33 @@ import React, { useState, useEffect } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic
-// Token gated: requires 3,000,000 $PNL tokens to access
+// Token gated: requires PNL tokens to access
 
-const DEMO_MODE = false; // Set to false when deployed with real APIs
+const DEMO_MODE = false; // Set to true if you want mock data
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
   import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000';
-const REQUIRED_PNL_BALANCE = 3000000; // 3 million tokens required
+const REQUIRED_PNL_BALANCE = 3000000; // starting gate, adjust after launch
+
+// Chain + tokens for swap sheet (CAIP-19)
+const BASE_ETH_CAIP19 = 'eip155:8453/native';
+const getPnlCaip19 = () =>
+  PNL_TOKEN_ADDRESS && PNL_TOKEN_ADDRESS !== '0x0000000000000000000000000000000000000000'
+    ? `eip155:8453/erc20:${PNL_TOKEN_ADDRESS.toLowerCase()}`
+    : null;
 
 // Mock data for demo/preview mode
 const MOCK_USER = {
   fid: 3,
-  username: 'demo',
-  displayName: 'Demo User'
+  username: 'dwr.eth',
+  displayName: 'Dan Romero',
+  pfpUrl: 'https://i.pravatar.cc/150?u=dwr'
 };
 
 const MOCK_WALLETS = [
-  '0x1234567890abcdef1234567890abcdef12345678',
-  '0xabcdef1234567890abcdef1234567890abcdef12'
+  '0xd7029bdea1c17493893aafe29aad69ef892b8ff2',
+  '0xa14b4c95b5247199d74c5578531b4887ca5e4909'
 ];
 
 const MOCK_PNL_DATA = {
@@ -33,12 +41,12 @@ const MOCK_PNL_DATA = {
     winRate: 67.3
   },
   tokens: [
-    { name: "BRETT", symbol: "BRETT", totalUsdInvested: 5000, realizedProfitUsd: 8420.50, isProfitable: true },
-    { name: "DEGEN", symbol: "DEGEN", totalUsdInvested: 2500, realizedProfitUsd: 3127.25, isProfitable: true },
-    { name: "TOSHI", symbol: "TOSHI", totalUsdInvested: 1800, realizedProfitUsd: 1299.81, isProfitable: true },
-    { name: "NORMIE", symbol: "NORMIE", totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
-    { name: "HIGHER", symbol: "HIGHER", totalUsdInvested: 1200, realizedProfitUsd: 1245.32, isProfitable: true },
-    { name: "ENJOY", symbol: "ENJOY", totalUsdInvested: 800, realizedProfitUsd: -234.12, isProfitable: false }
+    { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true },
+    { name: 'DEGEN', symbol: 'DEGEN', totalUsdInvested: 2500, realizedProfitUsd: 3127.25, isProfitable: true },
+    { name: 'TOSHI', symbol: 'TOSHI', totalUsdInvested: 1800, realizedProfitUsd: 1299.81, isProfitable: true },
+    { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
+    { name: 'HIGHER', symbol: 'HIGHER', totalUsdInvested: 1200, realizedProfitUsd: 1245.32, isProfitable: true },
+    { name: 'ENJOY', symbol: 'ENJOY', totalUsdInvested: 800, realizedProfitUsd: -234.12, isProfitable: false }
   ]
 };
 
@@ -46,12 +54,8 @@ const MOCK_PNL_DATA = {
 const formatCurrency = (value) => {
   if (value === undefined || value === null) return '$0.00';
   const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${value < 0 ? '-' : ''}$${(absValue / 1000000).toFixed(1)}M`;
-  }
-  if (absValue >= 1000) {
-    return `${value < 0 ? '-' : ''}$${(absValue / 1000).toFixed(1)}K`;
-  }
+  if (absValue >= 1000000) return `${value < 0 ? '-' : ''}$${(absValue / 1000000).toFixed(2)}M`;
+  if (absValue >= 1000) return `${value < 0 ? '-' : ''}$${(absValue / 1000).toFixed(2)}K`;
   return `${value < 0 ? '-' : ''}$${absValue.toFixed(2)}`;
 };
 
@@ -68,8 +72,7 @@ const truncateAddress = (address) => {
 
 // CSS Variables matching psycast
 const colors = {
-  bg: '#020617',
-  card: '#020617',
+  bg: '#fafafa',
   ink: '#0b0b0b',
   muted: '#6b7280',
   accent: '#111827',
@@ -84,106 +87,154 @@ const colors = {
 };
 
 // Token Gate Screen Component
-const TokenGateScreen = ({ balance, required, onRetry }) => (
-  <div style={{
-    minHeight: '100vh',
-    background: colors.bg,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-  }}>
-    <div style={{
-      background: colors.panelBg,
-      borderRadius: '18px',
-      border: `1px solid ${colors.border}`,
-      padding: '32px 28px',
-      maxWidth: '400px',
-      width: '100%',
-      boxShadow: '0 18px 45px rgba(15,23,42,0.25)'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '30px',
-            height: '30px',
-            borderRadius: '999px',
-            background: '#eef2ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px'
-          }}>📊</div>
-          <div>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase'
-            }}>PNL Tracker</div>
-            <div style={{ fontSize: '12px', color: colors.muted }}>
-              Access requires 3,000,000 $PNL
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{
-        padding: '12px 14px',
-        borderRadius: '12px',
-        background: '#f9fafb',
+const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
+  <div
+    style={{
+      minHeight: '100vh',
+      background: colors.bg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+    }}
+  >
+    <div
+      style={{
+        background: colors.panelBg,
+        borderRadius: '18px',
         border: `1px solid ${colors.border}`,
-        marginBottom: '16px'
-      }}>
-        <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '4px' }}>
-          Your $PNL balance
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ fontSize: '20px', fontWeight: 600 }}>
-            {formatNumber(balance || 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: colors.muted }}>
-            Required: {formatNumber(required)}
-          </div>
-        </div>
-        <div style={{
-          marginTop: '8px',
-          fontSize: '11px',
-          color: '#b91c1c',
+        padding: '32px 28px',
+        maxWidth: '400px',
+        width: '100%',
+        boxShadow: '0 14px 35px rgba(15,23,42,0.08)',
+        textAlign: 'center'
+      }}
+    >
+      <div
+        style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          background: '#fef2f2',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px'
-        }}>
-          <span style={{
-            width: '18px',
-            height: '18px',
-            borderRadius: '999px',
-            border: '1px solid #fecaca',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '11px'
-          }}>!</span>
-          You need at least 3,000,000 $PNL in your wallet to use this app.
-        </div>
+          justifyContent: 'center',
+          margin: '0 auto 20px',
+          fontSize: '28px'
+        }}
+      >
+        🔒
       </div>
 
-      <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '14px' }}>
-        Buy or bridge $PNL into your Warpcast wallet, then tap refresh once the
-        transaction confirms.
+      <div
+        style={{
+          fontSize: '10px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.16em',
+          color: colors.metricLabel,
+          marginBottom: '8px'
+        }}
+      >
+        Token Gated Access
+      </div>
+
+      <h2
+        style={{
+          fontSize: '18px',
+          fontWeight: '600',
+          color: colors.ink,
+          margin: '0 0 12px'
+        }}
+      >
+        Insufficient $PNL Balance
+      </h2>
+
+      <p
+        style={{
+          fontSize: '13px',
+          color: colors.muted,
+          lineHeight: '1.6',
+          margin: '0 0 24px'
+        }}
+      >
+        you need to hold at least{' '}
+        <strong style={{ color: colors.ink }}>{formatNumber(required)} $PNL</strong> tokens to
+        access the full PNL Tracker. tap <strong>Get $PNL</strong> to open the swap sheet, then
+        hit <strong>Retry</strong> after swapping.
+      </p>
+
+      <div
+        style={{
+          background: '#f9fafb',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '24px',
+          border: `1px solid ${colors.border}`
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px'
+          }}
+        >
+          <span
+            style={{
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: colors.metricLabel
+            }}
+          >
+            Your Balance
+          </span>
+          <span
+            style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: colors.error,
+              fontFeatureSettings: '"tnum" 1, "lnum" 1'
+            }}
+          >
+            {formatNumber(balance)} $PNL
+          </span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <span
+            style={{
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: colors.metricLabel
+            }}
+          >
+            Required
+          </span>
+          <span
+            style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: colors.ink,
+              fontFeatureSettings: '"tnum" 1, "lnum" 1'
+            }}
+          >
+            {formatNumber(required)} $PNL
+          </span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px' }}>
-        <a
-          href="https://app.uniswap.org"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={onGetAccess}
           style={{
             flex: 1,
             padding: '11px 16px',
@@ -193,14 +244,13 @@ const TokenGateScreen = ({ balance, required, onRetry }) => (
             fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: '0.16em',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
+            border: 'none',
+            cursor: 'pointer',
             fontWeight: '500'
           }}
-        >Buy $PNL</a>
+        >
+          Get $PNL
+        </button>
         <button
           onClick={onRetry}
           style={{
@@ -209,281 +259,338 @@ const TokenGateScreen = ({ balance, required, onRetry }) => (
             borderRadius: '999px',
             background: colors.panelBg,
             color: colors.accent,
+            border: `1px solid ${colors.accent}`,
             fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: '0.16em',
-            border: `1px solid ${colors.border}`
+            cursor: 'pointer',
+            fontWeight: '500'
           }}
         >
-          Refresh
+          Retry
         </button>
       </div>
     </div>
   </div>
 );
 
-// Summary Metric Component
-const SummaryMetric = ({ label, value, suffix, tone }) => {
-  let color = colors.metricValue;
-  if (tone === 'good') color = colors.success;
-  if (tone === 'bad') color = colors.error;
+// Simple error screen (no free access)
+const ErrorScreen = ({ title, message }) => (
+  <div
+    style={{
+      minHeight: '100vh',
+      background: colors.bg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+    }}
+  >
+    <div
+      style={{
+        background: colors.panelBg,
+        borderRadius: '18px',
+        border: `1px solid ${colors.border}`,
+        padding: '28px 24px',
+        maxWidth: '380px',
+        width: '100%',
+        textAlign: 'center'
+      }}
+    >
+      <div
+        style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '50%',
+          border: `1px solid ${colors.accent}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 14px',
+          fontSize: '18px'
+        }}
+      >
+        ⚠️
+      </div>
+      <div
+        style={{
+          fontSize: '12px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.16em',
+          color: colors.metricLabel,
+          marginBottom: '8px'
+        }}
+      >
+        {title}
+      </div>
+      <p
+        style={{
+          fontSize: '13px',
+          color: colors.muted,
+          lineHeight: 1.6,
+          margin: 0
+        }}
+      >
+        {message}
+      </p>
+    </div>
+  </div>
+);
 
-  return (
-    <div style={{ flex: 1, minWidth: '0' }}>
-      <div style={{
+// Metric Component
+const Metric = ({ label, value, isPositive }) => (
+  <div style={{ minWidth: '100px' }}>
+    <div
+      style={{
         fontSize: '11px',
         textTransform: 'uppercase',
-        letterSpacing: '0.14em',
+        letterSpacing: '0.16em',
         color: colors.metricLabel,
-        marginBottom: '4px'
-      }}>{label}</div>
-      <div style={{ fontSize: '18px', fontWeight: 600, color }}>
-        {value}{suffix && <span style={{ fontSize: '13px', marginLeft: '3px', color: colors.muted }}>{suffix}</span>}
-      </div>
+        marginBottom: '6px'
+      }}
+    >
+      {label}
     </div>
-  );
-};
+    <div
+      style={{
+        fontSize: '18px',
+        fontWeight: '500',
+        fontFeatureSettings: '"tnum" 1, "lnum" 1',
+        color: isPositive === undefined ? colors.metricValue : isPositive ? colors.success : colors.error
+      }}
+    >
+      {value}
+    </div>
+  </div>
+);
 
+// Panel Component
 const Panel = ({ title, subtitle, children }) => (
-  <div style={{
-    background: colors.panelBg,
-    borderRadius: '18px',
-    border: `1px solid ${colors.border}`,
-    padding: '20px 18px 16px',
-    boxShadow: '0 14px 35px rgba(15,23,42,0.08)'
-  }}>
+  <div
+    style={{
+      background: colors.panelBg,
+      borderRadius: '18px',
+      border: `1px solid ${colors.border}`,
+      padding: '20px 18px 16px',
+      boxShadow: '0 14px 35px rgba(15,23,42,0.08)'
+    }}
+  >
     {(title || subtitle) && (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '14px'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '14px'
+        }}
+      >
         {title && (
-          <div style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.16em',
+              fontSize: '10px',
+              color: colors.metricLabel
+            }}
+          >
             {title}
           </div>
         )}
         {subtitle && (
-          <div style={{ fontSize: '11px', color: colors.muted }}>
+          <div
+            style={{
+              fontSize: '11px',
+              color: colors.muted
+            }}
+          >
             {subtitle}
           </div>
         )}
       </div>
     )}
-    <div>
-      {children}
-    </div>
+    {children}
   </div>
 );
 
+// Token Row Component
 const TokenRow = ({ token }) => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 0',
-    borderBottom: `1px solid ${colors.border}`
-  }}>
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '12px 0',
+      borderBottom: `1px solid ${colors.border}`
+    }}
+  >
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <div style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
-        background: '#f3f4f6',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '14px',
-        fontWeight: '600',
-        color: colors.accent,
-        border: `1px solid ${colors.border}`
-      }}>{token.symbol?.charAt(0)}</div>
+      <div
+        style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          background: '#f3f4f6',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: colors.accent,
+          border: `1px solid ${colors.border}`
+        }}
+      >
+        {token.symbol?.charAt(0)}
+      </div>
       <div>
-        <div style={{ fontSize: '14px', fontWeight: '500', color: colors.ink }}>{token.symbol}</div>
-        <div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div>
+        <div
+          style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: colors.ink
+          }}
+        >
+          {token.symbol}
+        </div>
+        <div
+          style={{
+            fontSize: '11px',
+            color: colors.muted
+          }}
+        >
+          {token.name}
+        </div>
       </div>
     </div>
     <div style={{ textAlign: 'right' }}>
-      <div style={{
-        fontSize: '14px',
-        fontWeight: '500',
-        color: token.isProfitable ? colors.success : colors.error,
-        fontFeatureSettings: '"tnum" 1, "lnum" 1'
-      }}>
-        {token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}
+      <div
+        style={{
+          fontSize: '14px',
+          fontWeight: '500',
+          color: token.realizedProfitUsd >= 0 ? colors.success : colors.error,
+          fontFeatureSettings: '"tnum" 1, "lnum" 1'
+        }}
+      >
+        {token.realizedProfitUsd >= 0 ? '+' : ''}
+        {formatCurrency(token.realizedProfitUsd)}
       </div>
-      <div style={{ fontSize: '11px', color: colors.muted }}>
+      <div
+        style={{
+          fontSize: '11px',
+          color: colors.muted
+        }}
+      >
         {formatCurrency(token.totalUsdInvested)} invested
       </div>
     </div>
   </div>
 );
 
-const TradeHighlightCard = ({ label, token, mode }) => {
-  const baseStyle = {
-    flex: 1,
-    minWidth: '0',
-    padding: '12px 12px',
-    borderRadius: '14px',
-    border: `1px solid ${colors.border}`,
-    background: colors.panelBg,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  };
-
-  const labelStyle = {
-    fontSize: '11px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.12em',
-    color: colors.metricLabel
-  };
-
-  if (!token) {
-    return (
-      <div style={baseStyle}>
-        <div style={labelStyle}>{label}</div>
-        <div style={{ fontSize: '13px', color: colors.muted }}>
-          not enough data yet
-        </div>
-      </div>
-    );
-  }
-
-  let headline = '';
-  let chipText = '';
-  let accentColor = colors.accent;
-  let caption = '';
-  const title = token.symbol || token.name || '';
-
-  if (mode === 'win' || mode === 'loss') {
-    const invested = token.totalUsdInvested || 0;
-    const realized = token.realizedProfitUsd || 0;
-    const pct = invested > 0 ? (realized / invested) * 100 : 0;
-    headline = formatCurrency(realized);
-    chipText = mode === 'win' ? 'realized profit' : 'realized loss';
-    accentColor = mode === 'win' ? '#16a34a' : '#b91c1c';
-    caption = `Invested ${formatCurrency(invested)} · ${pct.toFixed(1)}%`;
-  } else if (mode === 'fumble') {
-    const missed = token.missedUpsideUsd || 0;
-    const sold = token.totalSoldUsd || 0;
-    const worthNow = token.currentValueSoldTokens || 0;
-    const multiple = sold > 0 ? worthNow / sold : 0;
-    headline = formatCurrency(missed);
-    chipText = 'missed upside';
-    accentColor = '#854d0e';
-    if (sold > 0 && worthNow > 0) {
-      const multipleText = multiple > 0 ? ` (${multiple.toFixed(1)}×)` : '';
-      caption = `Sold ~${formatCurrency(sold)} · would be ${formatCurrency(worthNow)} now${multipleText}`;
-    } else {
-      caption = 'closed positions that would now be worth more if held';
-    }
-  }
+// Biggest Win / Loss card
+const BigMoveCard = ({ label, token, isWin }) => {
+  if (!token) return null;
+  const invested = token.totalUsdInvested || 0;
+  const pnl = token.realizedProfitUsd || 0;
+  const realizedValue = invested + pnl;
 
   return (
-    <div style={baseStyle}>
-      <div style={labelStyle}>{label}</div>
-      <div style={{ fontSize: '14px', fontWeight: 500, color: colors.ink }}>
-        {title}
-      </div>
-      <div style={{
+    <div
+      style={{
+        flex: 1,
+        minWidth: 0,
+        padding: '12px 14px',
+        borderRadius: '14px',
+        border: `1px solid ${colors.border}`,
+        background: '#f9fafb',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: '4px'
-      }}>
-        <div style={{ fontSize: '18px', fontWeight: 600, color: accentColor }}>
-          {headline}
+        flexDirection: 'column',
+        gap: '8px'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.16em',
+            color: colors.metricLabel
+          }}
+        >
+          {label}
         </div>
-        {chipText && (
-          <span style={{
-            padding: '4px 8px',
+        <div
+          style={{
+            padding: '3px 8px',
             borderRadius: '999px',
             fontSize: '10px',
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
-            border: `1px solid ${accentColor}`,
-            color: accentColor
-          }}>
-            {chipText}
-          </span>
-        )}
-      </div>
-      {caption && (
-        <div style={{
-          marginTop: '4px',
-          fontSize: '11px',
-          color: colors.muted
-        }}>
-          {caption}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Wallet Input Component
-const WalletInput = ({ onSubmit }) => {
-  const [address, setAddress] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
-      setError('enter a valid ethereum address');
-      return;
-    }
-    setError('');
-    onSubmit(address);
-  };
-
-  return (
-    <div>
-      <label style={{
-        display: 'block',
-        fontSize: '11px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.14em',
-        color: colors.metricLabel,
-        marginBottom: '6px'
-      }}>Wallet Address</label>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <input
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="0x..."
-          style={{
-            flex: 1,
-            padding: '9px 11px',
-            borderRadius: '999px',
-            border: `1px solid ${colors.border}`,
-            fontSize: '13px',
-            background: '#f9fafb',
-            outline: 'none',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
-          }}
-        />
-        <button
-          onClick={handleSubmit}
-          style={{
-            padding: '9px 14px',
-            borderRadius: '999px',
-            background: colors.accent,
-            color: colors.pillText,
-            border: 'none',
-            fontSize: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em'
+            background: isWin ? '#dcfce7' : '#fee2e2',
+            color: isWin ? '#166534' : '#991b1b'
           }}
         >
-          Load
-        </button>
+          {token.symbol}
+        </div>
       </div>
-      {error && (
-        <div style={{ fontSize: '11px', color: colors.error, marginTop: '8px' }}>{error}</div>
-      )}
+
+      <div>
+        <div
+          style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: colors.ink,
+            marginBottom: '4px'
+          }}
+        >
+          {token.name}
+        </div>
+        <div
+          style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: isWin ? colors.success : colors.error,
+            fontFeatureSettings: '"tnum" 1, "lnum" 1'
+          }}
+        >
+          {pnl >= 0 ? '+' : ''}
+          {formatCurrency(pnl)}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '12px',
+          fontSize: '11px',
+          color: colors.muted
+        }}
+      >
+        <div>
+          <div
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              marginBottom: '2px'
+            }}
+          >
+            Invested
+          </div>
+          <div style={{ color: colors.ink }}>{formatCurrency(invested)}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              marginBottom: '2px'
+            }}
+          >
+            Realized value
+          </div>
+          <div style={{ color: colors.ink }}>{formatCurrency(realizedValue)}</div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -497,18 +604,66 @@ export default function PNLTrackerApp() {
   const [pnlData, setPnlData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [manualMode, setManualMode] = useState(false);
-  const [checkingGate, setCheckingGate] = useState(true);
+
+  // Token gate state
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
+  const [checkingGate, setCheckingGate] = useState(true);
+
+  // Environment error (no Farcaster context, no wallets, etc)
+  const [envError, setEnvError] = useState(null);
+
+  // Share PnL via Farcaster composeCast
+  const handleSharePnL = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+
+      const summary = pnlData?.summary;
+      let text = 'Checking my PnL on Base with the PNL Tracker miniapp.';
+
+      if (summary) {
+        const realized = formatCurrency(summary.totalRealizedProfit || 0);
+        const winRate =
+          typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
+        const tokens = summary.totalTokensTraded || 0;
+        const direction = (summary.totalRealizedProfit || 0) >= 0 ? 'up' : 'down';
+
+        text = `My PnL on Base is ${realized} realised (${direction}), ${winRate}% win rate across ${tokens} tokens. Full PNL Tracker is gated by $PNL. Check yours here.`;
+      }
+
+      await sdk.actions.composeCast({
+        text,
+        embeds: ['https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl']
+      });
+    } catch (err) {
+      console.error('share pnl failed', err);
+    }
+  };
+
+  // Open built in swap sheet to buy $PNL
+  const handleSwapForAccess = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const pnlCaip19 = getPnlCaip19();
+
+      if (!pnlCaip19) {
+        await sdk.actions.openUrl('https://app.uniswap.org');
+        return;
+      }
+
+      await sdk.actions.swapToken({
+        sellToken: BASE_ETH_CAIP19,
+        buyToken: pnlCaip19
+      });
+    } catch (err) {
+      console.error('swap for $PNL failed', err);
+    }
+  };
 
   // Check token balance for gating
   const checkTokenGate = async (address) => {
-    // Temporary: skip token gate while PNL token is not configured
-    if (
-      !PNL_TOKEN_ADDRESS ||
-      PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000'
-    ) {
+    // skip gate if PNL token not configured (dev only)
+    if (!PNL_TOKEN_ADDRESS || PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000') {
       setTokenBalance(0);
       setCheckingGate(false);
       setIsGated(false);
@@ -516,30 +671,31 @@ export default function PNLTrackerApp() {
     }
 
     if (DEMO_MODE) {
-      await new Promise(r => setTimeout(r, 300));
-      setTokenBalance(REQUIRED_PNL_BALANCE);
+      await new Promise((r) => setTimeout(r, 500));
+      setTokenBalance(2500000);
       setCheckingGate(false);
-      setIsGated(false);
       return true;
     }
 
     try {
       const response = await fetch(
-        `https://deep-index.moralis.io/api/v2.2/wallets/${address}/tokens?chain=base`,
+        `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
         {
           headers: {
-            'accept': 'application/json',
+            accept: 'application/json',
             'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || ''
           }
         }
       );
+
       const data = await response.json();
       const pnlToken = data?.[0];
-      const balance = pnlToken ? parseInt(pnlToken.balance) / (10 ** (pnlToken.decimals || 18)) : 0;
-      
+      const balance =
+        pnlToken ? parseInt(pnlToken.balance) / 10 ** (pnlToken.decimals || 18) : 0;
+
       setTokenBalance(balance);
       setCheckingGate(false);
-      
+
       if (balance < REQUIRED_PNL_BALANCE) {
         setIsGated(true);
         return false;
@@ -554,62 +710,56 @@ export default function PNLTrackerApp() {
     }
   };
 
+  // Fetch PNL data - OPTIMIZED FOR PARALLEL FETCHING
   const fetchPNLData = async (addresses) => {
     try {
       setLoading(true);
-      
+
       if (DEMO_MODE) {
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 600));
         setPnlData(MOCK_PNL_DATA);
         setLoading(false);
         return;
       }
 
-      const allTokenData = [];
-      let totalRealized = 0;
-      let totalVolume = 0;
-      const tokenAddressesForFumble = new Set();
-
-      for (const address of addresses) {
-        const response = await fetch(
+      // Fetch all addresses in parallel using Promise.all
+      const fetchPromises = addresses.map(address => 
+        fetch(
           `https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base`,
           {
             headers: {
-              'accept': 'application/json',
+              accept: 'application/json',
               'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || ''
             }
           }
-        );
-        
-        const data = await response.json();
+        ).then(res => res.json())
+      );
+
+      const results = await Promise.all(fetchPromises);
+
+      const allTokenData = [];
+      let totalRealized = 0;
+      let totalVolume = 0;
+
+      results.forEach(data => {
         if (data.result) {
           data.result.forEach((token) => {
             const invested = parseFloat(token.total_usd_invested) || 0;
             const realized = parseFloat(token.realized_profit_usd) || 0;
-            const tokenAddress = token.token_address ? token.token_address.toLowerCase() : null;
-            const totalTokensSold = parseFloat(token.total_tokens_sold) || 0;
-            const totalSoldUsd = parseFloat(token.total_sold_usd) || 0;
 
             allTokenData.push({
               name: token.name,
               symbol: token.symbol,
-              tokenAddress,
               totalUsdInvested: invested,
               realizedProfitUsd: realized,
-              isProfitable: realized > 0,
-              totalTokensSold,
-              totalSoldUsd
+              isProfitable: realized > 0
             });
 
             totalRealized += realized;
             totalVolume += invested;
-
-            if (tokenAddress && totalTokensSold > 0 && totalSoldUsd > 0) {
-              tokenAddressesForFumble.add(tokenAddress);
-            }
           });
         }
-      }
+      });
 
       const profitableTokens = allTokenData.filter((t) => t.isProfitable).length;
       const summary = {
@@ -621,117 +771,30 @@ export default function PNLTrackerApp() {
         winRate: allTokenData.length > 0 ? (profitableTokens / allTokenData.length) * 100 : 0
       };
 
-      // Biggest win and loss by realized PnL
-      let biggestWin = null;
-      let biggestLoss = null;
-
-      allTokenData.forEach((token) => {
-        if (token.realizedProfitUsd > 0) {
-          if (!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) {
-            biggestWin = token;
-          }
-        }
-        if (token.realizedProfitUsd < 0) {
-          if (!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) {
-            biggestLoss = token;
-          }
-        }
-      });
-
-      // Biggest fumble: tokens you sold that would be worth more today if you had just held
-      let biggestFumble = null;
-      if (tokenAddressesForFumble.size > 0) {
-        try {
-          const priceResponse = await fetch(
-            `https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=base`,
-            {
-              method: 'POST',
-              headers: {
-                accept: 'application/json',
-                'content-type': 'application/json',
-                'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || ''
-              },
-              body: JSON.stringify({
-                tokens: Array.from(tokenAddressesForFumble).map((addr) => ({
-                  token_address: addr
-                }))
-              })
-            }
-          );
-          const pricePayload = await priceResponse.json();
-          const priceArray = Array.isArray(pricePayload)
-            ? pricePayload
-            : pricePayload.result || pricePayload.tokens || [];
-
-          const priceMap = new Map();
-          priceArray.forEach((p) => {
-            const addr = (p.tokenAddress || p.token_address || '').toLowerCase();
-            const rawUsd =
-              p.usdPrice !== undefined
-                ? p.usdPrice
-                : p.usd_price !== undefined
-                ? p.usd_price
-                : p.usdPriceFormatted;
-            const usdPrice = parseFloat(rawUsd) || 0;
-            if (addr && usdPrice > 0) {
-              priceMap.set(addr, usdPrice);
-            }
-          });
-
-          allTokenData.forEach((token) => {
-            if (!token.tokenAddress || !token.totalTokensSold || !token.totalSoldUsd) return;
-            const priceUsd = priceMap.get(token.tokenAddress);
-            if (!priceUsd) return;
-
-            const currentValueSoldTokens = token.totalTokensSold * priceUsd;
-            const missedUpsideUsd = currentValueSoldTokens - token.totalSoldUsd;
-            if (missedUpsideUsd <= 0) return;
-
-            if (!biggestFumble || missedUpsideUsd > biggestFumble.missedUpsideUsd) {
-              biggestFumble = {
-                ...token,
-                missedUpsideUsd,
-                currentValueSoldTokens,
-                currentPriceUsd: priceUsd
-              };
-            }
-          });
-        } catch (priceErr) {
-          console.log('error while computing fumble metric', priceErr);
-        }
-      }
-
-      setPnlData({ summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble });
+      setPnlData({ summary, tokens: allTokenData });
       setLoading(false);
     } catch (err) {
+      console.error('fetchPNLData error', err);
       setLoading(false);
     }
   };
 
-  const handleManualWallet = async (address) => {
-    const hasAccess = await checkTokenGate(address);
-    if (hasAccess) {
-      await fetchPNLData([address]);
-      setManualMode(false);
-    }
-  };
-
+  // Initialize
   useEffect(() => {
-    const init = async () => {
-      if (DEMO_MODE) {
-        setUser(MOCK_USER);
-        setWallets(MOCK_WALLETS);
-        setPrimaryWallet(MOCK_WALLETS[0]);
-        setActiveScope('primary');
-        setCheckingGate(false);
-        setIsGated(false);
-        setTokenBalance(REQUIRED_PNL_BALANCE);
-        await fetchPNLData([MOCK_WALLETS[0]]);
-        setLoading(false);
-        return;
-      }
-
+    const initialize = async () => {
       try {
+        setLoading(true);
+
+        if (DEMO_MODE) {
+          await new Promise((r) => setTimeout(r, 800));
+          setUser(MOCK_USER);
+          setWallets(MOCK_WALLETS);
+          await checkTokenGate(MOCK_WALLETS[0]);
+          setPnlData(MOCK_PNL_DATA);
+          setLoading(false);
+          return;
+        }
+
         let fid = null;
         try {
           const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -739,11 +802,16 @@ export default function PNLTrackerApp() {
           if (context?.user?.fid) {
             fid = context.user.fid;
             setUser(context.user);
+          } else {
+            setEnvError('PNL Tracker needs a Farcaster user context. Open this miniapp from Warpcast.');
+            setCheckingGate(false);
+            setLoading(false);
+            return;
           }
           sdk.actions.ready();
         } catch (err) {
-          console.log('Not in Farcaster context, using manual mode');
-          setManualMode(true);
+          console.log('Not in Farcaster context');
+          setEnvError('PNL Tracker runs as a Farcaster miniapp. Open it from Warpcast to use it.');
           setCheckingGate(false);
           setLoading(false);
           return;
@@ -754,16 +822,22 @@ export default function PNLTrackerApp() {
             `https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`,
             {
               headers: {
-                'accept': 'application/json',
-                'api_key': import.meta.env.VITE_NEYNAR_API_KEY || ''
+                accept: 'application/json',
+                api_key: import.meta.env.VITE_NEYNAR_API_KEY || ''
               }
             }
           );
           const neynarData = await neynarResponse.json();
           const primaryEth =
             neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
-          const allEth =
-            neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+
+          if (allEth.length === 0) {
+            setEnvError('No verified Base wallets found for your Farcaster account.');
+            setCheckingGate(false);
+            setLoading(false);
+            return;
+          }
 
           setWallets(allEth);
           if (primaryEth) {
@@ -782,28 +856,28 @@ export default function PNLTrackerApp() {
               await fetchPNLData(initialAddresses);
             }
           }
-
-          setLoading(false);
-        } else {
-          setManualMode(true);
-          setCheckingGate(false);
-          setLoading(false);
         }
-      } catch (err) {
-        console.error('init error', err);
-        setManualMode(true);
+
         setCheckingGate(false);
         setLoading(false);
+      } catch (err) {
+        console.error('initialize error', err);
+        setEnvError('Something went wrong initialising PNL Tracker.');
+        setLoading(false);
+        setCheckingGate(false);
       }
     };
 
-    init();
+    initialize();
   }, []);
 
-  const handleScopeChange = async (scope) => {
+  const handleWalletScopeChange = async (event) => {
+    const scope = event.target.value;
     setActiveScope(scope);
-    let addresses = [];
 
+    if (DEMO_MODE) return;
+
+    let addresses = [];
     if (scope === 'all') {
       addresses = wallets;
     } else if (scope === 'primary') {
@@ -828,260 +902,461 @@ export default function PNLTrackerApp() {
     }
   };
 
-  // Show token gate screen
-  if (isGated && !DEMO_MODE) {
+  // Loading state
+  if (loading || checkingGate) {
     return (
-      <TokenGateScreen 
-        balance={tokenBalance}
-        required={REQUIRED_PNL_BALANCE}
-        onRetry={handleRetryGate}
+      <div
+        style={{
+          minHeight: '100vh',
+          background: colors.bg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              border: '2px solid #e5e7eb',
+              borderTopColor: '#111827',
+              borderRadius: '50%',
+              margin: '0 auto 16px',
+              animation: 'spin 0.8s linear infinite'
+            }}
+          />
+          <div
+            style={{
+              fontSize: '12px',
+              color: colors.muted,
+              textTransform: 'lowercase',
+              letterSpacing: '0.12em'
+            }}
+          >
+            {checkingGate ? 'checking $pnl balance' : 'loading pnl data'}
+          </div>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // Environment errors: no Farcaster context, no wallets, etc
+  if (envError) {
+    return (
+      <ErrorScreen
+        title="Access Locked"
+        message={envError}
       />
     );
   }
 
-  // Splash while loading context / gate
-  if (checkingGate || loading) {
+  // Show token gate screen
+  if (isGated && !DEMO_MODE) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.bg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-      }}>
-        <div style={{
-          background: colors.panelBg,
-          borderRadius: '18px',
-          border: `1px solid ${colors.border}`,
-          padding: '26px 24px',
-          width: '86%',
-          maxWidth: '420px',
-          boxShadow: '0 18px 45px rgba(15,23,42,0.25)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-            <div style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '999px',
-              background: '#eef2ff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '16px'
-            }}>📊</div>
-            <div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase'
-              }}>PNL Tracker</div>
-              <div style={{ fontSize: '12px', color: colors.muted }}>
-                analysing your wallet
-              </div>
-            </div>
-          </div>
-          <div style={{
-            height: '4px',
-            borderRadius: '999px',
-            background: '#e5e7eb',
-            overflow: 'hidden',
-            position: 'relative'
-          }}>
-            <div style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: '40%',
-              borderRadius: '999px',
-              background: '#111827',
-              animation: 'pnl-loading 1.4s infinite ease-in-out'
-            }} />
-          </div>
-          <div style={{ marginTop: '10px', fontSize: '12px', color: colors.muted }}>
-            pulling trade history and computing realized pnl
-          </div>
-        </div>
-      </div>
+      <TokenGateScreen
+        balance={tokenBalance}
+        required={REQUIRED_PNL_BALANCE}
+        onRetry={handleRetryGate}
+        onGetAccess={handleSwapForAccess}
+      />
     );
   }
 
-  // Manual mode input if Farcaster SDK not available
-  if (manualMode && !isGated) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: colors.bg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-      }}>
-        <div style={{
-          background: colors.panelBg,
-          borderRadius: '18px',
-          border: `1px solid ${colors.border}`,
-          padding: '24px 20px',
-          width: '100%',
-          maxWidth: '420px',
-          boxShadow: '0 18px 45px rgba(15,23,42,0.25)'
-        }}>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              marginBottom: '4px'
-            }}>PNL Tracker</div>
-            <div style={{ fontSize: '12px', color: colors.muted }}>
-              enter an ethereum address to inspect realized pnl and win rate
-            </div>
-          </div>
-          <WalletInput onSubmit={handleManualWallet} />
-        </div>
-      </div>
-    );
-  }
+  // derive biggest win / loss from tokens
+  const tokens = pnlData?.tokens || [];
+  const winningTokens = tokens.filter((t) => (t.realizedProfitUsd || 0) > 0);
+  const losingTokens = tokens.filter((t) => (t.realizedProfitUsd || 0) < 0);
 
-  const summary = pnlData?.summary;
+  const biggestWin =
+    winningTokens.length > 0
+      ? winningTokens.reduce((best, t) =>
+          !best || (t.realizedProfitUsd || 0) > (best.realizedProfitUsd || 0) ? t : best
+        )
+      : null;
+
+  const biggestLoss =
+    losingTokens.length > 0
+      ? losingTokens.reduce((worst, t) =>
+          !worst || (t.realizedProfitUsd || 0) < (worst.realizedProfitUsd || 0) ? t : worst
+        )
+      : null;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: colors.bg,
-      display: 'flex',
-      justifyContent: 'center',
-      padding: '18px 0 36px',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '440px',
-        padding: '0 16px'
-      }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: colors.bg,
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+        WebkitFontSmoothing: 'antialiased'
+      }}
+    >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px' }}>
         {/* Header */}
-        <div style={{ marginBottom: '18px' }}>
-          <div style={{
+        <header
+          style={{
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '30px',
-                height: '30px',
-                borderRadius: '999px',
-                background: '#eef2ff',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: '32px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                border: `1px solid ${colors.accent}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '16px'
-              }}>📊</div>
-              <div>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase'
-                }}>PNL Tracker</div>
-                {user && (
-                  <div style={{ fontSize: '12px', color: colors.muted }}>
-                    for @{user.username}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Summary row */}
-          {summary && (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '10px',
-              marginBottom: '8px'
-            }}>
-              <SummaryMetric
-                label="Realized pnl"
-                value={formatCurrency(summary.totalRealizedProfit)}
-                tone={summary.totalRealizedProfit >= 0 ? 'good' : 'bad'}
-              />
-              <SummaryMetric
-                label="Volume traded"
-                value={formatCurrency(summary.totalTradingVolume)}
-              />
-              <SummaryMetric
-                label="Win rate"
-                value={summary.winRate.toFixed(1)}
-                suffix="%"
-                tone={summary.winRate >= 50 ? 'good' : 'bad'}
-              />
-            </div>
-          )}
-
-          {/* Wallet scope selector */}
-          <div style={{
-            marginTop: '8px',
-            padding: '10px 12px',
-            borderRadius: '12px',
-            border: `1px solid ${colors.border}`,
-            background: colors.panelBg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '10px'
-          }}>
-            <div style={{ fontSize: '12px', color: colors.muted }}>
-              Wallet scope
-            </div>
-            <select
-              value={activeScope}
-              onChange={(e) => handleScopeChange(e.target.value)}
-              style={{
-                flex: 1,
-                fontSize: '12px',
-                padding: '6px 8px',
-                borderRadius: '8px',
-                border: `1px solid ${colors.border}`,
-                background: '#f9fafb'
+                fontSize: '11px'
               }}
             >
-              {primaryWallet && (
-                <option value="primary">
-                  Primary ({truncateAddress(primaryWallet)})
-                </option>
-              )}
-              {wallets.length > 1 && (
-                <option value="all">
-                  All connected ({wallets.length})
-                </option>
-              )}
-              {wallets.map((w) => (
-                <option key={w} value={w}>
-                  {truncateAddress(w)}
-                </option>
-              ))}
-            </select>
+              📊
+            </div>
+            <span
+              style={{
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: '12px',
+                fontWeight: '500'
+              }}
+            >
+              PNL Tracker
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={handleSharePnL}
+              disabled={!pnlData?.summary}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '999px',
+                border: `1px solid ${colors.accent}`,
+                background: colors.panelBg,
+                color: colors.accent,
+                fontSize: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.14em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: pnlData?.summary ? 'pointer' : 'default',
+                opacity: pnlData?.summary ? 1 : 0.6
+              }}
+            >
+              <span>Share PnL</span>
+            </button>
+
+            <div
+              style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                background:
+                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
+                color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <div
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background:
+                    pnlData?.summary?.totalRealizedProfit >= 0
+                      ? colors.success
+                      : colors.error
+                }}
+              />
+              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
+            </div>
+          </div>
+        </header>
+
+        {/* Token Gate Badge */}
+        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-start' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '10px',
+              color: colors.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em'
+            }}
+          >
+            <span>🔐</span>
+            <span>Token Gated · {formatNumber(REQUIRED_PNL_BALANCE)} $PNL Required</span>
           </div>
         </div>
 
+        {/* User Info */}
+        {user && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '24px'
+            }}
+          >
+            {user.pfpUrl && (
+              <img
+                src={user.pfpUrl}
+                alt={user.username}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  border: `1px solid ${colors.border}`
+                }}
+              />
+            )}
+            <div>
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: colors.ink
+                }}
+              >
+                {user.displayName}
+              </div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: colors.muted
+                }}
+              >
+                @{user.username}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Wallet Badge + Scope Selector */}
+        {wallets.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontSize: '11px',
+                color: colors.accent,
+                background: '#f3f4f6',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: `1px solid ${colors.border}`
+              }}
+            >
+              <span style={{ color: colors.muted }}>wallet</span>
+              <span style={{ fontWeight: '600' }}>
+                {activeScope === 'all'
+                  ? 'All verified wallets'
+                  : activeScope === 'primary' && primaryWallet
+                  ? truncateAddress(primaryWallet)
+                  : truncateAddress(wallets[0])}
+              </span>
+            </div>
+
+            {wallets.length > 1 && (
+              <div style={{ marginTop: '10px' }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: colors.muted,
+                    marginBottom: '4px'
+                  }}
+                >
+                  View PnL for:
+                </div>
+                <select
+                  value={activeScope}
+                  onChange={handleWalletScopeChange}
+                  style={{
+                    width: '100%',
+                    fontSize: '12px',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${colors.border}`,
+                    background: colors.panelBg,
+                    color: colors.ink,
+                    fontFamily:
+                      'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+                  }}
+                >
+                  {primaryWallet && (
+                    <option value="primary">Primary · {truncateAddress(primaryWallet)}</option>
+                  )}
+                  <option value="all">All verified wallets combined</option>
+                  {wallets.map((addr) => (
+                    <option key={addr} value={addr}>
+                      {truncateAddress(addr)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Explainer copy */}
+        <div
+          style={{
+            marginBottom: '24px',
+            padding: '12px 14px',
+            borderRadius: '12px',
+            background: colors.panelBg,
+            border: `1px dashed ${colors.border}`,
+            fontSize: '12px',
+            color: colors.muted,
+            lineHeight: '1.6'
+          }}
+        >
+          <div
+            style={{
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.16em',
+              marginBottom: '6px',
+              color: colors.metricLabel
+            }}
+          >
+            What this app does
+          </div>
+          <p style={{ margin: 0 }}>
+            PNL Tracker looks at your <strong>primary Farcaster wallet on Base</strong> and shows
+            live realised PnL, volume and win rate. Open it any time for instant live data.
+          </p>
+          {wallets.length > 1 && (
+            <p style={{ margin: '6px 0 0' }}>
+              Use the wallet menu to switch between your <strong>primary wallet</strong>,{' '}
+              <strong>all verified wallets combined</strong>, or any individual connected wallet.
+            </p>
+          )}
+        </div>
+
+        {/* Main PNL Display */}
+        {pnlData?.summary && (
+          <Panel title="Total Realized P&L" subtitle="Base Chain">
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div
+                style={{
+                  fontSize: '32px',
+                  fontWeight: '600',
+                  color:
+                    pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
+                  fontFeatureSettings: '"tnum" 1, "lnum" 1',
+                  marginBottom: '8px'
+                }}
+              >
+                {pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}
+                {formatCurrency(pnlData.summary.totalRealizedProfit)}
+              </div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 12px',
+                  borderRadius: '999px',
+                  background:
+                    pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2',
+                  color:
+                    pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}
+              >
+                {pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}
+                {Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '24px',
+                borderTop: `1px solid ${colors.border}`,
+                paddingTop: '18px',
+                marginTop: '16px'
+              }}
+            >
+              <Metric
+                label="Volume"
+                value={formatCurrency(pnlData.summary.totalTradingVolume)}
+              />
+              <Metric
+                label="Win Rate"
+                value={`${pnlData.summary.winRate.toFixed(1)}%`}
+                isPositive={pnlData.summary.winRate >= 50}
+              />
+              <Metric
+                label="Tokens"
+                value={pnlData.summary.totalTokensTraded}
+              />
+            </div>
+          </Panel>
+        )}
+
+        {/* Biggest Win / Loss section */}
+        {tokens.length > 0 && (biggestWin || biggestLoss) && (
+          <div style={{ marginTop: '20px' }}>
+            <Panel title="Biggest Win · Biggest Loss">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '16px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                {biggestWin && (
+                  <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />
+                )}
+                {biggestLoss && (
+                  <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />
+                )}
+                {!biggestLoss && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: colors.muted,
+                      marginTop: '4px'
+                    }}
+                  >
+                    no losing trades yet.
+                  </div>
+                )}
+              </div>
+            </Panel>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          marginBottom: '14px'
-        }}>
-          {['overview', 'tokens'].map(tab => (
+        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px' }}>
+          {['overview', 'tokens'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               style={{
-                flex: 1,
                 padding: '9px 16px',
                 borderRadius: '999px',
                 border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
@@ -1092,58 +1367,48 @@ export default function PNLTrackerApp() {
                 letterSpacing: '0.16em',
                 cursor: 'pointer'
               }}
-            >{tab}</button>
+            >
+              {tab}
+            </button>
           ))}
         </div>
 
         {/* Overview Tab */}
         {activeTab === 'overview' && pnlData?.tokens && (
-          <>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '10px',
-              marginBottom: '16px'
-            }}>
-              <TradeHighlightCard
-                label="Biggest win"
-                token={pnlData.biggestWin}
-                mode="win"
-              />
-              <TradeHighlightCard
-                label="Biggest loss"
-                token={pnlData.biggestLoss}
-                mode="loss"
-              />
-              <TradeHighlightCard
-                label="Biggest fumble"
-                token={pnlData.biggestFumble}
-                mode="fumble"
-              />
-            </div>
-
-            <Panel title="Top performers">
-              {pnlData.tokens
-                .filter((t) => t.isProfitable)
-                .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-                .slice(0, 3)
-                .map((token, idx) => (
-                  <TokenRow key={idx} token={token} />
-                ))}
-              {pnlData.tokens.filter((t) => t.isProfitable).length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px', color: colors.muted, fontSize: '13px' }}>
-                  no profitable trades yet
-                </div>
-              )}
-            </Panel>
-          </>
+          <Panel title="Top Performers">
+            {pnlData.tokens
+              .filter((t) => t.isProfitable)
+              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
+              .slice(0, 3)
+              .map((token, idx) => (
+                <TokenRow key={idx} token={token} />
+              ))}
+            {pnlData.tokens.filter((t) => t.isProfitable).length === 0 && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '24px',
+                  color: colors.muted,
+                  fontSize: '13px'
+                }}
+              >
+                no profitable trades yet
+              </div>
+            )}
+          </Panel>
         )}
 
         {/* Tokens Tab */}
         {activeTab === 'tokens' && pnlData?.tokens && (
-          <Panel title="All tokens">
+          <Panel
+            title="All Tokens"
+            subtitle={`${pnlData.tokens.filter((t) => t.isProfitable).length}/${
+              pnlData.tokens.length
+            } profitable`}
+          >
             {pnlData.tokens
-              .sort((a, b) => Math.abs(b.realizedProfitUsd) - Math.abs(a.realizedProfitUsd))
+              .slice()
+              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
               .map((token, idx) => (
                 <TokenRow key={idx} token={token} />
               ))}
@@ -1152,17 +1417,23 @@ export default function PNLTrackerApp() {
 
         {/* Demo Notice */}
         {DEMO_MODE && (
-          <div style={{
-            marginTop: '24px',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            background: '#fefce8',
-            border: '1px solid #fef08a',
-            fontSize: '12px',
-            color: '#854d0e',
-            textAlign: 'center'
-          }}>
-            <strong style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>Demo Mode</strong>
+          <div
+            style={{
+              marginTop: '24px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: '#fefce8',
+              border: '1px solid #fef08a',
+              fontSize: '11px',
+              color: '#854d0e',
+              textAlign: 'center'
+            }}
+          >
+            <strong
+              style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}
+            >
+              Demo Mode
+            </strong>
             <span style={{ margin: '0 8px' }}>·</span>
             sample data shown. deploy with api keys for real tracking.
           </div>
