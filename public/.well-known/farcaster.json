@@ -14,7 +14,7 @@
     "homeUrl": "https://pnl-tracker-three.vercel.app",
     "imageUrl": "https://pnl-tracker-three.vercel.app/trident.png",
     "splashImageUrl": "https://pnl-tracker-three.vercel.app/trident.png",
-    "splashBackgroundColor": "#050816",
+    "splashBackgroundColor": "#fafafa",
     "webhookUrl": "https://api.neynar.com/f/app/a03196be-728d-4ff5-a538-aeb3153a8665/event",
     "subtitle": "Farcaster Wallet PnL",
     "description": "See how your Farcaster trading actually performs.",
