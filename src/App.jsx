@@ -486,33 +486,41 @@ const TokenRow = ({ token }) => (
   </div>
 );
 
-// Biggest Win / Loss card
+// Biggest Win / Loss card (NEW DESIGN)
 const BigMoveCard = ({ label, token, isWin }) => {
   if (!token) return null;
   const invested = token.totalUsdInvested || 0;
   const pnl = token.realizedProfitUsd || 0;
   const realizedValue = invested + pnl;
 
+  // Dynamic colors based on win/loss
+  const bg = isWin ? '#f0fdf4' : '#fef2f2';
+  const border = isWin ? '#bbf7d0' : '#fecaca';
+  const text = isWin ? '#166534' : '#991b1b';
+  const pillBg = isWin ? '#dcfce7' : '#fee2e2';
+
   return (
     <div
       style={{
-        flex: 1,
-        minWidth: 0,
-        padding: '12px 14px',
-        borderRadius: '14px',
-        border: `1px solid ${colors.border}`,
-        background: '#f9fafb',
+        flex: '1 1 140px', // Allow grow/shrink but keep min-width
+        padding: '12px',
+        borderRadius: '16px',
+        border: `1px solid ${border}`,
+        background: bg,
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        justifyContent: 'space-between',
+        gap: '12px'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Top Row: Label + Pill */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div
           style={{
             fontSize: '10px',
+            fontWeight: '600',
             textTransform: 'uppercase',
-            letterSpacing: '0.16em',
+            letterSpacing: '0.05em',
             color: colors.metricLabel
           }}
         >
@@ -520,82 +528,71 @@ const BigMoveCard = ({ label, token, isWin }) => {
         </div>
         <div
           style={{
-            padding: '3px 8px',
-            borderRadius: '999px',
+            padding: '2px 8px',
+            borderRadius: '6px',
             fontSize: '10px',
+            fontWeight: '700',
             textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            background: isWin ? '#dcfce7' : '#fee2e2',
-            color: isWin ? '#166534' : '#991b1b'
+            letterSpacing: '0.05em',
+            background: pillBg,
+            color: text
           }}
         >
           {token.symbol}
         </div>
       </div>
 
+      {/* Middle: Big Number */}
       <div>
         <div
           style={{
-            fontSize: '14px',
-            fontWeight: '500',
-            color: colors.ink,
+            fontSize: '20px',
+            fontWeight: '700',
+            color: text,
+            letterSpacing: '-0.02em',
+            lineHeight: '1',
             marginBottom: '4px'
-          }}
-        >
-          {token.name}
-        </div>
-        <div
-          style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: isWin ? colors.success : colors.error,
-            fontFeatureSettings: '"tnum" 1, "lnum" 1'
           }}
         >
           {pnl >= 0 ? '+' : ''}
           {formatCurrency(pnl)}
         </div>
+        <div style={{ fontSize: '11px', color: colors.muted }}>
+          {token.name}
+        </div>
       </div>
 
+      {/* Bottom: Stats Footer */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          gap: '12px',
-          fontSize: '11px',
-          color: colors.muted
+          paddingTop: '10px',
+          borderTop: `1px dashed ${isWin ? '#bbf7d0' : '#fecaca'}`
         }}
       >
         <div>
-          <div
-            style={{
-              textTransform: 'uppercase',
-              letterSpacing: '0.14em',
-              marginBottom: '2px'
-            }}
-          >
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>
             Invested
           </div>
-          <div style={{ color: colors.ink }}>{formatCurrency(invested)}</div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>
+            {formatCurrency(invested)}
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div
-            style={{
-              textTransform: 'uppercase',
-              letterSpacing: '0.14em',
-              marginBottom: '2px'
-            }}
-          >
-            Realized value
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>
+            Realized
           </div>
-          <div style={{ color: colors.ink }}>{formatCurrency(realizedValue)}</div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>
+            {formatCurrency(realizedValue)}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// Biggest fumble card (same layout vibes, amber theme)
+// Biggest fumble card (NEW DESIGN)
 const BigFumbleCard = ({ token }) => {
   if (!token) return null;
   const sold = token.totalSoldUsd || 0;
@@ -603,78 +600,101 @@ const BigFumbleCard = ({ token }) => {
   const current = token.currentValueSoldTokens || 0;
   const multiple = sold > 0 ? current / sold : 0;
 
+  // Amber/Orange theme
+  const bg = '#fffbeb';
+  const border = '#fde68a';
+  const text = '#92400e';
+  const pillBg = '#fef3c7';
+
   return (
     <div
       style={{
-        flex: 1,
-        minWidth: 0,
-        padding: '12px 14px',
-        borderRadius: '14px',
-        border: `1px solid ${colors.border}`,
-        background: '#fffbeb',
+        flex: '1 1 140px',
+        padding: '12px',
+        borderRadius: '16px',
+        border: `1px solid ${border}`,
+        background: bg,
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        justifyContent: 'space-between',
+        gap: '12px'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Top Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div
           style={{
             fontSize: '10px',
+            fontWeight: '600',
             textTransform: 'uppercase',
-            letterSpacing: '0.16em',
-            color: colors.metricLabel
+            letterSpacing: '0.05em',
+            color: '#b45309'
           }}
         >
-          Biggest fumble
+          Biggest Fumble
         </div>
         <div
           style={{
-            padding: '3px 8px',
-            borderRadius: '999px',
+            padding: '2px 8px',
+            borderRadius: '6px',
             fontSize: '10px',
+            fontWeight: '700',
             textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            background: '#fef3c7',
-            color: '#92400e'
+            letterSpacing: '0.05em',
+            background: pillBg,
+            color: text
           }}
         >
-          Missed upside
+          Missed
         </div>
       </div>
 
+      {/* Middle */}
       <div>
         <div
           style={{
-            fontSize: '14px',
-            fontWeight: '500',
-            color: colors.ink,
+            fontSize: '20px',
+            fontWeight: '700',
+            color: text,
+            letterSpacing: '-0.02em',
+            lineHeight: '1',
             marginBottom: '4px'
-          }}
-        >
-          {token.name || token.symbol}
-        </div>
-        <div
-          style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#92400e',
-            fontFeatureSettings: '"tnum" 1, "lnum" 1'
           }}
         >
           {missed >= 0 ? '+' : ''}
           {formatCurrency(missed)}
         </div>
+        <div style={{ fontSize: '11px', color: '#b45309' }}>
+          {token.name || token.symbol}
+        </div>
       </div>
 
+      {/* Bottom: Stats Footer */}
       <div
         style={{
-          fontSize: '11px',
-          color: colors.muted
+          display: 'flex',
+          justifyContent: 'space-between',
+          paddingTop: '10px',
+          borderTop: `1px dashed ${border}`
         }}
       >
-        Sold ~{formatCurrency(sold)} · would be {formatCurrency(current)} now
-        {multiple > 0 ? ` (${multiple.toFixed(1)}x)` : ''}
+        <div>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>
+            Sold For
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: text }}>
+            {formatCurrency(sold)}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>
+            Worth Now
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: text }}>
+            {formatCurrency(current)}
+            {multiple > 0 && <span style={{ opacity: 0.7, marginLeft: '2px' }}>({multiple.toFixed(1)}x)</span>}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1480,15 +1500,16 @@ export default function PNLTrackerApp() {
           </Panel>
         )}
 
-        {/* Biggest Win / Loss / Fumble section */}
+        {/* Biggest Win / Loss / Fumble section (UPDATED WRAPPER) */}
         {tokens.length > 0 && (biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ marginTop: '20px' }}>
-            <Panel title="Biggest Win · Biggest Loss · Biggest Fumble">
+            <Panel title="Highlights">
               <div
                 style={{
                   display: 'flex',
-                  gap: '16px',
-                  flexWrap: 'wrap'
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  alignItems: 'stretch'
                 }}
               >
                 {biggestWin && (
