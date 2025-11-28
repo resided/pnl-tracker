@@ -72,18 +72,18 @@ const truncateAddress = (address) => {
 
 // CSS Variables matching psycast
 const colors = {
-  bg: '#fafafa',
-  ink: '#0b0b0b',
+  bg: '#020617', // The Deep "Psycast" Blue
+  ink: '#f8fafc',
   muted: '#6b7280',
-  accent: '#111827',
-  border: '#e5e7eb',
-  pill: '#111827',
-  pillText: '#f9fafb',
-  metricLabel: '#9ca3af',
-  metricValue: '#111827',
-  success: '#22c55e',
-  error: '#b91c1c',
-  panelBg: '#ffffff'
+  accent: '#1e293b',
+  border: '#1e293b', // Darker border for dark mode
+  pill: '#f8fafc',
+  pillText: '#020617',
+  metricLabel: '#94a3b8',
+  metricValue: '#f8fafc',
+  success: '#4ade80',
+  error: '#f87171',
+  panelBg: '#0f172a' // Slightly lighter blue for cards
 };
 
 // Token Gate Screen Component
@@ -96,7 +96,8 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+      color: colors.ink
     }}
   >
     <div
@@ -107,7 +108,7 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
         padding: '32px 28px',
         maxWidth: '400px',
         width: '100%',
-        boxShadow: '0 14px 35px rgba(15,23,42,0.08)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
         textAlign: 'center'
       }}
     >
@@ -116,12 +117,13 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
           width: '64px',
           height: '64px',
           borderRadius: '50%',
-          background: '#fef2f2',
+          background: 'rgba(255,255,255,0.05)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 20px',
-          fontSize: '28px'
+          fontSize: '28px',
+          border: `1px solid ${colors.border}`
         }}
       >
         🔒
@@ -166,7 +168,7 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
 
       <div
         style={{
-          background: '#f9fafb',
+          background: 'rgba(255,255,255,0.03)',
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '24px',
@@ -246,7 +248,7 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
             letterSpacing: '0.16em',
             border: 'none',
             cursor: 'pointer',
-            fontWeight: '500'
+            fontWeight: '600'
           }}
         >
           Get $PNL
@@ -257,14 +259,14 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
             flex: 1,
             padding: '11px 16px',
             borderRadius: '999px',
-            background: colors.panelBg,
-            color: colors.accent,
-            border: `1px solid ${colors.accent}`,
+            background: 'transparent',
+            color: colors.ink,
+            border: `1px solid ${colors.border}`,
             fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: '0.16em',
             cursor: 'pointer',
-            fontWeight: '500'
+            fontWeight: '600'
           }}
         >
           Retry
@@ -284,7 +286,8 @@ const ErrorScreen = ({ title, message }) => (
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+      color: colors.ink
     }}
   >
     <div
@@ -303,7 +306,7 @@ const ErrorScreen = ({ title, message }) => (
           width: '42px',
           height: '42px',
           borderRadius: '50%',
-          border: `1px solid ${colors.accent}`,
+          border: `1px solid ${colors.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -373,7 +376,7 @@ const Panel = ({ title, subtitle, children }) => (
       borderRadius: '18px',
       border: `1px solid ${colors.border}`,
       padding: '20px 18px 16px',
-      boxShadow: '0 14px 35px rgba(15,23,42,0.08)'
+      boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
     }}
   >
     {(title || subtitle) && (
@@ -430,13 +433,13 @@ const TokenRow = ({ token }) => (
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          background: '#f3f4f6',
+          background: 'rgba(255,255,255,0.05)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '14px',
           fontWeight: '600',
-          color: colors.accent,
+          color: colors.ink,
           border: `1px solid ${colors.border}`
         }}
       >
@@ -486,18 +489,18 @@ const TokenRow = ({ token }) => (
   </div>
 );
 
-// Biggest Win / Loss card (FIXED: No text squashing)
+// Biggest Win / Loss card (Updated for Dark Mode)
 const BigMoveCard = ({ label, token, isWin }) => {
   if (!token) return null;
   const invested = token.totalUsdInvested || 0;
   const pnl = token.realizedProfitUsd || 0;
   const realizedValue = invested + pnl;
 
-  // Dynamic colors based on win/loss
-  const bg = isWin ? '#f0fdf4' : '#fef2f2';
-  const border = isWin ? '#bbf7d0' : '#fecaca';
-  const text = isWin ? '#166534' : '#991b1b';
-  const pillBg = isWin ? '#dcfce7' : '#fee2e2';
+  // Subtle colors for dark mode
+  const bg = isWin ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+  const border = isWin ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+  const text = isWin ? '#4ade80' : '#f87171';
+  const pillBg = isWin ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)';
 
   return (
     <div
@@ -568,7 +571,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
           display: 'flex',
           justifyContent: 'space-between',
           paddingTop: '10px',
-          borderTop: `1px dashed ${isWin ? '#bbf7d0' : '#fecaca'}`
+          borderTop: `1px dashed ${border}`
         }}
       >
         <div>
@@ -592,7 +595,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
   );
 };
 
-// Biggest fumble card (FIXED: No text squashing)
+// Biggest fumble card (Updated for Dark Mode)
 const BigFumbleCard = ({ token }) => {
   if (!token) return null;
   const sold = token.totalSoldUsd || 0;
@@ -601,10 +604,10 @@ const BigFumbleCard = ({ token }) => {
   const multiple = sold > 0 ? current / sold : 0;
 
   // Amber/Orange theme
-  const bg = '#fffbeb';
-  const border = '#fde68a';
-  const text = '#92400e';
-  const pillBg = '#fef3c7';
+  const bg = 'rgba(245, 158, 11, 0.05)';
+  const border = 'rgba(245, 158, 11, 0.2)';
+  const text = '#fbbf24';
+  const pillBg = 'rgba(245, 158, 11, 0.15)';
 
   return (
     <div
@@ -628,7 +631,7 @@ const BigFumbleCard = ({ token }) => {
             fontWeight: '600',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            color: '#b45309'
+            color: '#d97706'
           }}
         >
           Biggest Fumble
@@ -664,7 +667,7 @@ const BigFumbleCard = ({ token }) => {
           {missed >= 0 ? '+' : ''}
           {formatCurrency(missed)}
         </div>
-        <div style={{ fontSize: '11px', color: '#b45309' }}>
+        <div style={{ fontSize: '11px', color: '#d97706' }}>
           {token.name || token.symbol}
         </div>
       </div>
@@ -679,7 +682,7 @@ const BigFumbleCard = ({ token }) => {
         }}
       >
         <div>
-          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#d97706', marginBottom: '2px' }}>
             Sold For
           </div>
           <div style={{ fontSize: '11px', fontWeight: '600', color: text }}>
@@ -687,7 +690,7 @@ const BigFumbleCard = ({ token }) => {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#d97706', marginBottom: '2px' }}>
             Worth Now
           </div>
           <div style={{ fontSize: '11px', fontWeight: '600', color: text }}>
@@ -718,7 +721,7 @@ export default function PNLTrackerApp() {
   // Environment error (no Farcaster context, no wallets, etc)
   const [envError, setEnvError] = useState(null);
 
-  // Share PnL via Farcaster composeCast (FIXED: Uses Bulletproof Vercel OG Link)
+  // Share PnL via Farcaster composeCast
   const handleSharePnL = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -728,27 +731,29 @@ export default function PNLTrackerApp() {
 
       const pnlValue = summary.totalRealizedProfit || 0;
       const isWin = pnlValue >= 0;
+      const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
       const tokensCount = summary.totalTokensTraded || 0;
-      const username = user?.username || 'user';
       
-      // 1. Format Data
+      // PSYCAST BRANDED IMAGE GENERATION (No Backend Required)
+      // Background: #020617 (Deep Blue)
+      // Text: #f8fafc (Slate White)
+      // Font: Montserrat (Sleek)
+      const bgHex = '020617';
+      const textHex = 'f8fafc'; 
+      
       const realized = formatCurrency(pnlValue);
-      const direction = isWin ? 'up' : 'down';
-      const emoji = isWin ? '📈' : '📉';
+      const sign = isWin ? '+' : '-';
+      const absVal = Math.abs(pnlValue);
+      let shortVal = absVal.toFixed(2);
+      if (absVal >= 1000) shortVal = (absVal / 1000).toFixed(1) + 'k';
       
-      // 2. Generate Image URL
-      // We use standard URL encoding and NO external images to prevent 404s.
-      // Top Text: "📈 PnL: @username"
-      // Bottom Text: "$1,234.56"
-      const topText = `${emoji} PnL: @${username}`;
-      const bottomText = realized;
-      
-      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      
-      // We removed the &images= param to avoid the 404 error from broken external logos
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=dark&md=1&fontSize=100px`;
+      // Formatting the text for the image:
+      // Line 1: Ψ PnL: +$1.2k
+      // Line 2: Win Rate: 65%
+      const imageText = `Ψ PnL: ${sign}$${shortVal}\nWin Rate: ${winRate}%`;
+      const imageUrl = `https://placehold.co/1200x630/${bgHex}/${textHex}/png?text=${encodeURIComponent(imageText)}&font=montserrat`;
 
-      // 3. Create Cast
+      const direction = isWin ? 'up' : 'down';
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
 
@@ -1109,7 +1114,8 @@ export default function PNLTrackerApp() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+          color: colors.ink
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -1117,8 +1123,8 @@ export default function PNLTrackerApp() {
             style={{
               width: '24px',
               height: '24px',
-              border: '2px solid #e5e7eb',
-              borderTopColor: '#111827',
+              border: `2px solid ${colors.border}`,
+              borderTopColor: colors.ink,
               borderRadius: '50%',
               margin: '0 auto 16px',
               animation: 'spin 0.8s linear infinite'
@@ -1189,7 +1195,8 @@ export default function PNLTrackerApp() {
         minHeight: '100vh',
         background: colors.bg,
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-        WebkitFontSmoothing: 'antialiased'
+        WebkitFontSmoothing: 'antialiased',
+        color: colors.ink
       }}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -1211,11 +1218,12 @@ export default function PNLTrackerApp() {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                border: `1px solid ${colors.accent}`,
+                border: `1px solid ${colors.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '11px'
+                fontSize: '11px',
+                background: 'rgba(255,255,255,0.05)'
               }}
             >
               📊
@@ -1239,9 +1247,9 @@ export default function PNLTrackerApp() {
               style={{
                 padding: '6px 12px',
                 borderRadius: '999px',
-                border: `1px solid ${colors.accent}`,
-                background: colors.panelBg,
-                color: colors.accent,
+                border: `1px solid ${colors.border}`,
+                background: 'rgba(255,255,255,0.05)',
+                color: colors.ink,
                 fontSize: '10px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.14em',
@@ -1260,8 +1268,8 @@ export default function PNLTrackerApp() {
                 padding: '4px 10px',
                 borderRadius: '999px',
                 background:
-                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
-                color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
+                  pnlData?.summary?.totalRealizedProfit >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171',
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
                 fontSize: '10px',
@@ -1358,8 +1366,8 @@ export default function PNLTrackerApp() {
                 gap: '10px',
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 fontSize: '11px',
-                color: colors.accent,
-                background: '#f3f4f6',
+                color: colors.ink,
+                background: 'rgba(255,255,255,0.05)',
                 padding: '8px 12px',
                 borderRadius: '8px',
                 border: `1px solid ${colors.border}`
@@ -1422,7 +1430,7 @@ export default function PNLTrackerApp() {
             marginBottom: '24px',
             padding: '12px 14px',
             borderRadius: '12px',
-            background: colors.panelBg,
+            background: 'rgba(255,255,255,0.02)',
             border: `1px dashed ${colors.border}`,
             fontSize: '12px',
             color: colors.muted,
@@ -1477,9 +1485,9 @@ export default function PNLTrackerApp() {
                   padding: '4px 12px',
                   borderRadius: '999px',
                   background:
-                    pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2',
+                    pnlData.summary.profitPercentage >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                   color:
-                    pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b',
+                    pnlData.summary.profitPercentage >= 0 ? '#4ade80' : '#f87171',
                   fontSize: '12px',
                   fontWeight: '500'
                 }}
@@ -1561,8 +1569,8 @@ export default function PNLTrackerApp() {
                 padding: '9px 16px',
                 borderRadius: '999px',
                 border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
-                background: activeTab === tab ? colors.accent : colors.panelBg,
-                color: activeTab === tab ? colors.pillText : colors.muted,
+                background: activeTab === tab ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: activeTab === tab ? colors.ink : colors.muted,
                 fontSize: '11px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.16em',
