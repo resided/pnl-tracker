@@ -161,7 +161,7 @@ const getBadges = (summary) => {
   const badges = [];
   if (!summary) return badges;
   if (summary.winRate >= 60) badges.push({ icon: '🎯', label: 'Sniper' });
-  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Liquidity' });
+  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Exit Liquidity' });
   if (summary.totalTradingVolume > 50000) badges.push({ icon: '🐋', label: 'Whale' });
   if (summary.totalFumbled > 10000) badges.push({ icon: '🧻', label: 'Paper Hands' });
   if (summary.totalRealizedProfit > 10000) badges.push({ icon: '💎', label: 'Diamond' });
