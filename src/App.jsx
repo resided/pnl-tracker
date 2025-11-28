@@ -733,18 +733,17 @@ export default function PNLTrackerApp() {
       const direction = isWin ? 'up' : 'down';
       
       // 2. Generate Bulletproof Image URL (Psycast White Theme)
+      // Using Vercel OG Public generator with no external images to prevent 404s.
+      // We simulate the Psi Logo with the text "( Ψ )"
       
       const topText = `( Ψ ) PnL: @${username}`;
       const bottomText = realized;
       
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       
-      // "Hack" to hide the Vercel triangle:
-      // We pass the WHITE triangle icon, set width/height to 1px.
-      // On a white background (theme=light), it becomes completely invisible.
-      // This leaves just your bold text on a clean white card.
+      // Theme: Light (White background, Black text)
+      // "hack" to remove the triangle: pass a 1px white image (makes it invisible)
       const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
-      
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
 
       // 3. Create Cast
@@ -1643,3 +1642,4 @@ export default function PNLTrackerApp() {
       </div>
     </div>
   );
+}
