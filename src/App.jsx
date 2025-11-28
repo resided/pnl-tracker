@@ -21,13 +21,16 @@ const getPnlCaip19 = () =>
 const MOCK_USER = { fid: 3, username: 'dwr.eth', displayName: 'Dan Romero', pfpUrl: 'https://i.pravatar.cc/150?u=dwr' };
 const MOCK_WALLETS = ['0xd7029bdea1c17493893aafe29aad69ef892b8ff2'];
 
-// Juicy mock data to entice users
+// Juicy mock data (Used for Preview/Background to save API calls)
 const MOCK_PNL_DATA = {
   summary: { totalRealizedProfit: 12847.56, totalUnrealizedProfit: 3421.89, totalTradingVolume: 89432.12, profitPercentage: 18.4, totalTokensTraded: 24, winRate: 67.3 },
   tokens: [
     { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true },
     { name: 'DEGEN', symbol: 'DEGEN', totalUsdInvested: 2500, realizedProfitUsd: 3127.25, isProfitable: true },
     { name: 'TOSHI', symbol: 'TOSHI', totalUsdInvested: 1800, realizedProfitUsd: 1299.81, isProfitable: true },
+    { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
+    { name: 'HIGHER', symbol: 'HIGHER', totalUsdInvested: 1200, realizedProfitUsd: 1245.32, isProfitable: true },
+    { name: 'ENJOY', symbol: 'ENJOY', totalUsdInvested: 800, realizedProfitUsd: -234.12, isProfitable: false }
   ],
   biggestWin: { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true },
   biggestLoss: { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
@@ -162,7 +165,6 @@ export default function PNLTrackerApp() {
   const [checkingGate, setCheckingGate] = useState(true);
   const [envError, setEnvError] = useState(null);
 
-  // Share Handler - SMART
   const handleSharePnL = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -173,12 +175,11 @@ export default function PNLTrackerApp() {
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
 
-      // CASE 1: GATED (Share the "Locked" Teaser)
+      // GATED SHARING (Share the "Teaser" Image)
       if (isGated) {
-          const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
+          // We use the Mock/Teaser data for the image text
+          const winRate = "67.3"; 
           
-          // Text: "Win Rate: 67%" (Unblurred)
-          // Sub: "PnL: LOCKED"
           const topText = `( Ψ ) Win Rate: ${winRate}%`;
           const bottomText = `PnL: LOCKED 🔒`;
           const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
@@ -190,7 +191,7 @@ export default function PNLTrackerApp() {
           return;
       }
 
-      // CASE 2: UNLOCKED (Share Real Stats)
+      // UNLOCKED SHARING (Share Real Stats)
       const pnlValue = summary.totalRealizedProfit || 0;
       const isWin = pnlValue >= 0;
       const tokensCount = summary.totalTokensTraded || 0;
@@ -228,6 +229,7 @@ export default function PNLTrackerApp() {
       setCheckingGate(false); setIsGated(false); return true;
     }
     try {
+      // Only costs 1 API call
       const response = await fetch(
         `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
         { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }
@@ -253,6 +255,7 @@ export default function PNLTrackerApp() {
         await new Promise((r) => setTimeout(r, 600));
         setPnlData(MOCK_PNL_DATA); setLoading(false); return;
       }
+      // ... Cache checking logic ... 
       let cacheKey = null;
       if (typeof window !== 'undefined' && Array.isArray(addresses) && addresses.length > 0) {
         const sortedAddresses = addresses.map((a) => a.toLowerCase()).sort();
@@ -268,11 +271,14 @@ export default function PNLTrackerApp() {
           }
         } catch (e) {}
       }
+
+      // REAL DATA FETCH
       const fetchPromises = addresses.map((address) =>
         fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base`, {
           headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' }
         }).then((res) => res.json())
       );
+
       const results = await Promise.all(fetchPromises);
       const allTokenData = [];
       const tokenAddressesForFumble = new Set();
@@ -368,8 +374,9 @@ export default function PNLTrackerApp() {
             if (hasAccess) {
                await fetchPNLData(initialAddresses);
             } else {
-               // If gated, also fetch data so we can show the preview metrics!
-               await fetchPNLData(initialAddresses); 
+               // If gated, JUST LOAD MOCK DATA (Saves API)
+               setPnlData(MOCK_PNL_DATA);
+               setLoading(false);
             }
           }
         }
@@ -384,7 +391,7 @@ export default function PNLTrackerApp() {
     setActiveScope(scope);
     if (DEMO_MODE) return;
     let addresses = scope === 'all' ? wallets : (scope === 'primary' && primaryWallet ? [primaryWallet] : [scope]);
-    if (addresses.length > 0) await fetchPNLData(addresses);
+    if (addresses.length > 0 && !isGated) await fetchPNLData(addresses);
   };
 
   const handleRetryGate = () => {
@@ -431,7 +438,6 @@ export default function PNLTrackerApp() {
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
       {isGated && renderGatedOverlay()}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px', transition: 'all 0.4s ease' }}>
-        {/* Header */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>📊</div><span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -439,23 +445,19 @@ export default function PNLTrackerApp() {
             <div style={{ padding: '4px 10px', borderRadius: '999px', background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '7px', height: '7px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />{pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}</div>
           </div>
         </header>
-        {/* User Info */}
         {user && <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}><img src={user.pfpUrl} alt={user.username} style={{ width: '40px', height: '40px', borderRadius: '50%', border: `1px solid ${colors.border}` }} /><div><div style={{ fontSize: '14px', fontWeight: '600', color: colors.ink }}>{user.displayName}</div><div style={{ fontSize: '12px', color: colors.muted }}>@{user.username}</div></div></div>}
-        {/* Wallet Selector */}
         {wallets.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: colors.accent, background: '#f3f4f6', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}` }}><span style={{ color: colors.muted }}>wallet</span><span style={{ fontWeight: '600' }}>{activeScope === 'all' ? 'All wallets' : activeScope === 'primary' && primaryWallet ? truncateAddress(primaryWallet) : truncateAddress(wallets[0])}</span></div>
             <div style={{ marginTop: '10px' }}><select value={activeScope} onChange={handleWalletScopeChange} style={{ width: '100%', fontSize: '12px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.ink }}>{primaryWallet && <option value="primary">Primary · {truncateAddress(primaryWallet)}</option>}<option value="all">All verified wallets combined</option>{wallets.map((addr) => <option key={addr} value={addr}>{truncateAddress(addr)}</option>)}</select></div>
           </div>
         )}
-        {/* Main PNL - SELECTIVE BLUR */}
         {pnlData?.summary && (
           <Panel title="Total Realized P&L" subtitle="Base Chain">
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI</div>
             </div>
-            {/* UNBLURRED METRICS HOOK */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
               <Metric label="Volume" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
               <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
@@ -464,7 +466,6 @@ export default function PNLTrackerApp() {
             {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & ROI</div>}
           </Panel>
         )}
-        {/* Highlights - BLURRED */}
         {tokens.length > 0 && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
             <Panel title="Highlights">
@@ -472,7 +473,6 @@ export default function PNLTrackerApp() {
             </Panel>
           </div>
         )}
-        {/* Tabs & Lists - BLURRED */}
         <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px', filter: isGated ? 'blur(5px)' : 'none' }}>{['overview', 'tokens'].map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '9px 16px', borderRadius: '999px', border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, background: activeTab === tab ? colors.accent : colors.panelBg, color: activeTab === tab ? colors.pillText : colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.16em', cursor: 'pointer' }}>{tab}</button>)}</div>
         <div style={{ filter: isGated ? 'blur(5px)' : 'none' }}>{activeTab === 'overview' && pnlData?.tokens && <Panel title="Top Performers">{pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 3).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}{activeTab === 'tokens' && pnlData?.tokens && <Panel title="All Tokens">{pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}</div>
       </div>
