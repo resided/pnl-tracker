@@ -12,7 +12,9 @@ const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
   import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000';
-const REQUIRED_PNL_BALANCE = 3000000; // starting gate, adjust after launch
+
+// UPDATE: Increased to 10 Million for Clanker launch
+const REQUIRED_PNL_BALANCE = 10000000; 
 
 // Chain + tokens for swap sheet (CAIP-19)
 const BASE_ETH_CAIP19 = 'eip155:8453/native';
@@ -1567,125 +1569,4 @@ export default function PNLTrackerApp() {
           <div style={{ marginTop: '20px' }}>
             <Panel title="Highlights">
               <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  alignItems: 'stretch'
-                }}
-              >
-                {biggestWin && (
-                  <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />
-                )}
-                {biggestLoss && (
-                  <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />
-                )}
-                {biggestFumble && <BigFumbleCard token={biggestFumble} />}
-                {!biggestLoss && !biggestFumble && (
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: colors.muted,
-                      marginTop: '4px'
-                    }}
-                  >
-                    no losing trades yet.
-                  </div>
-                )}
-              </div>
-            </Panel>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px' }}>
-          {['overview', 'tokens'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding: '9px 16px',
-                borderRadius: '999px',
-                border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
-                background: activeTab === tab ? colors.accent : colors.panelBg,
-                color: activeTab === tab ? colors.pillText : colors.muted,
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.16em',
-                cursor: 'pointer'
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Overview Tab */}
-        {activeTab === 'overview' && pnlData?.tokens && (
-          <Panel title="Top Performers">
-            {pnlData.tokens
-              .filter((t) => t.isProfitable)
-              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-              .slice(0, 3)
-              .map((token, idx) => (
-                <TokenRow key={idx} token={token} />
-              ))}
-            {pnlData.tokens.filter((t) => t.isProfitable).length === 0 && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '24px',
-                  color: colors.muted,
-                  fontSize: '13px'
-                }}
-              >
-                no profitable trades yet
-              </div>
-            )}
-          </Panel>
-        )}
-
-        {/* Tokens Tab */}
-        {activeTab === 'tokens' && pnlData?.tokens && (
-          <Panel
-            title="All Tokens"
-            subtitle={`${pnlData.tokens.filter((t) => t.isProfitable).length}/${
-              pnlData.tokens.length
-            } profitable`}
-          >
-            {pnlData.tokens
-              .slice()
-              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-              .map((token, idx) => (
-                <TokenRow key={idx} token={token} />
-              ))}
-          </Panel>
-        )}
-
-        {/* Demo Notice */}
-        {DEMO_MODE && (
-          <div
-            style={{
-              marginTop: '24px',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              background: '#fefce8',
-              border: '1px solid #fef08a',
-              fontSize: '11px',
-              color: '#854d0e',
-              textAlign: 'center'
-            }}
-          >
-            <strong
-              style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}
-            >
-              Demo Mode
-            </strong>
-            <span style={{ margin: '0 8px' }}>·</span>
-            sample data shown. deploy with api keys for real tracking.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                style={
