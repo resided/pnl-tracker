@@ -522,12 +522,11 @@ export default function PNLTrackerApp() {
           const initialAddresses = primaryEth ? [primaryEth] : allEth;
           if (initialAddresses.length > 0) {
             const hasAccess = await checkTokenGate(initialAddresses[0]);
-            // If gated, we load Mock Data so the background isn't empty.
             if (hasAccess) {
                await fetchPNLData(initialAddresses);
             } else {
-               setPnlData(MOCK_PNL_DATA);
-               setLoading(false);
+               // If gated, also fetch data but keep it blurred
+               await fetchPNLData(initialAddresses); 
             }
           }
         }
@@ -557,11 +556,7 @@ export default function PNLTrackerApp() {
     }
 
     if (addresses.length > 0) {
-      // If we are already gated, we don't fetch real data, we just stay in blurred mode.
-      // If we are unlocked, we fetch real data.
-      if (!isGated) {
-        await fetchPNLData(addresses);
-      }
+      await fetchPNLData(addresses);
     }
   };
 
@@ -571,7 +566,6 @@ export default function PNLTrackerApp() {
        const target = primaryWallet || wallets[0];
        checkTokenGate(target).then((hasAccess) => {
           if(hasAccess) {
-             // If unlock successful, fetch real data immediately
              fetchPNLData([target]);
           }
        });
@@ -585,12 +579,13 @@ export default function PNLTrackerApp() {
       top: 0, left: 0, right: 0, bottom: 0,
       zIndex: 50,
       display: 'flex',
-      // CHANGED: Center alignment
+      // CHANGED: Center alignment for overlay
       alignItems: 'center',
       justifyContent: 'center',
-      // CHANGED: Removed paddingBottom
       paddingBottom: '0', 
-      background: 'rgba(255, 255, 255, 0.05)' // Very subtle tint
+      background: 'transparent',
+      // IMPORTANT: Allow clicking through to header for unblurred metrics, but block bottom
+      pointerEvents: 'none' 
     }}>
       <div style={{
         background: colors.panelBg,
@@ -599,10 +594,11 @@ export default function PNLTrackerApp() {
         padding: '32px 28px',
         maxWidth: '340px',
         width: '90%',
-        // CHANGED: Adjusted negative margin to nudge it slightly up for better optical balance
-        marginTop: '-10%', 
+        // Push it down to cover lists/highlights specifically
+        marginTop: '180px', 
         boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', 
-        textAlign: 'center'
+        textAlign: 'center',
+        pointerEvents: 'auto' // Re-enable clicking on the modal itself
       }}>
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🔒</div>
         <h2 style={{ fontSize: '18px', fontWeight: '700', color: colors.ink, margin: '0 0 8px' }}>Unlock PnL Tracker</h2>
@@ -610,7 +606,6 @@ export default function PNLTrackerApp() {
           You need <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to see your real performance.
         </p>
         
-        {/* Display User Balance if available */}
         <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${colors.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
             <span style={{ color: colors.metricLabel }}>Your Balance</span>
@@ -652,142 +647,10 @@ export default function PNLTrackerApp() {
   const winningTokens = tokens.filter((t) => (t.realizedProfitUsd || 0) > 0);
   const losingTokens = tokens.filter((t) => (t.realizedProfitUsd || 0) < 0);
   
-  // Use real calculated best/worst if available, otherwise fallback to mock struct for preview
   const biggestWin = pnlData?.biggestWin || (winningTokens.length > 0 ? winningTokens.reduce((best, t) => (!best || t.realizedProfitUsd > best.realizedProfitUsd ? t : best), null) : null);
   const biggestLoss = pnlData?.biggestLoss || (losingTokens.length > 0 ? losingTokens.reduce((worst, t) => (!worst || t.realizedProfitUsd < worst.realizedProfitUsd ? t : worst), null) : null);
   const biggestFumble = pnlData?.biggestFumble || null;
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      
-      {/* GATED OVERLAY */}
-      {isGated && renderGatedOverlay()}
-
-      {/* MAIN CONTENT (Blurred if Gated) */}
-      <div style={{ 
-        maxWidth: '540px', 
-        margin: '0 auto', 
-        padding: '28px 18px 60px', 
-        filter: isGated ? 'blur(3px)' : 'none', // CHANGED: Reduced blur from 8px to 3px
-        pointerEvents: isGated ? 'none' : 'auto',
-        opacity: 1, // CHANGED: Kept full opacity for max visibility
-        transition: 'all 0.4s ease'
-      }}>
-        {/* Header */}
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>📊</div>
-            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={handleSharePnL} disabled={!pnlData?.summary} style={{ padding: '6px 12px', borderRadius: '999px', border: `1px solid ${colors.accent}`, background: colors.panelBg, color: colors.accent, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-              <span>Share PnL</span>
-            </button>
-            <div style={{ padding: '4px 10px', borderRadius: '999px', background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />
-              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
-            </div>
-          </div>
-        </header>
-
-        {/* User Info - NEWLY ADDED BACK */}
-        {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            {user.pfpUrl && (
-              <img
-                src={user.pfpUrl}
-                alt={user.username}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  border: `1px solid ${colors.border}`
-                }}
-              />
-            )}
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: colors.ink }}>
-                {user.displayName}
-              </div>
-              <div style={{ fontSize: '12px', color: colors.muted }}>
-                @{user.username}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Wallet Selector */}
-        {wallets.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '11px', color: colors.accent, background: '#f3f4f6', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-              <span style={{ color: colors.muted }}>wallet</span>
-              <span style={{ fontWeight: '600' }}>{activeScope === 'all' ? 'All wallets' : activeScope === 'primary' && primaryWallet ? truncateAddress(primaryWallet) : truncateAddress(wallets[0])}</span>
-            </div>
-            {wallets.length > 1 && (
-              <div style={{ marginTop: '10px' }}>
-                 <select value={activeScope} onChange={handleWalletScopeChange} style={{ width: '100%', fontSize: '12px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.ink }}>
-                  {primaryWallet && <option value="primary">Primary · {truncateAddress(primaryWallet)}</option>}
-                  <option value="all">All verified wallets combined</option>
-                  {wallets.map((addr) => <option key={addr} value={addr}>{truncateAddress(addr)}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Main PNL Display */}
-        {pnlData?.summary && (
-          <Panel title="Total Realized P&L" subtitle="Base Chain">
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px' }}>
-                {pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}
-              </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500' }}>
-                {pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
-              <Metric label="Volume" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
-              <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
-              <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
-            </div>
-          </Panel>
-        )}
-
-        {/* Highlights */}
-        {tokens.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
-            <Panel title="Highlights">
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                {biggestWin && <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />}
-                {biggestLoss && <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />}
-                {biggestFumble && <BigFumbleCard token={biggestFumble} />}
-              </div>
-            </Panel>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px' }}>
-          {['overview', 'tokens'].map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '9px 16px', borderRadius: '999px', border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, background: activeTab === tab ? colors.accent : colors.panelBg, color: activeTab === tab ? colors.pillText : colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.16em', cursor: 'pointer' }}>{tab}</button>
-          ))}
-        </div>
-
-        {/* Lists */}
-        {activeTab === 'overview' && pnlData?.tokens && (
-          <Panel title="Top Performers">
-            {pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 3).map((token, idx) => <TokenRow key={idx} token={token} />)}
-          </Panel>
-        )}
-
-        {activeTab === 'tokens' && pnlData?.tokens && (
-          <Panel title="All Tokens">
-            {pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => <TokenRow key={idx} token={token} />)}
-          </Panel>
-        )}
-      </div>
-    </div>
-  );
-}
+      <styl
