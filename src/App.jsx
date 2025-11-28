@@ -274,6 +274,70 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
   </div>
 );
 
+// Simple error screen (no free access)
+const ErrorScreen = ({ title, message }) => (
+  <div
+    style={{
+      minHeight: '100vh',
+      background: colors.bg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+    }}
+  >
+    <div
+      style={{
+        background: colors.panelBg,
+        borderRadius: '18px',
+        border: `1px solid ${colors.border}`,
+        padding: '28px 24px',
+        maxWidth: '380px',
+        width: '100%',
+        textAlign: 'center'
+      }}
+    >
+      <div
+        style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '50%',
+          border: `1px solid ${colors.accent}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 14px',
+          fontSize: '18px'
+        }}
+      >
+        ⚠️
+      </div>
+      <div
+        style={{
+          fontSize: '12px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.16em',
+          color: colors.metricLabel,
+          marginBottom: '8px'
+        }}
+      >
+        {title}
+      </div>
+      <p
+        style={{
+          fontSize: '13px',
+          color: colors.muted,
+          lineHeight: 1.6,
+          margin: 0
+        }}
+      >
+        {message}
+      </p>
+    </div>
+  </div>
+);
+
 // Metric Component
 const Metric = ({ label, value, isPositive }) => (
   <div style={{ minWidth: '100px' }}>
@@ -531,85 +595,6 @@ const BigMoveCard = ({ label, token, isWin }) => {
   );
 };
 
-// Wallet Input Component
-const WalletInput = ({ onSubmit }) => {
-  const [address, setAddress] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
-      setError('enter a valid ethereum address');
-      return;
-    }
-    setError('');
-    onSubmit(address);
-  };
-
-  return (
-    <div>
-      <label
-        style={{
-          display: 'block',
-          fontSize: '11px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.14em',
-          color: colors.metricLabel,
-          marginBottom: '6px'
-        }}
-      >
-        Wallet Address
-      </label>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <input
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="0x..."
-          style={{
-            flex: 1,
-            padding: '9px 11px',
-            borderRadius: '999px',
-            border: `1px solid ${colors.border}`,
-            fontSize: '13px',
-            background: '#f9fafb',
-            outline: 'none',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
-          }}
-        />
-        <button
-          onClick={handleSubmit}
-          style={{
-            padding: '9px 16px',
-            borderRadius: '999px',
-            border: `1px solid ${colors.accent}`,
-            background: colors.accent,
-            color: colors.pillText,
-            fontSize: '11px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.16em',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Track
-        </button>
-      </div>
-      {error && (
-        <div
-          style={{
-            fontSize: '11px',
-            color: colors.error,
-            marginTop: '8px'
-          }}
-        >
-          {error}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Main App Component
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
@@ -619,12 +604,14 @@ export default function PNLTrackerApp() {
   const [pnlData, setPnlData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [manualMode, setManualMode] = useState(false);
 
   // Token gate state
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [checkingGate, setCheckingGate] = useState(true);
+
+  // Environment error (no Farcaster context, no wallets, etc)
+  const [envError, setEnvError] = useState(null);
 
   // Share PnL via Farcaster composeCast
   const handleSharePnL = async () => {
@@ -660,7 +647,6 @@ export default function PNLTrackerApp() {
       const pnlCaip19 = getPnlCaip19();
 
       if (!pnlCaip19) {
-        // fallback if token not configured yet
         await sdk.actions.openUrl('https://app.uniswap.org');
         return;
       }
@@ -668,7 +654,6 @@ export default function PNLTrackerApp() {
       await sdk.actions.swapToken({
         sellToken: BASE_ETH_CAIP19,
         buyToken: pnlCaip19
-        // user chooses amount in the UI
       });
     } catch (err) {
       console.error('swap for $PNL failed', err);
@@ -677,7 +662,7 @@ export default function PNLTrackerApp() {
 
   // Check token balance for gating
   const checkTokenGate = async (address) => {
-    // skip gate if PNL token not configured
+    // skip gate if PNL token not configured (dev only)
     if (!PNL_TOKEN_ADDRESS || PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000') {
       setTokenBalance(0);
       setCheckingGate(false);
@@ -813,11 +798,16 @@ export default function PNLTrackerApp() {
           if (context?.user?.fid) {
             fid = context.user.fid;
             setUser(context.user);
+          } else {
+            setEnvError('PNL Tracker needs a Farcaster user context. Open this miniapp from Warpcast.');
+            setCheckingGate(false);
+            setLoading(false);
+            return;
           }
           sdk.actions.ready();
         } catch (err) {
-          console.log('Not in Farcaster context, using manual mode');
-          setManualMode(true);
+          console.log('Not in Farcaster context');
+          setEnvError('PNL Tracker runs as a Farcaster miniapp. Open it from Warpcast to use it.');
           setCheckingGate(false);
           setLoading(false);
           return;
@@ -839,8 +829,7 @@ export default function PNLTrackerApp() {
           const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
 
           if (allEth.length === 0) {
-            // no verified wallets, fall back to manual and stop spinner
-            setManualMode(true);
+            setEnvError('No verified Base wallets found for your Farcaster account.');
             setCheckingGate(false);
             setLoading(false);
             return;
@@ -869,6 +858,7 @@ export default function PNLTrackerApp() {
         setLoading(false);
       } catch (err) {
         console.error('initialize error', err);
+        setEnvError('Something went wrong initialising PNL Tracker.');
         setLoading(false);
         setCheckingGate(false);
       }
@@ -876,17 +866,6 @@ export default function PNLTrackerApp() {
 
     initialize();
   }, []);
-
-  const handleManualWallet = async (address) => {
-    const hasAccess = await checkTokenGate(address);
-    if (hasAccess) {
-      setWallets([address]);
-      setPrimaryWallet(address);
-      setActiveScope('primary');
-      fetchPNLData([address]);
-      setManualMode(false);
-    }
-  };
 
   const handleWalletScopeChange = async (event) => {
     const scope = event.target.value;
@@ -918,18 +897,6 @@ export default function PNLTrackerApp() {
       checkTokenGate(wallets[0]);
     }
   };
-
-  // Show token gate screen
-  if (isGated && !DEMO_MODE) {
-    return (
-      <TokenGateScreen
-        balance={tokenBalance}
-        required={REQUIRED_PNL_BALANCE}
-        onRetry={handleRetryGate}
-        onGetAccess={handleSwapForAccess}
-      />
-    );
-  }
 
   // Loading state
   if (loading || checkingGate) {
@@ -972,62 +939,25 @@ export default function PNLTrackerApp() {
     );
   }
 
-  // Manual input mode
-  if (manualMode || (!user && !DEMO_MODE)) {
+  // Environment errors: no Farcaster context, no wallets, etc
+  if (envError) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: colors.bg,
-          padding: '28px 18px',
-          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-        }}
-      >
-        <div style={{ maxWidth: '420px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                border: `1px solid ${colors.accent}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                fontSize: '20px'
-              }}
-            >
-              📊
-            </div>
-            <div
-              style={{
-                fontSize: '12px',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: colors.ink,
-                marginBottom: '8px'
-              }}
-            >
-              PNL Tracker
-            </div>
-            <p
-              style={{
-                fontSize: '13px',
-                color: colors.muted,
-                lineHeight: '1.6',
-                margin: 0
-              }}
-            >
-              enter a wallet address to track trading performance on base. requires{' '}
-              {formatNumber(REQUIRED_PNL_BALANCE)} $PNL tokens for full access.
-            </p>
-          </div>
-          <Panel>
-            <WalletInput onSubmit={handleManualWallet} />
-          </Panel>
-        </div>
-      </div>
+      <ErrorScreen
+        title="Access Locked"
+        message={envError}
+      />
+    );
+  }
+
+  // Show token gate screen
+  if (isGated && !DEMO_MODE) {
+    return (
+      <TokenGateScreen
+        balance={tokenBalance}
+        required={REQUIRED_PNL_BALANCE}
+        onRetry={handleRetryGate}
+        onGetAccess={handleSwapForAccess}
+      />
     );
   }
 
