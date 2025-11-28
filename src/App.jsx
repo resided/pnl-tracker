@@ -733,17 +733,19 @@ export default function PNLTrackerApp() {
       const direction = isWin ? 'up' : 'down';
       
       // 2. Generate Bulletproof Image URL (Psycast White Theme)
-      // Using Vercel OG Public generator with no external images to prevent 404s.
-      // We simulate the Psi Logo with the text "( Ψ )" to match your branding
       
       const topText = `( Ψ ) PnL: @${username}`;
       const bottomText = realized;
       
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       
-      // Theme: Light (White background, Black text) to match your logo
-      // This URL generates a clean white card with black text
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px`;
+      // "Hack" to hide the Vercel triangle:
+      // We pass the WHITE triangle icon, set width/height to 1px.
+      // On a white background (theme=light), it becomes completely invisible.
+      // This leaves just your bold text on a clean white card.
+      const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
+      
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
 
       // 3. Create Cast
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
@@ -1106,7 +1108,8 @@ export default function PNLTrackerApp() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+          color: colors.ink
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -1114,8 +1117,8 @@ export default function PNLTrackerApp() {
             style={{
               width: '24px',
               height: '24px',
-              border: '2px solid #e5e7eb',
-              borderTopColor: '#111827',
+              border: `2px solid ${colors.border}`,
+              borderTopColor: colors.ink,
               borderRadius: '50%',
               margin: '0 auto 16px',
               animation: 'spin 0.8s linear infinite'
@@ -1186,7 +1189,8 @@ export default function PNLTrackerApp() {
         minHeight: '100vh',
         background: colors.bg,
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-        WebkitFontSmoothing: 'antialiased'
+        WebkitFontSmoothing: 'antialiased',
+        color: colors.ink
       }}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -1639,4 +1643,3 @@ export default function PNLTrackerApp() {
       </div>
     </div>
   );
-}
