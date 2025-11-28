@@ -2,14 +2,21 @@ import React, { useState, useEffect } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic
-// Token gated: requires 3,000,000 $PNL tokens to access
+// Token gated: requires PNL tokens to access
 
-const DEMO_MODE = false; // Set to false when deployed with real APIs
+const DEMO_MODE = false; // Set to true if you want mock data
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
   import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000';
-const REQUIRED_PNL_BALANCE = 3000000; // 3 million tokens required
+const REQUIRED_PNL_BALANCE = 3000000; // starting gate, adjust after launch
+
+// Chain + tokens for swap sheet (CAIP-19)
+const BASE_ETH_CAIP19 = 'eip155:8453/native';
+const getPnlCaip19 = () =>
+  PNL_TOKEN_ADDRESS && PNL_TOKEN_ADDRESS !== '0x0000000000000000000000000000000000000000'
+    ? `eip155:8453/erc20:${PNL_TOKEN_ADDRESS.toLowerCase()}`
+    : null;
 
 // Mock data for demo/preview mode
 const MOCK_USER = {
@@ -80,7 +87,7 @@ const colors = {
 };
 
 // Token Gate Screen Component
-const TokenGateScreen = ({ balance, required, onRetry }) => (
+const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
   <div
     style={{
       minHeight: '100vh',
@@ -153,7 +160,8 @@ const TokenGateScreen = ({ balance, required, onRetry }) => (
       >
         you need to hold at least{' '}
         <strong style={{ color: colors.ink }}>{formatNumber(required)} $PNL</strong> tokens to
-        access the PNL Tracker.
+        access the full PNL Tracker. tap <strong>Get $PNL</strong> to open the swap sheet, then
+        hit <strong>Retry</strong> after swapping.
       </p>
 
       <div
@@ -225,10 +233,8 @@ const TokenGateScreen = ({ balance, required, onRetry }) => (
       </div>
 
       <div style={{ display: 'flex', gap: '10px' }}>
-        <a
-          href="https://app.uniswap.org"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={onGetAccess}
           style={{
             flex: 1,
             padding: '11px 16px',
@@ -238,16 +244,13 @@ const TokenGateScreen = ({ balance, required, onRetry }) => (
             fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: '0.16em',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
+            border: 'none',
+            cursor: 'pointer',
             fontWeight: '500'
           }}
         >
-          Buy $PNL
-        </a>
+          Get $PNL
+        </button>
         <button
           onClick={onRetry}
           style={{
@@ -629,7 +632,7 @@ export default function PNLTrackerApp() {
       const { sdk } = await import('@farcaster/miniapp-sdk');
 
       const summary = pnlData?.summary;
-      let text = 'Checking my PnL on Base with the PNL Tracker mini app.';
+      let text = 'Checking my PnL on Base with the PNL Tracker miniapp.';
 
       if (summary) {
         const realized = formatCurrency(summary.totalRealizedProfit || 0);
@@ -638,7 +641,7 @@ export default function PNLTrackerApp() {
         const tokens = summary.totalTokensTraded || 0;
         const direction = (summary.totalRealizedProfit || 0) >= 0 ? 'up' : 'down';
 
-        text = `My PnL on Base is ${realized} realized (${direction}), ${winRate}% win rate across ${tokens} tokens traded. Check your PnL with the PNL Tracker mini app.`;
+        text = `My PnL on Base is ${realized} realised (${direction}), ${winRate}% win rate across ${tokens} tokens. Full PNL Tracker is gated by $PNL. Check yours here.`;
       }
 
       await sdk.actions.composeCast({
@@ -650,9 +653,31 @@ export default function PNLTrackerApp() {
     }
   };
 
+  // Open built in swap sheet to buy $PNL
+  const handleSwapForAccess = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const pnlCaip19 = getPnlCaip19();
+
+      if (!pnlCaip19) {
+        // fallback if token not configured yet
+        await sdk.actions.openUrl('https://app.uniswap.org');
+        return;
+      }
+
+      await sdk.actions.swapToken({
+        sellToken: BASE_ETH_CAIP19,
+        buyToken: pnlCaip19
+        // user chooses amount in the UI
+      });
+    } catch (err) {
+      console.error('swap for $PNL failed', err);
+    }
+  };
+
   // Check token balance for gating
   const checkTokenGate = async (address) => {
-    // Temporary: skip token gate while PNL token is not configured
+    // skip gate if PNL token not configured
     if (!PNL_TOKEN_ADDRESS || PNL_TOKEN_ADDRESS === '0x0000000000000000000000000000000000000000') {
       setTokenBalance(0);
       setCheckingGate(false);
@@ -699,85 +724,6 @@ export default function PNLTrackerApp() {
       return false;
     }
   };
-
-  // Initialize
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        setLoading(true);
-
-        if (DEMO_MODE) {
-          await new Promise((r) => setTimeout(r, 800));
-          setUser(MOCK_USER);
-          setWallets(MOCK_WALLETS);
-          await checkTokenGate(MOCK_WALLETS[0]);
-          setPnlData(MOCK_PNL_DATA);
-          setLoading(false);
-          return;
-        }
-
-        let fid = null;
-        try {
-          const { sdk } = await import('@farcaster/miniapp-sdk');
-          const context = await sdk.context;
-          if (context?.user?.fid) {
-            fid = context.user.fid;
-            setUser(context.user);
-          }
-          sdk.actions.ready();
-        } catch (err) {
-          console.log('Not in Farcaster context, using manual mode');
-          setManualMode(true);
-          setCheckingGate(false);
-          setLoading(false);
-          return;
-        }
-
-        if (fid) {
-          const neynarResponse = await fetch(
-            `https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`,
-            {
-              headers: {
-                accept: 'application/json',
-                api_key: import.meta.env.VITE_NEYNAR_API_KEY || ''
-              }
-            }
-          );
-          const neynarData = await neynarResponse.json();
-          const primaryEth =
-            neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
-          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
-
-          setWallets(allEth);
-          if (primaryEth) {
-            setPrimaryWallet(primaryEth);
-            setActiveScope('primary');
-          } else {
-            setPrimaryWallet(allEth[0] || null);
-            setActiveScope(allEth.length > 1 ? 'all' : 'primary');
-          }
-
-          const initialAddresses = primaryEth ? [primaryEth] : allEth;
-
-          if (initialAddresses.length > 0) {
-            const hasAccess = await checkTokenGate(initialAddresses[0]);
-            if (hasAccess) {
-              await fetchPNLData(initialAddresses);
-            }
-          }
-        }
-
-        setCheckingGate(false);
-        setLoading(false);
-      } catch (err) {
-        console.error('initialize error', err);
-        setLoading(false);
-        setCheckingGate(false);
-      }
-    };
-
-    initialize();
-  }, []);
 
   // Fetch PNL data
   const fetchPNLData = async (addresses) => {
@@ -844,6 +790,93 @@ export default function PNLTrackerApp() {
     }
   };
 
+  // Initialize
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        setLoading(true);
+
+        if (DEMO_MODE) {
+          await new Promise((r) => setTimeout(r, 800));
+          setUser(MOCK_USER);
+          setWallets(MOCK_WALLETS);
+          await checkTokenGate(MOCK_WALLETS[0]);
+          setPnlData(MOCK_PNL_DATA);
+          setLoading(false);
+          return;
+        }
+
+        let fid = null;
+        try {
+          const { sdk } = await import('@farcaster/miniapp-sdk');
+          const context = await sdk.context;
+          if (context?.user?.fid) {
+            fid = context.user.fid;
+            setUser(context.user);
+          }
+          sdk.actions.ready();
+        } catch (err) {
+          console.log('Not in Farcaster context, using manual mode');
+          setManualMode(true);
+          setCheckingGate(false);
+          setLoading(false);
+          return;
+        }
+
+        if (fid) {
+          const neynarResponse = await fetch(
+            `https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`,
+            {
+              headers: {
+                accept: 'application/json',
+                api_key: import.meta.env.VITE_NEYNAR_API_KEY || ''
+              }
+            }
+          );
+          const neynarData = await neynarResponse.json();
+          const primaryEth =
+            neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
+          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+
+          if (allEth.length === 0) {
+            // no verified wallets, fall back to manual and stop spinner
+            setManualMode(true);
+            setCheckingGate(false);
+            setLoading(false);
+            return;
+          }
+
+          setWallets(allEth);
+          if (primaryEth) {
+            setPrimaryWallet(primaryEth);
+            setActiveScope('primary');
+          } else {
+            setPrimaryWallet(allEth[0] || null);
+            setActiveScope(allEth.length > 1 ? 'all' : 'primary');
+          }
+
+          const initialAddresses = primaryEth ? [primaryEth] : allEth;
+
+          if (initialAddresses.length > 0) {
+            const hasAccess = await checkTokenGate(initialAddresses[0]);
+            if (hasAccess) {
+              await fetchPNLData(initialAddresses);
+            }
+          }
+        }
+
+        setCheckingGate(false);
+        setLoading(false);
+      } catch (err) {
+        console.error('initialize error', err);
+        setLoading(false);
+        setCheckingGate(false);
+      }
+    };
+
+    initialize();
+  }, []);
+
   const handleManualWallet = async (address) => {
     const hasAccess = await checkTokenGate(address);
     if (hasAccess) {
@@ -893,6 +926,7 @@ export default function PNLTrackerApp() {
         balance={tokenBalance}
         required={REQUIRED_PNL_BALANCE}
         onRetry={handleRetryGate}
+        onGetAccess={handleSwapForAccess}
       />
     );
   }
@@ -986,7 +1020,7 @@ export default function PNLTrackerApp() {
               }}
             >
               enter a wallet address to track trading performance on base. requires{' '}
-              {formatNumber(REQUIRED_PNL_BALANCE)} $PNL tokens.
+              {formatNumber(REQUIRED_PNL_BALANCE)} $PNL tokens for full access.
             </p>
           </div>
           <Panel>
@@ -1275,8 +1309,7 @@ export default function PNLTrackerApp() {
           </div>
           <p style={{ margin: 0 }}>
             PNL Tracker looks at your <strong>primary Farcaster wallet on Base</strong> and shows
-            live realized PnL, volume, and win rate. Open it any time to check how your trading is
-            doing with instant live data.
+            live realised PnL, volume and win rate. Open it any time for instant live data.
           </p>
           {wallets.length > 1 && (
             <p style={{ margin: '6px 0 0' }}>
@@ -1350,7 +1383,7 @@ export default function PNLTrackerApp() {
           </Panel>
         )}
 
-        {/* Biggest Win / Loss section (above overview) */}
+        {/* Biggest Win / Loss section */}
         {tokens.length > 0 && (biggestWin || biggestLoss) && (
           <div style={{ marginTop: '20px' }}>
             <Panel title="Biggest Win · Biggest Loss">
