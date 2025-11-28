@@ -32,6 +32,7 @@ const MOCK_PNL_DATA = {
     { name: 'HIGHER', symbol: 'HIGHER', totalUsdInvested: 1200, realizedProfitUsd: 1245.32, isProfitable: true },
     { name: 'ENJOY', symbol: 'ENJOY', totalUsdInvested: 800, realizedProfitUsd: -234.12, isProfitable: false }
   ],
+  // Explicitly set mock highlights so preview looks good
   biggestWin: { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true },
   biggestLoss: { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
   biggestFumble: { name: 'KEYCAT', symbol: 'KEYCAT', totalSoldUsd: 400, missedUpsideUsd: 12500, currentValueSoldTokens: 12900 }
@@ -177,16 +178,12 @@ export default function PNLTrackerApp() {
 
       // GATED SHARING (Share the "Teaser" Image)
       if (isGated) {
-          // We use the Mock/Teaser data for the image text
-          const winRate = "67.3"; 
-          
+          const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
           const topText = `( Ψ ) Win Rate: ${winRate}%`;
           const bottomText = `PnL: LOCKED 🔒`;
           const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
           const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=80px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
-          
           const castText = `My Base Win Rate is ${winRate}%... but my PnL is locked 🔒\n\nNeed 10M $PNL to unlock the tracker. @ireside.eth let me in!\n\n${appLink}`;
-          
           await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
           return;
       }
@@ -202,11 +199,8 @@ export default function PNLTrackerApp() {
       const bottomText = realized;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
-
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
-
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
-
     } catch (err) {
       console.error('share pnl failed', err);
     }
@@ -229,7 +223,6 @@ export default function PNLTrackerApp() {
       setCheckingGate(false); setIsGated(false); return true;
     }
     try {
-      // Only costs 1 API call
       const response = await fetch(
         `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
         { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }
@@ -255,7 +248,6 @@ export default function PNLTrackerApp() {
         await new Promise((r) => setTimeout(r, 600));
         setPnlData(MOCK_PNL_DATA); setLoading(false); return;
       }
-      // ... Cache checking logic ... 
       let cacheKey = null;
       if (typeof window !== 'undefined' && Array.isArray(addresses) && addresses.length > 0) {
         const sortedAddresses = addresses.map((a) => a.toLowerCase()).sort();
@@ -272,7 +264,6 @@ export default function PNLTrackerApp() {
         } catch (e) {}
       }
 
-      // REAL DATA FETCH
       const fetchPromises = addresses.map((address) =>
         fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base`, {
           headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' }
@@ -282,6 +273,7 @@ export default function PNLTrackerApp() {
       const results = await Promise.all(fetchPromises);
       const allTokenData = [];
       const tokenAddressesForFumble = new Set();
+
       results.forEach((data) => {
         if (data.result) {
           data.result.forEach((token) => {
@@ -296,6 +288,7 @@ export default function PNLTrackerApp() {
           });
         }
       });
+
       const profitableTokens = allTokenData.filter((t) => t.isProfitable).length;
       const summary = {
         totalRealizedProfit: allTokenData.reduce((acc, t) => acc + t.realizedProfitUsd, 0),
@@ -306,6 +299,20 @@ export default function PNLTrackerApp() {
         winRate: allTokenData.length > 0 ? (profitableTokens / allTokenData.length) * 100 : 0
       };
       summary.profitPercentage = summary.totalTradingVolume > 0 ? (summary.totalRealizedProfit / summary.totalTradingVolume) * 100 : 0;
+      
+      // CALCULATE HIGHLIGHTS LOCALLY FOR REAL DATA
+      let biggestWin = null;
+      let biggestLoss = null;
+      
+      allTokenData.forEach(token => {
+        if(token.realizedProfitUsd > 0) {
+            if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token;
+        }
+        if(token.realizedProfitUsd < 0) {
+            if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token;
+        }
+      });
+
       let biggestFumbleToken = null;
       if (tokenAddressesForFumble.size > 0) {
         try {
@@ -334,10 +341,7 @@ export default function PNLTrackerApp() {
           });
         } catch (e) { console.log('error computing biggest fumble', e); }
       }
-      const winningTokens = allTokenData.filter(t => t.realizedProfitUsd > 0);
-      const losingTokens = allTokenData.filter(t => t.realizedProfitUsd < 0);
-      const biggestWin = winningTokens.length > 0 ? winningTokens.reduce((best, t) => (!best || t.realizedProfitUsd > best.realizedProfitUsd ? t : best), null) : null;
-      const biggestLoss = losingTokens.length > 0 ? losingTokens.reduce((worst, t) => (!worst || t.realizedProfitUsd < worst.realizedProfitUsd ? t : worst), null) : null;
+
       const resultData = { summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble: biggestFumbleToken };
       setPnlData(resultData);
       if (cacheKey && typeof window !== 'undefined') window.localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: resultData }));
@@ -374,7 +378,7 @@ export default function PNLTrackerApp() {
             if (hasAccess) {
                await fetchPNLData(initialAddresses);
             } else {
-               // If gated, JUST LOAD MOCK DATA (Saves API)
+               // If gated, use MOCK data to save API
                setPnlData(MOCK_PNL_DATA);
                setLoading(false);
             }
@@ -466,7 +470,8 @@ export default function PNLTrackerApp() {
             {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & ROI</div>}
           </Panel>
         )}
-        {tokens.length > 0 && (
+        {/* Highlights - Fixed Logic */}
+        {(biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
             <Panel title="Highlights">
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} />}</div>
