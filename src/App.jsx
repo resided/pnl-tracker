@@ -718,7 +718,7 @@ export default function PNLTrackerApp() {
   // Environment error (no Farcaster context, no wallets, etc)
   const [envError, setEnvError] = useState(null);
 
-  // Share PnL via Farcaster composeCast (FIXED: Uses Public OG Generator for cleaner look)
+  // Share PnL via Farcaster composeCast (FIXED: Uses Bulletproof Vercel OG Link)
   const handleSharePnL = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -731,26 +731,30 @@ export default function PNLTrackerApp() {
       const tokensCount = summary.totalTokensTraded || 0;
       const username = user?.username || 'user';
       
-      // 1. Format the data for the graphic
+      // 1. Format Data
       const realized = formatCurrency(pnlValue);
+      const direction = isWin ? 'up' : 'down';
       const emoji = isWin ? '📈' : '📉';
       
-      // 2. Construct Professional Vercel OG URL
-      // Format: **Top Line (Small)** %0A (New Line) **Bottom Line (Huge)**
-      const cardTitle = `${emoji} Base PnL (@${username})`;
-      const cardValue = `${realized}`;
-      const logoUrl = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
+      // 2. Generate Image URL
+      // We use standard URL encoding and NO external images to prevent 404s.
+      // Top Text: "📈 PnL: @username"
+      // Bottom Text: "$1,234.56"
+      const topText = `${emoji} PnL: @${username}`;
+      const bottomText = realized;
       
-      const imageUrl = `https://og-image.vercel.app/**${cardTitle}**%0A${cardValue}.png?theme=dark&md=1&fontSize=100px&images=${encodeURIComponent(logoUrl)}&widths=auto&heights=300`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      
+      // We removed the &images= param to avoid the 404 error from broken external logos
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=dark&md=1&fontSize=100px`;
 
-      // 3. Create Cast Text
-      const direction = isWin ? 'up' : 'down';
+      // 3. Create Cast
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
 
       await sdk.actions.composeCast({
         text: castText,
-        embeds: [imageUrl] // Only embed the image so it shows up big
+        embeds: [imageUrl] 
       });
     } catch (err) {
       console.error('share pnl failed', err);
@@ -1257,385 +1261,4 @@ export default function PNLTrackerApp() {
                 borderRadius: '999px',
                 background:
                   pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
-                color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                fontSize: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <div
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background:
-                    pnlData?.summary?.totalRealizedProfit >= 0
-                      ? colors.success
-                      : colors.error
-                }}
-              />
-              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}
-            </div>
-          </div>
-        </header>
-
-        {/* Token Gate Badge */}
-        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-start' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '10px',
-              color: colors.muted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em'
-            }}
-          >
-            <span>🔐</span>
-            <span>Token Gated · {formatNumber(REQUIRED_PNL_BALANCE)} $PNL Required</span>
-          </div>
-        </div>
-
-        {/* User Info */}
-        {user && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '24px'
-            }}
-          >
-            {user.pfpUrl && (
-              <img
-                src={user.pfpUrl}
-                alt={user.username}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  border: `1px solid ${colors.border}`
-                }}
-              />
-            )}
-            <div>
-              <div
-                style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: colors.ink
-                }}
-              >
-                {user.displayName}
-              </div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  color: colors.muted
-                }}
-              >
-                @{user.username}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Wallet Badge + Scope Selector */}
-        {wallets.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                fontSize: '11px',
-                color: colors.accent,
-                background: '#f3f4f6',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: `1px solid ${colors.border}`
-              }}
-            >
-              <span style={{ color: colors.muted }}>wallet</span>
-              <span style={{ fontWeight: '600' }}>
-                {activeScope === 'all'
-                  ? 'All verified wallets'
-                  : activeScope === 'primary' && primaryWallet
-                  ? truncateAddress(primaryWallet)
-                  : truncateAddress(wallets[0])}
-              </span>
-            </div>
-
-            {wallets.length > 1 && (
-              <div style={{ marginTop: '10px' }}>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    color: colors.muted,
-                    marginBottom: '4px'
-                  }}
-                >
-                  View PnL for:
-                </div>
-                <select
-                  value={activeScope}
-                  onChange={handleWalletScopeChange}
-                  style={{
-                    width: '100%',
-                    fontSize: '12px',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: `1px solid ${colors.border}`,
-                    background: colors.panelBg,
-                    color: colors.ink,
-                    fontFamily:
-                      'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
-                  }}
-                >
-                  {primaryWallet && (
-                    <option value="primary">Primary · {truncateAddress(primaryWallet)}</option>
-                  )}
-                  <option value="all">All verified wallets combined</option>
-                  {wallets.map((addr) => (
-                    <option key={addr} value={addr}>
-                      {truncateAddress(addr)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Explainer copy */}
-        <div
-          style={{
-            marginBottom: '24px',
-            padding: '12px 14px',
-            borderRadius: '12px',
-            background: colors.panelBg,
-            border: `1px dashed ${colors.border}`,
-            fontSize: '12px',
-            color: colors.muted,
-            lineHeight: '1.6'
-          }}
-        >
-          <div
-            style={{
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.16em',
-              marginBottom: '6px',
-              color: colors.metricLabel
-            }}
-          >
-            What this app does
-          </div>
-          <p style={{ margin: 0 }}>
-            PNL Tracker looks at your <strong>primary Farcaster wallet on Base</strong> and shows
-            live realised PnL, volume and win rate. Open it any time for instant live data.
-          </p>
-          {wallets.length > 1 && (
-            <p style={{ margin: '6px 0 0' }}>
-              Use the wallet menu to switch between your <strong>primary wallet</strong>,{' '}
-              <strong>all verified wallets combined</strong>, or any individual connected wallet.
-            </p>
-          )}
-        </div>
-
-        {/* Main PNL Display */}
-        {pnlData?.summary && (
-          <Panel title="Total Realized P&L" subtitle="Base Chain">
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div
-                style={{
-                  fontSize: '32px',
-                  fontWeight: '600',
-                  color:
-                    pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
-                  fontFeatureSettings: '"tnum" 1, "lnum" 1',
-                  marginBottom: '8px'
-                }}
-              >
-                {pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}
-                {formatCurrency(pnlData.summary.totalRealizedProfit)}
-              </div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 12px',
-                  borderRadius: '999px',
-                  background:
-                    pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2',
-                  color:
-                    pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}
-              >
-                {pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}
-                {Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '24px',
-                borderTop: `1px solid ${colors.border}`,
-                paddingTop: '18px',
-                marginTop: '16px'
-              }}
-            >
-              <Metric
-                label="Volume"
-                value={formatCurrency(pnlData.summary.totalTradingVolume)}
-              />
-              <Metric
-                label="Win Rate"
-                value={`${pnlData.summary.winRate.toFixed(1)}%`}
-                isPositive={pnlData.summary.winRate >= 50}
-              />
-              <Metric
-                label="Tokens"
-                value={pnlData.summary.totalTokensTraded}
-              />
-            </div>
-          </Panel>
-        )}
-
-        {/* Biggest Win / Loss / Fumble section (UPDATED WRAPPER) */}
-        {tokens.length > 0 && (biggestWin || biggestLoss || biggestFumble) && (
-          <div style={{ marginTop: '20px' }}>
-            <Panel title="Highlights">
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  alignItems: 'stretch'
-                }}
-              >
-                {biggestWin && (
-                  <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />
-                )}
-                {biggestLoss && (
-                  <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />
-                )}
-                {biggestFumble && <BigFumbleCard token={biggestFumble} />}
-                {!biggestLoss && !biggestFumble && (
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: colors.muted,
-                      marginTop: '4px'
-                    }}
-                  >
-                    no losing trades yet.
-                  </div>
-                )}
-              </div>
-            </Panel>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px' }}>
-          {['overview', 'tokens'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding: '9px 16px',
-                borderRadius: '999px',
-                border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
-                background: activeTab === tab ? colors.accent : colors.panelBg,
-                color: activeTab === tab ? colors.pillText : colors.muted,
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.16em',
-                cursor: 'pointer'
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Overview Tab */}
-        {activeTab === 'overview' && pnlData?.tokens && (
-          <Panel title="Top Performers">
-            {pnlData.tokens
-              .filter((t) => t.isProfitable)
-              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-              .slice(0, 3)
-              .map((token, idx) => (
-                <TokenRow key={idx} token={token} />
-              ))}
-            {pnlData.tokens.filter((t) => t.isProfitable).length === 0 && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '24px',
-                  color: colors.muted,
-                  fontSize: '13px'
-                }}
-              >
-                no profitable trades yet
-              </div>
-            )}
-          </Panel>
-        )}
-
-        {/* Tokens Tab */}
-        {activeTab === 'tokens' && pnlData?.tokens && (
-          <Panel
-            title="All Tokens"
-            subtitle={`${pnlData.tokens.filter((t) => t.isProfitable).length}/${
-              pnlData.tokens.length
-            } profitable`}
-          >
-            {pnlData.tokens
-              .slice()
-              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-              .map((token, idx) => (
-                <TokenRow key={idx} token={token} />
-              ))}
-          </Panel>
-        )}
-
-        {/* Demo Notice */}
-        {DEMO_MODE && (
-          <div
-            style={{
-              marginTop: '24px',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              background: '#fefce8',
-              border: '1px solid #fef08a',
-              fontSize: '11px',
-              color: '#854d0e',
-              textAlign: 'center'
-            }}
-          >
-            <strong
-              style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}
-            >
-              Demo Mode
-            </strong>
-            <span style={{ margin: '0 8px' }}>·</span>
-            sample data shown. deploy with api keys for real tracking.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+      
