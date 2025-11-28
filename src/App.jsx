@@ -585,12 +585,11 @@ export default function PNLTrackerApp() {
       top: 0, left: 0, right: 0, bottom: 0,
       zIndex: 50,
       display: 'flex',
-      // CHANGED: Position flex-end to push modal down, but prevent full bottom stick with margin
-      alignItems: 'flex-end',
+      // CHANGED: Center alignment
+      alignItems: 'center',
       justifyContent: 'center',
-      paddingBottom: '140px', // Push it up significantly from the bottom edge
-      // CHANGED: Removed backdrop-filter to rely on content blur only
-      // backdropFilter: 'blur(2px)', 
+      // CHANGED: Removed paddingBottom
+      paddingBottom: '0', 
       background: 'rgba(255, 255, 255, 0.05)' // Very subtle tint
     }}>
       <div style={{
@@ -600,7 +599,9 @@ export default function PNLTrackerApp() {
         padding: '32px 28px',
         maxWidth: '340px',
         width: '90%',
-        boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', // Deep shadow for pop
+        // CHANGED: Adjusted negative margin to nudge it slightly up for better optical balance
+        marginTop: '-10%', 
+        boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', 
         textAlign: 'center'
       }}>
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🔒</div>
