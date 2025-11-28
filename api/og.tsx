@@ -16,11 +16,10 @@ export default function handler(request) {
 
     // Formatting
     const isWin = pnl >= 0;
-    const color = isWin ? '#166534' : '#991b1b'; // Green or Red text
-    const bgColor = isWin ? '#f0fdf4' : '#fef2f2'; // Light Green or Red bg
+    const color = isWin ? '#166534' : '#991b1b'; 
+    const bgColor = isWin ? '#f0fdf4' : '#fef2f2';
     const borderColor = isWin ? '#bbf7d0' : '#fecaca';
     
-    // Format Currency nicely ($1.2k or $500.00)
     const absVal = Math.abs(pnl);
     let formattedPnl = '$' + absVal.toFixed(2);
     if (absVal >= 1000) formattedPnl = '$' + (absVal / 1000).toFixed(1) + 'k';
@@ -38,11 +37,11 @@ export default function handler(request) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#fafafa', // Match your app background
+            backgroundColor: '#fafafa',
             fontFamily: 'sans-serif',
           }}
         >
-          {/* The Card */}
+          {/* Card Container */}
           <div
             style={{
               display: 'flex',
@@ -69,7 +68,7 @@ export default function handler(request) {
               @{username} on Base
             </div>
 
-            {/* Big PNL Pill */}
+            {/* PNL Pill */}
             <div
               style={{
                 display: 'flex',
@@ -87,7 +86,7 @@ export default function handler(request) {
               </div>
             </div>
 
-            {/* Footer Stats */}
+            {/* Footer */}
             <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: '40px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                 <div style={{ fontSize: 18, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af' }}>Win Rate</div>
@@ -108,6 +107,7 @@ export default function handler(request) {
       },
     );
   } catch (e) {
+    console.error(e);
     return new Response(`Failed to generate the image`, {
       status: 500,
     });
