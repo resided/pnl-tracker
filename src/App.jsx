@@ -182,8 +182,10 @@ export default function PNLTrackerApp() {
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
+
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
   };
@@ -342,7 +344,6 @@ export default function PNLTrackerApp() {
           const initialAddresses = primaryEth ? [primaryEth] : allEth;
           if (initialAddresses.length > 0) {
             const hasAccess = await checkTokenGate(initialAddresses[0]);
-            // Fetch data even if gated for the "teaser" mode
             await fetchPNLData(initialAddresses);
             if (!hasAccess) setPnlData(MOCK_PNL_DATA); // Overwrite if gated to show juicy mock data in bg
           }
@@ -358,7 +359,9 @@ export default function PNLTrackerApp() {
     setActiveScope(scope);
     if (DEMO_MODE) return;
     let addresses = scope === 'all' ? wallets : (scope === 'primary' && primaryWallet ? [primaryWallet] : [scope]);
-    if (addresses.length > 0) await fetchPNLData(addresses);
+    if (addresses.length > 0) {
+      if (!isGated) await fetchPNLData(addresses);
+    }
   };
 
   const handleRetryGate = () => {
@@ -371,7 +374,7 @@ export default function PNLTrackerApp() {
 
   const renderGatedOverlay = () => (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '32px 28px', maxWidth: '340px', width: '90%', marginTop: '-10%', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
+      <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '32px 28px', maxWidth: '340px', width: '90%', marginTop: '180px', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🔒</div>
         <h2 style={{ fontSize: '18px', fontWeight: '700', color: colors.ink, margin: '0 0 8px' }}>Unlock PnL Tracker</h2>
         <p style={{ fontSize: '13px', color: colors.muted, lineHeight: '1.5', margin: '0 0 20px' }}>You need <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to see your real performance.</p>
@@ -404,7 +407,7 @@ export default function PNLTrackerApp() {
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
       {isGated && renderGatedOverlay()}
-      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px', filter: isGated ? 'blur(3px)' : 'none', pointerEvents: isGated ? 'none' : 'auto', opacity: 1, transition: 'all 0.4s ease' }}>
+      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px', transition: 'all 0.4s ease' }}>
         {/* Header */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>📊</div><span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span></div>
