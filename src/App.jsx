@@ -718,7 +718,7 @@ export default function PNLTrackerApp() {
   // Environment error (no Farcaster context, no wallets, etc)
   const [envError, setEnvError] = useState(null);
 
-  // Share PnL via Farcaster composeCast (FIXED: Uses Cloud Image Generator)
+  // Share PnL via Farcaster composeCast (FIXED: Uses Public OG Generator for cleaner look)
   const handleSharePnL = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -728,31 +728,29 @@ export default function PNLTrackerApp() {
 
       const pnlValue = summary.totalRealizedProfit || 0;
       const isWin = pnlValue >= 0;
-      const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
       const tokensCount = summary.totalTokensTraded || 0;
+      const username = user?.username || 'user';
       
-      // Zero-config image generator
-      const bgHex = isWin ? '166534' : '991b1b'; // Dark Green or Red
-      const textHex = 'ffffff';
-      const sign = isWin ? '+' : '-';
-      const absVal = Math.abs(pnlValue);
-      let shortVal = absVal.toFixed(2);
-      if (absVal >= 1000) shortVal = (absVal / 1000).toFixed(1) + 'k';
-      
-      // Creates a clean graphic: "PNL: +$1.2k | Win: 65%"
-      const imageText = `PNL: ${sign}$${shortVal}  |  Win: ${winRate}%`;
-      const imageUrl = `https://placehold.co/1200x630/${bgHex}/${textHex}/png?text=${encodeURIComponent(imageText)}&font=roboto`;
-
-      const direction = isWin ? 'up' : 'down';
+      // 1. Format the data for the graphic
       const realized = formatCurrency(pnlValue);
-      const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours here:`;
+      const emoji = isWin ? '📈' : '📉';
+      
+      // 2. Construct Professional Vercel OG URL
+      // Format: **Top Line (Small)** %0A (New Line) **Bottom Line (Huge)**
+      const cardTitle = `${emoji} Base PnL (@${username})`;
+      const cardValue = `${realized}`;
+      const logoUrl = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
+      
+      const imageUrl = `https://og-image.vercel.app/**${cardTitle}**%0A${cardValue}.png?theme=dark&md=1&fontSize=100px&images=${encodeURIComponent(logoUrl)}&widths=auto&heights=300`;
+
+      // 3. Create Cast Text
+      const direction = isWin ? 'up' : 'down';
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
 
       await sdk.actions.composeCast({
         text: castText,
-        embeds: [
-          imageUrl, 
-          'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl'
-        ]
+        embeds: [imageUrl] // Only embed the image so it shows up big
       });
     } catch (err) {
       console.error('share pnl failed', err);
