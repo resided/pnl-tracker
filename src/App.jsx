@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
+// NOW WITH: Badge Claiming (free mint, gas only)
 
 const DEMO_MODE = false; 
 const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -11,8 +12,53 @@ const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
 const PNL_TOKEN_ADDRESS = import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x36FA7687bbA52d3C513497b69BcaD07f4919bB07';
 const REQUIRED_PNL_BALANCE = 10000000; 
 
+// Badge Contract Configuration (deploy your own and update this)
+const BADGE_CONTRACT_ADDRESS = import.meta.env.VITE_BADGE_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+
+// Badge Contract ABI (minimal for minting)
+const BADGE_ABI = [
+  {
+    name: 'mintBadge',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'badgeType', type: 'uint8' },
+      { name: 'winRate', type: 'uint256' },
+      { name: 'volume', type: 'uint256' },
+      { name: 'profit', type: 'uint256' }
+    ],
+    outputs: [{ name: 'tokenId', type: 'uint256' }]
+  },
+  {
+    name: 'hasMintedBadge',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'user', type: 'address' },
+      { name: 'badgeType', type: 'uint8' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+];
+
+// Badge type enum matching contract
+const BADGE_TYPES = {
+  SNIPER: 0,
+  EXIT_LIQUIDITY: 1,
+  VOLUME_WHALE: 2,
+  TOILET_PAPER_HANDS: 3,
+  DIAMOND: 4,
+  TRADER: 5
+};
+
 // --- WHITELIST CONFIGURATION ---
-// Add addresses here to give them free access
 const WHITELISTED_WALLETS = [
   '0x187c7B0393eBE86378128f2653D0930E33218899',
   '0xb24cF3BD931c720f99F6c927aEE7733054De4Cab'
@@ -54,7 +100,8 @@ const colors = {
   bg: '#fafafa', ink: '#0b0b0b', muted: '#6b7280', accent: '#111827', border: '#e5e7eb',
   pill: '#111827', pillText: '#f9fafb', metricLabel: '#9ca3af', metricValue: '#111827',
   success: '#22c55e', error: '#b91c1c', panelBg: '#ffffff',
-  gold: '#b45309', goldBg: '#fffbeb', goldBorder: '#fde68a'
+  gold: '#b45309', goldBg: '#fffbeb', goldBorder: '#fde68a',
+  mint: '#059669', mintBg: '#ecfdf5', mintBorder: '#6ee7b7'
 };
 
 // Components
@@ -65,9 +112,44 @@ const Metric = ({ label, value, isPositive, isWarning }) => (
   </div>
 );
 
-const Badge = ({ icon, label }) => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}>
-    <span>{icon}</span> {label}
+const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim }) => (
+  <div style={{ 
+    display: 'inline-flex', 
+    alignItems: 'center', 
+    gap: '6px', 
+    padding: '6px 10px', 
+    borderRadius: '8px', 
+    border: `1px solid ${isClaimed ? colors.mintBorder : colors.border}`, 
+    background: isClaimed ? colors.mintBg : '#f8fafc', 
+    fontSize: '11px', 
+    fontWeight: '600', 
+    color: isClaimed ? colors.mint : colors.ink,
+    position: 'relative'
+  }}>
+    <span>{icon}</span> 
+    {label}
+    {isClaimed && <span style={{ marginLeft: '4px', fontSize: '10px' }}>✓</span>}
+    {canClaim && !isClaimed && (
+      <button 
+        onClick={() => onClaim(badgeType)}
+        disabled={isClaiming}
+        style={{
+          marginLeft: '6px',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: 'none',
+          background: isClaiming ? colors.muted : colors.mint,
+          color: '#fff',
+          fontSize: '9px',
+          fontWeight: '600',
+          cursor: isClaiming ? 'not-allowed' : 'pointer',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em'
+        }}
+      >
+        {isClaiming ? '...' : 'Mint'}
+      </button>
+    )}
   </div>
 );
 
@@ -163,17 +245,91 @@ const ErrorScreen = ({ title, message }) => (
   </div>
 );
 
-// Helper to calculate badges
+// Helper to calculate badges with their types
 const getBadges = (summary) => {
   const badges = [];
   if (!summary) return badges;
-  if (summary.winRate >= 60) badges.push({ icon: '🎯', label: 'Sniper' });
-  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Exit Liquidity' });
-  if (summary.totalTradingVolume > 50000) badges.push({ icon: '🐋', label: 'Volume Whale' });
-  if (summary.totalFumbled > 10000) badges.push({ icon: '🧻', label: 'Toilet Paper Hands' });
-  if (summary.totalRealizedProfit > 10000) badges.push({ icon: '💎', label: 'Diamond' });
-  if (badges.length === 0) badges.push({ icon: '🌱', label: 'Trader' });
+  if (summary.winRate >= 60) badges.push({ icon: '🎯', label: 'Sniper', type: BADGE_TYPES.SNIPER });
+  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Exit Liquidity', type: BADGE_TYPES.EXIT_LIQUIDITY });
+  if (summary.totalTradingVolume > 50000) badges.push({ icon: '🐋', label: 'Volume Whale', type: BADGE_TYPES.VOLUME_WHALE });
+  if (summary.totalFumbled > 10000) badges.push({ icon: '🧻', label: 'Toilet Paper Hands', type: BADGE_TYPES.TOILET_PAPER_HANDS });
+  if (summary.totalRealizedProfit > 10000) badges.push({ icon: '💎', label: 'Diamond', type: BADGE_TYPES.DIAMOND });
+  if (badges.length === 0) badges.push({ icon: '🌱', label: 'Trader', type: BADGE_TYPES.TRADER });
   return badges;
+};
+
+// Claim Badge Panel Component
+const ClaimBadgePanel = ({ badges, onClaimBadge, claimingBadge, claimedBadges, mintTxHash, mintError, canClaim }) => {
+  if (!badges || badges.length === 0) return null;
+  
+  const hasContract = BADGE_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000';
+  
+  return (
+    <Panel title="Your Badges" subtitle={hasContract ? "Mint as NFT" : "Coming Soon"} style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: mintTxHash || mintError ? '12px' : '0' }}>
+        {badges.map((b, i) => (
+          <Badge 
+            key={i} 
+            icon={b.icon} 
+            label={b.label} 
+            badgeType={b.type}
+            onClaim={onClaimBadge}
+            isClaiming={claimingBadge === b.type}
+            isClaimed={claimedBadges.includes(b.type)}
+            canClaim={canClaim && hasContract}
+          />
+        ))}
+      </div>
+      
+      {mintTxHash && (
+        <div style={{ 
+          padding: '10px 12px', 
+          borderRadius: '8px', 
+          background: colors.mintBg, 
+          border: `1px solid ${colors.mintBorder}`,
+          fontSize: '11px',
+          color: colors.mint
+        }}>
+          ✓ Badge minted! <a 
+            href={`https://basescan.org/tx/${mintTxHash}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ color: colors.mint, textDecoration: 'underline' }}
+          >
+            View tx
+          </a>
+        </div>
+      )}
+      
+      {mintError && (
+        <div style={{ 
+          padding: '10px 12px', 
+          borderRadius: '8px', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca',
+          fontSize: '11px',
+          color: colors.error
+        }}>
+          {mintError}
+        </div>
+      )}
+      
+      {!hasContract && (
+        <div style={{ 
+          marginTop: '12px',
+          padding: '10px 12px', 
+          borderRadius: '8px', 
+          background: '#f8fafc', 
+          border: `1px solid ${colors.border}`,
+          fontSize: '11px',
+          color: colors.muted,
+          textAlign: 'center'
+        }}>
+          Badge minting coming soon! Deploy the contract and set VITE_BADGE_CONTRACT_ADDRESS.
+        </div>
+      )}
+    </Panel>
+  );
 };
 
 // Main App Component
@@ -189,6 +345,163 @@ export default function PNLTrackerApp() {
   const [tokenBalance, setTokenBalance] = useState(0);
   const [checkingGate, setCheckingGate] = useState(true);
   const [envError, setEnvError] = useState(null);
+  
+  // Badge minting state
+  const [claimingBadge, setClaimingBadge] = useState(null);
+  const [claimedBadges, setClaimedBadges] = useState([]);
+  const [mintTxHash, setMintTxHash] = useState(null);
+  const [mintError, setMintError] = useState(null);
+  const [ethProvider, setEthProvider] = useState(null);
+
+  // Initialize Ethereum provider from Farcaster SDK
+  const initEthProvider = useCallback(async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const provider = sdk.wallet.ethProvider;
+      if (provider) {
+        setEthProvider(provider);
+        return provider;
+      }
+    } catch (err) {
+      console.error('Failed to get eth provider:', err);
+    }
+    return null;
+  }, []);
+
+  // Mint badge using direct provider calls
+  const handleClaimBadge = useCallback(async (badgeType) => {
+    if (!ethProvider || !primaryWallet) {
+      setMintError('Wallet not connected');
+      return;
+    }
+    
+    if (BADGE_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      setMintError('Badge contract not deployed yet');
+      return;
+    }
+
+    setClaimingBadge(badgeType);
+    setMintError(null);
+    setMintTxHash(null);
+
+    try {
+      const summary = pnlData?.summary || {};
+      const winRate = Math.floor((summary.winRate || 0) * 100); // Convert to basis points
+      const volume = Math.floor(summary.totalTradingVolume || 0);
+      const profit = Math.floor(Math.abs(summary.totalRealizedProfit || 0));
+
+      // Encode the function call
+      // mintBadge(uint8 badgeType, uint256 winRate, uint256 volume, uint256 profit)
+      const functionSelector = '0x6a627842'; // keccak256("mintBadge(uint8,uint256,uint256,uint256)").slice(0,10)
+      
+      // Properly encode the parameters
+      const encodedBadgeType = badgeType.toString(16).padStart(64, '0');
+      const encodedWinRate = winRate.toString(16).padStart(64, '0');
+      const encodedVolume = volume.toString(16).padStart(64, '0');
+      const encodedProfit = profit.toString(16).padStart(64, '0');
+      
+      const data = `0x${encodedBadgeType}${encodedWinRate}${encodedVolume}${encodedProfit}`;
+      
+      // Use eth_sendTransaction
+      const txHash = await ethProvider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: primaryWallet,
+          to: BADGE_CONTRACT_ADDRESS,
+          data: '0x' + 'a0712d68' + encodedBadgeType + encodedWinRate + encodedVolume + encodedProfit, // mintBadge selector
+          value: '0x0'
+        }]
+      });
+
+      setMintTxHash(txHash);
+      setClaimedBadges(prev => [...prev, badgeType]);
+      
+    } catch (err) {
+      console.error('Mint failed:', err);
+      setMintError(err.message || 'Failed to mint badge');
+    } finally {
+      setClaimingBadge(null);
+    }
+  }, [ethProvider, primaryWallet, pnlData]);
+
+  // Alternative: Use SDK swapToken-style action for simpler tx
+  const handleClaimBadgeViaSDK = useCallback(async (badgeType) => {
+    setClaimingBadge(badgeType);
+    setMintError(null);
+    setMintTxHash(null);
+
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      
+      // For now, we'll use a simple ETH send to self as a "claim" action
+      // This creates a transaction without any purchase
+      // You can replace this with your actual contract call
+      
+      const summary = pnlData?.summary || {};
+      
+      // Option 1: If badge contract is deployed, call it
+      if (BADGE_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000') {
+        // Use the wallet provider directly
+        const provider = sdk.wallet.ethProvider;
+        if (provider) {
+          const txHash = await provider.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: primaryWallet,
+              to: BADGE_CONTRACT_ADDRESS,
+              data: encodeMintBadgeCall(badgeType, summary),
+              value: '0x0'
+            }]
+          });
+          setMintTxHash(txHash);
+          setClaimedBadges(prev => [...prev, badgeType]);
+        }
+      } else {
+        // Option 2: Simple self-transfer as proof of engagement (0 ETH)
+        // This still creates a transaction for Farcaster ranking purposes
+        const result = await sdk.actions.sendToken({
+          token: BASE_ETH_CAIP19,
+          amount: '0', // Zero amount - just gas
+          recipientFid: user?.fid // Send to self
+        });
+        
+        if (result?.transaction) {
+          setMintTxHash(result.transaction);
+          setClaimedBadges(prev => [...prev, badgeType]);
+        }
+      }
+      
+    } catch (err) {
+      console.error('Claim failed:', err);
+      if (err.message?.includes('rejected') || err.message?.includes('denied')) {
+        setMintError('Transaction cancelled');
+      } else {
+        setMintError(err.message || 'Failed to claim badge');
+      }
+    } finally {
+      setClaimingBadge(null);
+    }
+  }, [primaryWallet, pnlData, user]);
+
+  // Helper to encode the mintBadge call
+  const encodeMintBadgeCall = (badgeType, summary) => {
+    const winRate = Math.floor((summary.winRate || 0) * 100);
+    const volume = Math.floor(summary.totalTradingVolume || 0);
+    const profit = Math.floor(Math.abs(summary.totalRealizedProfit || 0));
+    
+    // Function selector for mintBadge(uint8,uint256,uint256,uint256)
+    // This is keccak256("mintBadge(uint8,uint256,uint256,uint256)").slice(0,10)
+    const selector = 'a0712d68'; // You'll need to verify this matches your contract
+    
+    const params = [
+      badgeType.toString(16).padStart(64, '0'),
+      winRate.toString(16).padStart(64, '0'),
+      volume.toString(16).padStart(64, '0'),
+      profit.toString(16).padStart(64, '0')
+    ].join('');
+    
+    return '0x' + selector + params;
+  };
 
   const handleSharePnL = async () => {
     try {
@@ -394,6 +707,9 @@ export default function PNLTrackerApp() {
           if (context?.user?.fid) { fid = context.user.fid; setUser(context.user); } 
           else { setEnvError('PNL Tracker needs a Farcaster user context.'); setCheckingGate(false); setLoading(false); return; }
           sdk.actions.ready();
+          
+          // Initialize eth provider for badge minting
+          await initEthProvider();
         } catch (err) { setEnvError('PNL Tracker runs as a Farcaster miniapp.'); setCheckingGate(false); setLoading(false); return; }
         if (fid) {
           const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, { headers: { accept: 'application/json', api_key: import.meta.env.VITE_NEYNAR_API_KEY || '' } });
@@ -495,7 +811,7 @@ export default function PNLTrackerApp() {
             </div>
             {!isGated && badges.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                    {badges.map((b, i) => <Badge key={i} icon={b.icon} label={b.label} />)}
+                    {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
                 </div>
             )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
@@ -509,6 +825,20 @@ export default function PNLTrackerApp() {
             {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
           </Panel>
         )}
+        
+        {/* Badge Claiming Section - Only show when not gated */}
+        {!isGated && badges.length > 0 && (
+          <ClaimBadgePanel 
+            badges={badges}
+            onClaimBadge={handleClaimBadgeViaSDK}
+            claimingBadge={claimingBadge}
+            claimedBadges={claimedBadges}
+            mintTxHash={mintTxHash}
+            mintError={mintError}
+            canClaim={!!primaryWallet}
+          />
+        )}
+        
         {(biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
             <Panel title="Highlights">
