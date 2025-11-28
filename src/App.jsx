@@ -11,6 +11,12 @@ const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
 const PNL_TOKEN_ADDRESS = import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x36FA7687bbA52d3C513497b69BcaD07f4919bB07';
 const REQUIRED_PNL_BALANCE = 10000000; 
 
+// --- WHITELIST CONFIGURATION ---
+// Add addresses here to give them free access
+const WHITELISTED_WALLETS = [
+  '0x187c7B0393eBE86378128f2653D0930E33218899'
+].map(addr => addr.toLowerCase());
+
 const BASE_ETH_CAIP19 = 'eip155:8453/native';
 const getPnlCaip19 = () =>
   PNL_TOKEN_ADDRESS && PNL_TOKEN_ADDRESS !== '0x0000000000000000000000000000000000000000'
@@ -161,7 +167,7 @@ const getBadges = (summary) => {
   const badges = [];
   if (!summary) return badges;
   if (summary.winRate >= 60) badges.push({ icon: '🎯', label: 'Sniper' });
-  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Exit Liquidity' });
+  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Liquidity' });
   if (summary.totalTradingVolume > 50000) badges.push({ icon: '🐋', label: 'Whale' });
   if (summary.totalFumbled > 10000) badges.push({ icon: '🧻', label: 'Paper Hands' });
   if (summary.totalRealizedProfit > 10000) badges.push({ icon: '💎', label: 'Diamond' });
@@ -227,8 +233,18 @@ export default function PNLTrackerApp() {
     } catch (err) { console.error('swap for $PNL failed', err); }
   };
 
+  // MODIFIED: Check Whitelist
   const checkTokenGate = async (address) => {
     if (!PNL_TOKEN_ADDRESS) { setTokenBalance(0); setCheckingGate(false); setIsGated(false); return true; }
+    
+    // Whitelist check
+    if (address && WHITELISTED_WALLETS.includes(address.toLowerCase())) {
+       setTokenBalance(REQUIRED_PNL_BALANCE); // Fake the balance for display
+       setCheckingGate(false);
+       setIsGated(false);
+       return true;
+    }
+
     if (DEMO_MODE) {
       await new Promise((r) => setTimeout(r, 500));
       setTokenBalance(REQUIRED_PNL_BALANCE + 100);
@@ -291,9 +307,7 @@ export default function PNLTrackerApp() {
           data.result.forEach((token) => {
             const invested = parseFloat(token.total_usd_invested) || 0;
             const realized = parseFloat(token.realized_profit_usd) || 0;
-            // Calculate avg buy for the list
             const avgBuy = invested > 0 ? (invested / parseFloat(token.total_tokens_bought || 1)) : 0;
-            
             allTokenData.push({
               name: token.name, symbol: token.symbol, tokenAddress: token.token_address?.toLowerCase(),
               totalUsdInvested: invested, realizedProfitUsd: realized, isProfitable: realized > 0,
@@ -357,9 +371,7 @@ export default function PNLTrackerApp() {
           });
         } catch (e) { console.log('error computing biggest fumble', e); }
       }
-      
       summary.totalFumbled = totalFumbledAmount;
-
       const resultData = { summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble: biggestFumbleToken };
       setPnlData(resultData);
       if (cacheKey && typeof window !== 'undefined') window.localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: resultData }));
@@ -480,19 +492,14 @@ export default function PNLTrackerApp() {
               <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI</div>
             </div>
-            
-            {/* TRADER DNA BADGES - ONLY VISIBLE WHEN UNLOCKED */}
             {!isGated && badges.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
                     {badges.map((b, i) => <Badge key={i} icon={b.icon} label={b.label} />)}
                 </div>
             )}
-            
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
               <Metric label="Volume" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
               <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
-              
-              {/* NEW: Show Total Fumbled if Unlocked, otherwise Token count */}
               {!isGated && pnlData.summary.totalFumbled > 0 
                  ? <Metric label="Total Fumbled" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
                  : <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
@@ -501,7 +508,7 @@ export default function PNLTrackerApp() {
             {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
           </Panel>
         )}
-        {tokens.length > 0 && (
+        {(biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
             <Panel title="Highlights">
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} />}</div>
