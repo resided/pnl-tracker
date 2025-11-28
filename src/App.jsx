@@ -818,6 +818,7 @@ export default function PNLTrackerApp() {
       const balance =
         pnlToken ? parseInt(pnlToken.balance) / 10 ** (pnlToken.decimals || 18) : 0;
 
+      // Update the balance only on initialization (Primary wallet)
       setTokenBalance(balance);
       setCheckingGate(false);
 
@@ -1095,6 +1096,7 @@ export default function PNLTrackerApp() {
           const initialAddresses = primaryEth ? [primaryEth] : allEth;
 
           if (initialAddresses.length > 0) {
+            // ONLY Check Token Gate once on initialization for Primary Address
             const hasAccess = await checkTokenGate(initialAddresses[0]);
             if (hasAccess) {
               await fetchPNLData(initialAddresses);
@@ -1115,6 +1117,7 @@ export default function PNLTrackerApp() {
     initialize();
   }, []);
 
+  // MODIFIED: Does NOT re-check gate on scope switch.
   const handleWalletScopeChange = async (event) => {
     const scope = event.target.value;
     setActiveScope(scope);
@@ -1131,10 +1134,9 @@ export default function PNLTrackerApp() {
     }
 
     if (addresses.length > 0) {
-      const hasAccess = await checkTokenGate(addresses[0]);
-      if (hasAccess) {
-        await fetchPNLData(addresses);
-      }
+      // FIX: Directly fetch data. Do NOT call checkTokenGate here.
+      // We rely on the initial check performed on the primary wallet.
+      await fetchPNLData(addresses);
     }
   };
 
@@ -1142,7 +1144,9 @@ export default function PNLTrackerApp() {
     setCheckingGate(true);
     setIsGated(false);
     if (wallets.length > 0) {
-      checkTokenGate(wallets[0]);
+      // Always check the primary wallet (or first one found) on retry
+      const target = primaryWallet || wallets[0];
+      checkTokenGate(target);
     }
   };
 
