@@ -503,7 +503,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
   return (
     <div
       style={{
-        flex: '1 1 140px',
+        flex: '1 1 140px', // Allow grow/shrink but keep min-width
         padding: '12px',
         borderRadius: '16px',
         border: `1px solid ${border}`,
@@ -725,24 +725,25 @@ export default function PNLTrackerApp() {
       const isWin = pnlValue >= 0;
       const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
       const tokensCount = summary.totalTokensTraded || 0;
+      const username = user?.username || 'user';
       
-      // PSYCAST BRANDED IMAGE GENERATION (Light Mode)
-      // Background: #ffffff (White)
-      // Text: #0b0b0b (Black/Ink)
-      // Font: Montserrat (Matches your request)
-      const bgHex = 'ffffff';
-      const textHex = '0b0b0b'; 
-      
+      // 1. Format Data
       const realized = formatCurrency(pnlValue);
-      const sign = isWin ? '+' : '-';
-      const absVal = Math.abs(pnlValue);
-      let shortVal = absVal.toFixed(2);
-      if (absVal >= 1000) shortVal = (absVal / 1000).toFixed(1) + 'k';
-      
-      const imageText = `Ψ PnL: ${sign}$${shortVal}\nWin Rate: ${winRate}%`;
-      const imageUrl = `https://placehold.co/1200x630/${bgHex}/${textHex}/png?text=${encodeURIComponent(imageText)}&font=montserrat`;
-
       const direction = isWin ? 'up' : 'down';
+      
+      // 2. Generate Bulletproof Image URL (Psycast White Theme)
+      // Using Vercel OG Public generator with no external images to prevent 404s.
+      // We simulate the Psi Logo with the text "( Ψ )"
+      
+      const topText = `( Ψ ) PnL: @${username}`;
+      const bottomText = realized;
+      
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      
+      // Theme: Light (White background, Black text) to match your logo
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px`;
+
+      // 3. Create Cast
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
 
@@ -1397,245 +1398,4 @@ export default function PNLTrackerApp() {
                       'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
                   }}
                 >
-                  {primaryWallet && (
-                    <option value="primary">Primary · {truncateAddress(primaryWallet)}</option>
-                  )}
-                  <option value="all">All verified wallets combined</option>
-                  {wallets.map((addr) => (
-                    <option key={addr} value={addr}>
-                      {truncateAddress(addr)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Explainer copy */}
-        <div
-          style={{
-            marginBottom: '24px',
-            padding: '12px 14px',
-            borderRadius: '12px',
-            background: colors.panelBg,
-            border: `1px dashed ${colors.border}`,
-            fontSize: '12px',
-            color: colors.muted,
-            lineHeight: '1.6'
-          }}
-        >
-          <div
-            style={{
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.16em',
-              marginBottom: '6px',
-              color: colors.metricLabel
-            }}
-          >
-            What this app does
-          </div>
-          <p style={{ margin: 0 }}>
-            PNL Tracker looks at your <strong>primary Farcaster wallet on Base</strong> and shows
-            live realised PnL, volume and win rate. Open it any time for instant live data.
-          </p>
-          {wallets.length > 1 && (
-            <p style={{ margin: '6px 0 0' }}>
-              Use the wallet menu to switch between your <strong>primary wallet</strong>,{' '}
-              <strong>all verified wallets combined</strong>, or any individual connected wallet.
-            </p>
-          )}
-        </div>
-
-        {/* Main PNL Display */}
-        {pnlData?.summary && (
-          <Panel title="Total Realized P&L" subtitle="Base Chain">
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div
-                style={{
-                  fontSize: '32px',
-                  fontWeight: '600',
-                  color:
-                    pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
-                  fontFeatureSettings: '"tnum" 1, "lnum" 1',
-                  marginBottom: '8px'
-                }}
-              >
-                {pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}
-                {formatCurrency(pnlData.summary.totalRealizedProfit)}
-              </div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 12px',
-                  borderRadius: '999px',
-                  background:
-                    pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2',
-                  color:
-                    pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}
-              >
-                {pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}
-                {Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '24px',
-                borderTop: `1px solid ${colors.border}`,
-                paddingTop: '18px',
-                marginTop: '16px'
-              }}
-            >
-              <Metric
-                label="Volume"
-                value={formatCurrency(pnlData.summary.totalTradingVolume)}
-              />
-              <Metric
-                label="Win Rate"
-                value={`${pnlData.summary.winRate.toFixed(1)}%`}
-                isPositive={pnlData.summary.winRate >= 50}
-              />
-              <Metric
-                label="Tokens"
-                value={pnlData.summary.totalTokensTraded}
-              />
-            </div>
-          </Panel>
-        )}
-
-        {/* Biggest Win / Loss / Fumble section (UPDATED WRAPPER) */}
-        {tokens.length > 0 && (biggestWin || biggestLoss || biggestFumble) && (
-          <div style={{ marginTop: '20px' }}>
-            <Panel title="Highlights">
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  alignItems: 'stretch'
-                }}
-              >
-                {biggestWin && (
-                  <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />
-                )}
-                {biggestLoss && (
-                  <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />
-                )}
-                {biggestFumble && <BigFumbleCard token={biggestFumble} />}
-                {!biggestLoss && !biggestFumble && (
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: colors.muted,
-                      marginTop: '4px'
-                    }}
-                  >
-                    no losing trades yet.
-                  </div>
-                )}
-              </div>
-            </Panel>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px' }}>
-          {['overview', 'tokens'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding: '9px 16px',
-                borderRadius: '999px',
-                border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
-                background: activeTab === tab ? colors.accent : colors.panelBg,
-                color: activeTab === tab ? colors.pillText : colors.muted,
-                fontSize: '11px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.16em',
-                cursor: 'pointer'
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Overview Tab */}
-        {activeTab === 'overview' && pnlData?.tokens && (
-          <Panel title="Top Performers">
-            {pnlData.tokens
-              .filter((t) => t.isProfitable)
-              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-              .slice(0, 3)
-              .map((token, idx) => (
-                <TokenRow key={idx} token={token} />
-              ))}
-            {pnlData.tokens.filter((t) => t.isProfitable).length === 0 && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '24px',
-                  color: colors.muted,
-                  fontSize: '13px'
-                }}
-              >
-                no profitable trades yet
-              </div>
-            )}
-          </Panel>
-        )}
-
-        {/* Tokens Tab */}
-        {activeTab === 'tokens' && pnlData?.tokens && (
-          <Panel
-            title="All Tokens"
-            subtitle={`${pnlData.tokens.filter((t) => t.isProfitable).length}/${
-              pnlData.tokens.length
-            } profitable`}
-          >
-            {pnlData.tokens
-              .slice()
-              .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-              .map((token, idx) => (
-                <TokenRow key={idx} token={token} />
-              ))}
-          </Panel>
-        )}
-
-        {/* Demo Notice */}
-        {DEMO_MODE && (
-          <div
-            style={{
-              marginTop: '24px',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              background: '#fefce8',
-              border: '1px solid #fef08a',
-              fontSize: '11px',
-              color: '#854d0e',
-              textAlign: 'center'
-            }}
-          >
-            <strong
-              style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}
-            >
-              Demo Mode
-            </strong>
-            <span style={{ margin: '0 8px' }}>·</span>
-            sample data shown. deploy with api keys for real tracking.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                  {prima
