@@ -486,7 +486,7 @@ const TokenRow = ({ token }) => (
   </div>
 );
 
-// Biggest Win / Loss card (NEW DESIGN)
+// Biggest Win / Loss card (FIXED: No text squashing)
 const BigMoveCard = ({ label, token, isWin }) => {
   if (!token) return null;
   const invested = token.totalUsdInvested || 0;
@@ -592,7 +592,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
   );
 };
 
-// Biggest fumble card (NEW DESIGN)
+// Biggest fumble card (FIXED: No text squashing)
 const BigFumbleCard = ({ token }) => {
   if (!token) return null;
   const sold = token.totalSoldUsd || 0;
@@ -718,7 +718,7 @@ export default function PNLTrackerApp() {
   // Environment error (no Farcaster context, no wallets, etc)
   const [envError, setEnvError] = useState(null);
 
-  // Share PnL via Farcaster composeCast
+  // Share PnL via Farcaster composeCast (FIXED: Uses Cloud Image Generator)
   const handleSharePnL = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -727,23 +727,30 @@ export default function PNLTrackerApp() {
       if (!summary) return;
 
       const pnlValue = summary.totalRealizedProfit || 0;
+      const isWin = pnlValue >= 0;
       const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
       const tokensCount = summary.totalTokensTraded || 0;
-      const username = user?.username || 'user';
       
-      // Construct the Dynamic Image URL
-      // We use the current window location to ensure it works on Vercel preview & prod
-      const baseUrl = window.location.origin; 
-      const imageUrl = `${baseUrl}/api/og?pnl=${pnlValue}&win=${winRate}&tokens=${tokensCount}&user=${username}`;
+      // Zero-config image generator
+      const bgHex = isWin ? '166534' : '991b1b'; // Dark Green or Red
+      const textHex = 'ffffff';
+      const sign = isWin ? '+' : '-';
+      const absVal = Math.abs(pnlValue);
+      let shortVal = absVal.toFixed(2);
+      if (absVal >= 1000) shortVal = (absVal / 1000).toFixed(1) + 'k';
+      
+      // Creates a clean graphic: "PNL: +$1.2k | Win: 65%"
+      const imageText = `PNL: ${sign}$${shortVal}  |  Win: ${winRate}%`;
+      const imageUrl = `https://placehold.co/1200x630/${bgHex}/${textHex}/png?text=${encodeURIComponent(imageText)}&font=roboto`;
 
+      const direction = isWin ? 'up' : 'down';
       const realized = formatCurrency(pnlValue);
-      const direction = pnlValue >= 0 ? 'up' : 'down';
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours here:`;
 
       await sdk.actions.composeCast({
         text: castText,
         embeds: [
-          imageUrl, // Vercel generates the image instantly
+          imageUrl, 
           'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl'
         ]
       });
