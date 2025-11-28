@@ -21,18 +21,17 @@ const getPnlCaip19 = () =>
 const MOCK_USER = { fid: 3, username: 'dwr.eth', displayName: 'Dan Romero', pfpUrl: 'https://i.pravatar.cc/150?u=dwr' };
 const MOCK_WALLETS = ['0xd7029bdea1c17493893aafe29aad69ef892b8ff2'];
 
-// Juicy mock data (Used for Preview/Background to save API calls)
+// Juicy mock data
 const MOCK_PNL_DATA = {
-  summary: { totalRealizedProfit: 12847.56, totalUnrealizedProfit: 3421.89, totalTradingVolume: 89432.12, profitPercentage: 18.4, totalTokensTraded: 24, winRate: 67.3 },
+  summary: { totalRealizedProfit: 12847.56, totalUnrealizedProfit: 3421.89, totalTradingVolume: 89432.12, profitPercentage: 18.4, totalTokensTraded: 24, winRate: 67.3, totalFumbled: 45200 },
   tokens: [
-    { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true },
-    { name: 'DEGEN', symbol: 'DEGEN', totalUsdInvested: 2500, realizedProfitUsd: 3127.25, isProfitable: true },
-    { name: 'TOSHI', symbol: 'TOSHI', totalUsdInvested: 1800, realizedProfitUsd: 1299.81, isProfitable: true },
-    { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
-    { name: 'HIGHER', symbol: 'HIGHER', totalUsdInvested: 1200, realizedProfitUsd: 1245.32, isProfitable: true },
-    { name: 'ENJOY', symbol: 'ENJOY', totalUsdInvested: 800, realizedProfitUsd: -234.12, isProfitable: false }
+    { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true, avgBuy: 0.04 },
+    { name: 'DEGEN', symbol: 'DEGEN', totalUsdInvested: 2500, realizedProfitUsd: 3127.25, isProfitable: true, avgBuy: 0.002 },
+    { name: 'TOSHI', symbol: 'TOSHI', totalUsdInvested: 1800, realizedProfitUsd: 1299.81, isProfitable: true, avgBuy: 0.0004 },
+    { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false, avgBuy: 0.08 },
+    { name: 'HIGHER', symbol: 'HIGHER', totalUsdInvested: 1200, realizedProfitUsd: 1245.32, isProfitable: true, avgBuy: 0.01 },
+    { name: 'ENJOY', symbol: 'ENJOY', totalUsdInvested: 800, realizedProfitUsd: -234.12, isProfitable: false, avgBuy: 0.004 }
   ],
-  // Explicitly set mock highlights so preview looks good
   biggestWin: { name: 'BRETT', symbol: 'BRETT', totalUsdInvested: 5000, realizedProfitUsd: 8420.5, isProfitable: true },
   biggestLoss: { name: 'NORMIE', symbol: 'NORMIE', totalUsdInvested: 3000, realizedProfitUsd: -1245.32, isProfitable: false },
   biggestFumble: { name: 'KEYCAT', symbol: 'KEYCAT', totalSoldUsd: 400, missedUpsideUsd: 12500, currentValueSoldTokens: 12900 }
@@ -47,19 +46,26 @@ const truncateAddress = (addr) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)
 const colors = {
   bg: '#fafafa', ink: '#0b0b0b', muted: '#6b7280', accent: '#111827', border: '#e5e7eb',
   pill: '#111827', pillText: '#f9fafb', metricLabel: '#9ca3af', metricValue: '#111827',
-  success: '#22c55e', error: '#b91c1c', panelBg: '#ffffff'
+  success: '#22c55e', error: '#b91c1c', panelBg: '#ffffff',
+  gold: '#b45309', goldBg: '#fffbeb', goldBorder: '#fde68a'
 };
 
 // Components
-const Metric = ({ label, value, isPositive }) => (
-  <div style={{ minWidth: '100px' }}>
-    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.16em', color: colors.metricLabel, marginBottom: '6px' }}>{label}</div>
-    <div style={{ fontSize: '18px', fontWeight: '500', color: isPositive === undefined ? colors.metricValue : isPositive ? colors.success : colors.error }}>{value}</div>
+const Metric = ({ label, value, isPositive, isWarning }) => (
+  <div style={{ minWidth: '90px' }}>
+    <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: isWarning ? colors.gold : colors.metricLabel, marginBottom: '4px' }}>{label}</div>
+    <div style={{ fontSize: '16px', fontWeight: '600', color: isWarning ? colors.gold : (isPositive === undefined ? colors.metricValue : isPositive ? colors.success : colors.error) }}>{value}</div>
   </div>
 );
 
-const Panel = ({ title, subtitle, children }) => (
-  <div style={{ background: colors.panelBg, borderRadius: '18px', border: `1px solid ${colors.border}`, padding: '20px 18px 16px', boxShadow: '0 14px 35px rgba(15,23,42,0.08)' }}>
+const Badge = ({ icon, label }) => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}>
+    <span>{icon}</span> {label}
+  </div>
+);
+
+const Panel = ({ title, subtitle, children, style }) => (
+  <div style={{ background: colors.panelBg, borderRadius: '18px', border: `1px solid ${colors.border}`, padding: '20px 18px 16px', boxShadow: '0 14px 35px rgba(15,23,42,0.08)', ...style }}>
     {(title || subtitle) && (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
         {title && <div style={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontSize: '10px', color: colors.metricLabel }}>{title}</div>}
@@ -74,13 +80,16 @@ const TokenRow = ({ token }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600', color: colors.accent, border: `1px solid ${colors.border}` }}>{token.symbol?.charAt(0)}</div>
-      <div><div style={{ fontSize: '14px', fontWeight: '500', color: colors.ink }}>{token.symbol}</div><div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div></div>
+      <div>
+        <div style={{ fontSize: '14px', fontWeight: '500', color: colors.ink }}>{token.symbol}</div>
+        <div style={{ fontSize: '11px', color: colors.muted }}>Avg Buy: ${token.avgBuy?.toFixed(4) || '-'}</div>
+      </div>
     </div>
     <div style={{ textAlign: 'right' }}>
       <div style={{ fontSize: '14px', fontWeight: '500', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>
         {token.realizedProfitUsd >= 0 ? '+' : '-'}{formatCurrency(token.realizedProfitUsd)}
       </div>
-      <div style={{ fontSize: '11px', color: colors.muted }}>{formatCurrency(token.totalUsdInvested)} invested</div>
+      <div style={{ fontSize: '11px', color: colors.muted }}>{formatCurrency(token.totalUsdInvested)} vol</div>
     </div>
   </div>
 );
@@ -89,7 +98,6 @@ const BigMoveCard = ({ label, token, isWin }) => {
   if (!token) return null;
   const invested = token.totalUsdInvested || 0;
   const pnl = token.realizedProfitUsd || 0;
-  const realizedValue = invested + pnl;
   const bg = isWin ? '#f0fdf4' : '#fef2f2';
   const border = isWin ? '#bbf7d0' : '#fecaca';
   const text = isWin ? '#166534' : '#991b1b';
@@ -107,7 +115,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px dashed ${isWin ? '#bbf7d0' : '#fecaca'}` }}>
         <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>Invested</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested)}</div></div>
-        <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>Realized</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(realizedValue)}</div></div>
+        <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>Realized</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested + pnl)}</div></div>
       </div>
     </div>
   );
@@ -119,24 +127,20 @@ const BigFumbleCard = ({ token }) => {
   const missed = token.missedUpsideUsd || 0;
   const current = token.currentValueSoldTokens || 0;
   const multiple = sold > 0 ? current / sold : 0;
-  const bg = '#fffbeb';
-  const border = '#fde68a';
-  const text = '#92400e';
-  const pillBg = '#fef3c7';
 
   return (
-    <div style={{ flex: '1 1 140px', padding: '12px', borderRadius: '16px', border: `1px solid ${border}`, background: bg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+    <div style={{ flex: '1 1 140px', padding: '12px', borderRadius: '16px', border: `1px solid ${colors.goldBorder}`, background: colors.goldBg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#b45309' }}>Biggest Fumble</div>
-        <div style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: pillBg, color: text }}>Missed</div>
+        <div style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.gold }}>Biggest Fumble</div>
+        <div style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fef3c7', color: colors.gold }}>Missed</div>
       </div>
       <div>
-        <div style={{ fontSize: '20px', fontWeight: '700', color: text, letterSpacing: '-0.02em', lineHeight: '1', marginBottom: '4px' }}>{missed >= 0 ? '+' : '-'}{formatCurrency(missed)}</div>
-        <div style={{ fontSize: '11px', color: '#b45309' }}>{token.name || token.symbol}</div>
+        <div style={{ fontSize: '20px', fontWeight: '700', color: colors.gold, letterSpacing: '-0.02em', lineHeight: '1', marginBottom: '4px' }}>{missed >= 0 ? '+' : '-'}{formatCurrency(missed)}</div>
+        <div style={{ fontSize: '11px', color: colors.gold }}>{token.name || token.symbol}</div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px dashed ${border}` }}>
-        <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>Sold For</div><div style={{ fontSize: '11px', fontWeight: '600', color: text }}>{formatCurrency(sold)}</div></div>
-        <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>Worth Now</div><div style={{ fontSize: '11px', fontWeight: '600', color: text }}>{formatCurrency(current)} {multiple > 0 && <span style={{ opacity: 0.7, marginLeft: '2px' }}>({multiple.toFixed(1)}x)</span>}</div></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px dashed ${colors.goldBorder}` }}>
+        <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>Sold For</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(sold)}</div></div>
+        <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>Worth Now</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(current)} {multiple > 0 && <span style={{ opacity: 0.7 }}>({multiple.toFixed(1)}x)</span>}</div></div>
       </div>
     </div>
   );
@@ -151,6 +155,19 @@ const ErrorScreen = ({ title, message }) => (
     </div>
   </div>
 );
+
+// Helper to calculate badges
+const getBadges = (summary) => {
+  const badges = [];
+  if (!summary) return badges;
+  if (summary.winRate >= 60) badges.push({ icon: '🎯', label: 'Sniper' });
+  if (summary.winRate < 40 && summary.totalTokensTraded > 5) badges.push({ icon: '💧', label: 'Liquidity' });
+  if (summary.totalTradingVolume > 50000) badges.push({ icon: '🐋', label: 'Whale' });
+  if (summary.totalFumbled > 10000) badges.push({ icon: '🧻', label: 'Paper Hands' });
+  if (summary.totalRealizedProfit > 10000) badges.push({ icon: '💎', label: 'Diamond' });
+  if (badges.length === 0) badges.push({ icon: '🌱', label: 'Trader' });
+  return badges;
+};
 
 // Main App Component
 export default function PNLTrackerApp() {
@@ -176,7 +193,6 @@ export default function PNLTrackerApp() {
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
 
-      // GATED SHARING (Share the "Teaser" Image)
       if (isGated) {
           const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
           const topText = `( Ψ ) Win Rate: ${winRate}%`;
@@ -188,22 +204,18 @@ export default function PNLTrackerApp() {
           return;
       }
 
-      // UNLOCKED SHARING (Share Real Stats)
       const pnlValue = summary.totalRealizedProfit || 0;
       const isWin = pnlValue >= 0;
       const tokensCount = summary.totalTokensTraded || 0;
       const realized = formatCurrency(pnlValue);
       const direction = isWin ? 'up' : 'down';
-      
       const topText = `( Ψ ) PnL: @${username}`;
       const bottomText = realized;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
-    } catch (err) {
-      console.error('share pnl failed', err);
-    }
+    } catch (err) { console.error('share pnl failed', err); }
   };
 
   const handleSwapForAccess = async () => {
@@ -279,10 +291,14 @@ export default function PNLTrackerApp() {
           data.result.forEach((token) => {
             const invested = parseFloat(token.total_usd_invested) || 0;
             const realized = parseFloat(token.realized_profit_usd) || 0;
+            // Calculate avg buy for the list
+            const avgBuy = invested > 0 ? (invested / parseFloat(token.total_tokens_bought || 1)) : 0;
+            
             allTokenData.push({
               name: token.name, symbol: token.symbol, tokenAddress: token.token_address?.toLowerCase(),
               totalUsdInvested: invested, realizedProfitUsd: realized, isProfitable: realized > 0,
-              totalTokensSold: parseFloat(token.total_tokens_sold) || 0, totalSoldUsd: parseFloat(token.total_sold_usd) || 0
+              totalTokensSold: parseFloat(token.total_tokens_sold) || 0, totalSoldUsd: parseFloat(token.total_sold_usd) || 0,
+              avgBuy: avgBuy
             });
             if (token.token_address && parseFloat(token.total_tokens_sold) > 0) tokenAddressesForFumble.add(token.token_address);
           });
@@ -296,24 +312,21 @@ export default function PNLTrackerApp() {
         totalTradingVolume: allTokenData.reduce((acc, t) => acc + t.totalUsdInvested, 0),
         profitPercentage: 0, 
         totalTokensTraded: allTokenData.length,
-        winRate: allTokenData.length > 0 ? (profitableTokens / allTokenData.length) * 100 : 0
+        winRate: allTokenData.length > 0 ? (profitableTokens / allTokenData.length) * 100 : 0,
+        totalFumbled: 0
       };
       summary.profitPercentage = summary.totalTradingVolume > 0 ? (summary.totalRealizedProfit / summary.totalTradingVolume) * 100 : 0;
       
-      // CALCULATE HIGHLIGHTS LOCALLY FOR REAL DATA
       let biggestWin = null;
       let biggestLoss = null;
-      
       allTokenData.forEach(token => {
-        if(token.realizedProfitUsd > 0) {
-            if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token;
-        }
-        if(token.realizedProfitUsd < 0) {
-            if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token;
-        }
+        if(token.realizedProfitUsd > 0) { if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token; }
+        if(token.realizedProfitUsd < 0) { if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token; }
       });
 
       let biggestFumbleToken = null;
+      let totalFumbledAmount = 0;
+
       if (tokenAddressesForFumble.size > 0) {
         try {
           const priceResponse = await fetch('https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=base', {
@@ -335,12 +348,17 @@ export default function PNLTrackerApp() {
             if (!priceUsd) return;
             const currentValueSoldTokens = t.totalTokensSold * priceUsd;
             const missedUpsideUsd = currentValueSoldTokens - t.totalSoldUsd;
-            if (missedUpsideUsd > 0 && (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd)) {
-              biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens, currentPriceUsd: priceUsd };
+            if (missedUpsideUsd > 0) {
+                totalFumbledAmount += missedUpsideUsd;
+                if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) {
+                    biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens, currentPriceUsd: priceUsd };
+                }
             }
           });
         } catch (e) { console.log('error computing biggest fumble', e); }
       }
+      
+      summary.totalFumbled = totalFumbledAmount;
 
       const resultData = { summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble: biggestFumbleToken };
       setPnlData(resultData);
@@ -378,7 +396,6 @@ export default function PNLTrackerApp() {
             if (hasAccess) {
                await fetchPNLData(initialAddresses);
             } else {
-               // If gated, use MOCK data to save API
                setPnlData(MOCK_PNL_DATA);
                setLoading(false);
             }
@@ -437,6 +454,7 @@ export default function PNLTrackerApp() {
   const biggestWin = pnlData?.biggestWin || null;
   const biggestLoss = pnlData?.biggestLoss || null;
   const biggestFumble = pnlData?.biggestFumble || null;
+  const badges = getBadges(pnlData?.summary);
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
@@ -462,16 +480,28 @@ export default function PNLTrackerApp() {
               <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI</div>
             </div>
+            
+            {/* TRADER DNA BADGES - ONLY VISIBLE WHEN UNLOCKED */}
+            {!isGated && badges.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    {badges.map((b, i) => <Badge key={i} icon={b.icon} label={b.label} />)}
+                </div>
+            )}
+            
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
               <Metric label="Volume" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
               <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
-              <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
+              
+              {/* NEW: Show Total Fumbled if Unlocked, otherwise Token count */}
+              {!isGated && pnlData.summary.totalFumbled > 0 
+                 ? <Metric label="Total Fumbled" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
+                 : <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
+              }
             </div>
-            {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & ROI</div>}
+            {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
           </Panel>
         )}
-        {/* Highlights - Fixed Logic */}
-        {(biggestWin || biggestLoss || biggestFumble) && (
+        {tokens.length > 0 && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
             <Panel title="Highlights">
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} />}</div>
