@@ -23,7 +23,7 @@ const getPnlCaip19 = () =>
     ? `eip155:8453/erc20:${PNL_TOKEN_ADDRESS.toLowerCase()}`
     : null;
 
-// Mock data for demo/preview mode OR blurred preview
+// Mock data for demo/preview mode
 const MOCK_USER = {
   fid: 3,
   username: 'dwr.eth',
@@ -585,19 +585,22 @@ export default function PNLTrackerApp() {
       top: 0, left: 0, right: 0, bottom: 0,
       zIndex: 50,
       display: 'flex',
-      alignItems: 'center',
+      // CHANGED: Position flex-end to push modal down, but prevent full bottom stick with margin
+      alignItems: 'flex-end',
       justifyContent: 'center',
-      background: 'rgba(255, 255, 255, 0.4)',
-      backdropFilter: 'blur(4px)'
+      paddingBottom: '140px', // Push it up significantly from the bottom edge
+      // CHANGED: Removed backdrop-filter to rely on content blur only
+      // backdropFilter: 'blur(2px)', 
+      background: 'rgba(255, 255, 255, 0.05)' // Very subtle tint
     }}>
       <div style={{
         background: colors.panelBg,
-        borderRadius: '18px',
+        borderRadius: '24px',
         border: `1px solid ${colors.border}`,
         padding: '32px 28px',
-        maxWidth: '360px',
+        maxWidth: '340px',
         width: '90%',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', // Deep shadow for pop
         textAlign: 'center'
       }}>
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🔒</div>
@@ -665,9 +668,9 @@ export default function PNLTrackerApp() {
         maxWidth: '540px', 
         margin: '0 auto', 
         padding: '28px 18px 60px', 
-        filter: isGated ? 'blur(8px)' : 'none',
+        filter: isGated ? 'blur(3px)' : 'none', // CHANGED: Reduced blur from 8px to 3px
         pointerEvents: isGated ? 'none' : 'auto',
-        opacity: isGated ? 0.6 : 1,
+        opacity: 1, // CHANGED: Kept full opacity for max visibility
         transition: 'all 0.4s ease'
       }}>
         {/* Header */}
