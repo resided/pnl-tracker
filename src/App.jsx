@@ -691,6 +691,32 @@ export default function PNLTrackerApp() {
           </div>
         </header>
 
+        {/* User Info - NEWLY ADDED BACK */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+            {user.pfpUrl && (
+              <img
+                src={user.pfpUrl}
+                alt={user.username}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  border: `1px solid ${colors.border}`
+                }}
+              />
+            )}
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: colors.ink }}>
+                {user.displayName}
+              </div>
+              <div style={{ fontSize: '12px', color: colors.muted }}>
+                @{user.username}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Wallet Selector */}
         {wallets.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
