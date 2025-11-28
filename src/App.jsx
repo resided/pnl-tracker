@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
-// Styled to match psycast.pages.dev aesthetic
+// Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires PNL tokens to access
 
 const DEMO_MODE = false; // Set to true if you want mock data
@@ -70,20 +70,20 @@ const truncateAddress = (address) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-// CSS Variables matching psycast
+// CSS Variables matching YOUR psycast.pages.dev aesthetic
 const colors = {
-  bg: '#020617', // The Deep "Psycast" Blue
-  ink: '#f8fafc',
-  muted: '#6b7280',
-  accent: '#1e293b',
-  border: '#1e293b', // Darker border for dark mode
-  pill: '#f8fafc',
-  pillText: '#020617',
-  metricLabel: '#94a3b8',
-  metricValue: '#f8fafc',
-  success: '#4ade80',
-  error: '#f87171',
-  panelBg: '#0f172a' // Slightly lighter blue for cards
+  bg: '#fafafa',       // Light Grey Background
+  ink: '#0b0b0b',      // Dark Ink Text
+  muted: '#6b7280',    // Muted Grey
+  accent: '#111827',   // Dark Accent
+  border: '#e5e7eb',   // Light Border
+  pill: '#111827',     // Dark Pill Background
+  pillText: '#f9fafb', // Light Pill Text
+  metricLabel: '#9ca3af',
+  metricValue: '#111827',
+  success: '#22c55e',
+  error: '#b91c1c',
+  panelBg: '#ffffff'   // White Panel Background
 };
 
 // Token Gate Screen Component
@@ -108,7 +108,7 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
         padding: '32px 28px',
         maxWidth: '400px',
         width: '100%',
-        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
+        boxShadow: '0 14px 35px rgba(15,23,42,0.08)',
         textAlign: 'center'
       }}
     >
@@ -117,13 +117,12 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
           width: '64px',
           height: '64px',
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.05)',
+          background: '#fef2f2',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 20px',
-          fontSize: '28px',
-          border: `1px solid ${colors.border}`
+          fontSize: '28px'
         }}
       >
         🔒
@@ -168,7 +167,7 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
 
       <div
         style={{
-          background: 'rgba(255,255,255,0.03)',
+          background: '#f9fafb',
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '24px',
@@ -248,7 +247,7 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
             letterSpacing: '0.16em',
             border: 'none',
             cursor: 'pointer',
-            fontWeight: '600'
+            fontWeight: '500'
           }}
         >
           Get $PNL
@@ -259,14 +258,14 @@ const TokenGateScreen = ({ balance, required, onRetry, onGetAccess }) => (
             flex: 1,
             padding: '11px 16px',
             borderRadius: '999px',
-            background: 'transparent',
-            color: colors.ink,
-            border: `1px solid ${colors.border}`,
+            background: colors.panelBg,
+            color: colors.accent,
+            border: `1px solid ${colors.accent}`,
             fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: '0.16em',
             cursor: 'pointer',
-            fontWeight: '600'
+            fontWeight: '500'
           }}
         >
           Retry
@@ -286,8 +285,7 @@ const ErrorScreen = ({ title, message }) => (
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-      color: colors.ink
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
     }}
   >
     <div
@@ -306,7 +304,7 @@ const ErrorScreen = ({ title, message }) => (
           width: '42px',
           height: '42px',
           borderRadius: '50%',
-          border: `1px solid ${colors.border}`,
+          border: `1px solid ${colors.accent}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -376,7 +374,7 @@ const Panel = ({ title, subtitle, children }) => (
       borderRadius: '18px',
       border: `1px solid ${colors.border}`,
       padding: '20px 18px 16px',
-      boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
+      boxShadow: '0 14px 35px rgba(15,23,42,0.08)'
     }}
   >
     {(title || subtitle) && (
@@ -433,13 +431,13 @@ const TokenRow = ({ token }) => (
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.05)',
+          background: '#f3f4f6',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '14px',
           fontWeight: '600',
-          color: colors.ink,
+          color: colors.accent,
           border: `1px solid ${colors.border}`
         }}
       >
@@ -489,23 +487,23 @@ const TokenRow = ({ token }) => (
   </div>
 );
 
-// Biggest Win / Loss card (Updated for Dark Mode)
+// Biggest Win / Loss card
 const BigMoveCard = ({ label, token, isWin }) => {
   if (!token) return null;
   const invested = token.totalUsdInvested || 0;
   const pnl = token.realizedProfitUsd || 0;
   const realizedValue = invested + pnl;
 
-  // Subtle colors for dark mode
-  const bg = isWin ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)';
-  const border = isWin ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
-  const text = isWin ? '#4ade80' : '#f87171';
-  const pillBg = isWin ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+  // Colors optimized for Light Mode (Psycast)
+  const bg = isWin ? '#f0fdf4' : '#fef2f2';
+  const border = isWin ? '#bbf7d0' : '#fecaca';
+  const text = isWin ? '#166534' : '#991b1b';
+  const pillBg = isWin ? '#dcfce7' : '#fee2e2';
 
   return (
     <div
       style={{
-        flex: '1 1 140px', // Allow grow/shrink but keep min-width
+        flex: '1 1 140px',
         padding: '12px',
         borderRadius: '16px',
         border: `1px solid ${border}`,
@@ -516,7 +514,6 @@ const BigMoveCard = ({ label, token, isWin }) => {
         gap: '12px'
       }}
     >
-      {/* Top Row: Label + Pill */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div
           style={{
@@ -545,7 +542,6 @@ const BigMoveCard = ({ label, token, isWin }) => {
         </div>
       </div>
 
-      {/* Middle: Big Number */}
       <div>
         <div
           style={{
@@ -565,13 +561,12 @@ const BigMoveCard = ({ label, token, isWin }) => {
         </div>
       </div>
 
-      {/* Bottom: Stats Footer */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           paddingTop: '10px',
-          borderTop: `1px dashed ${border}`
+          borderTop: `1px dashed ${isWin ? '#bbf7d0' : '#fecaca'}`
         }}
       >
         <div>
@@ -595,7 +590,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
   );
 };
 
-// Biggest fumble card (Updated for Dark Mode)
+// Biggest fumble card
 const BigFumbleCard = ({ token }) => {
   if (!token) return null;
   const sold = token.totalSoldUsd || 0;
@@ -603,11 +598,11 @@ const BigFumbleCard = ({ token }) => {
   const current = token.currentValueSoldTokens || 0;
   const multiple = sold > 0 ? current / sold : 0;
 
-  // Amber/Orange theme
-  const bg = 'rgba(245, 158, 11, 0.05)';
-  const border = 'rgba(245, 158, 11, 0.2)';
-  const text = '#fbbf24';
-  const pillBg = 'rgba(245, 158, 11, 0.15)';
+  // Amber/Orange theme for Light Mode
+  const bg = '#fffbeb';
+  const border = '#fde68a';
+  const text = '#92400e';
+  const pillBg = '#fef3c7';
 
   return (
     <div
@@ -623,7 +618,6 @@ const BigFumbleCard = ({ token }) => {
         gap: '12px'
       }}
     >
-      {/* Top Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div
           style={{
@@ -631,7 +625,7 @@ const BigFumbleCard = ({ token }) => {
             fontWeight: '600',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            color: '#d97706'
+            color: '#b45309'
           }}
         >
           Biggest Fumble
@@ -652,7 +646,6 @@ const BigFumbleCard = ({ token }) => {
         </div>
       </div>
 
-      {/* Middle */}
       <div>
         <div
           style={{
@@ -667,12 +660,11 @@ const BigFumbleCard = ({ token }) => {
           {missed >= 0 ? '+' : ''}
           {formatCurrency(missed)}
         </div>
-        <div style={{ fontSize: '11px', color: '#d97706' }}>
+        <div style={{ fontSize: '11px', color: '#b45309' }}>
           {token.name || token.symbol}
         </div>
       </div>
 
-      {/* Bottom: Stats Footer */}
       <div
         style={{
           display: 'flex',
@@ -682,7 +674,7 @@ const BigFumbleCard = ({ token }) => {
         }}
       >
         <div>
-          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#d97706', marginBottom: '2px' }}>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>
             Sold For
           </div>
           <div style={{ fontSize: '11px', fontWeight: '600', color: text }}>
@@ -690,7 +682,7 @@ const BigFumbleCard = ({ token }) => {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#d97706', marginBottom: '2px' }}>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#b45309', marginBottom: '2px' }}>
             Worth Now
           </div>
           <div style={{ fontSize: '11px', fontWeight: '600', color: text }}>
@@ -734,12 +726,12 @@ export default function PNLTrackerApp() {
       const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
       const tokensCount = summary.totalTokensTraded || 0;
       
-      // PSYCAST BRANDED IMAGE GENERATION (No Backend Required)
-      // Background: #020617 (Deep Blue)
-      // Text: #f8fafc (Slate White)
-      // Font: Montserrat (Sleek)
-      const bgHex = '020617';
-      const textHex = 'f8fafc'; 
+      // PSYCAST BRANDED IMAGE GENERATION (Light Mode)
+      // Background: #ffffff (White)
+      // Text: #0b0b0b (Black/Ink)
+      // Font: Montserrat (Matches your request)
+      const bgHex = 'ffffff';
+      const textHex = '0b0b0b'; 
       
       const realized = formatCurrency(pnlValue);
       const sign = isWin ? '+' : '-';
@@ -747,9 +739,6 @@ export default function PNLTrackerApp() {
       let shortVal = absVal.toFixed(2);
       if (absVal >= 1000) shortVal = (absVal / 1000).toFixed(1) + 'k';
       
-      // Formatting the text for the image:
-      // Line 1: Ψ PnL: +$1.2k
-      // Line 2: Win Rate: 65%
       const imageText = `Ψ PnL: ${sign}$${shortVal}\nWin Rate: ${winRate}%`;
       const imageUrl = `https://placehold.co/1200x630/${bgHex}/${textHex}/png?text=${encodeURIComponent(imageText)}&font=montserrat`;
 
@@ -759,7 +748,6 @@ export default function PNLTrackerApp() {
 
       await sdk.actions.composeCast({
         text: castText,
-        // Embed BOTH the image AND the app link to get visual + frame
         embeds: [imageUrl, appLink] 
       });
     } catch (err) {
@@ -1219,12 +1207,11 @@ export default function PNLTrackerApp() {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                border: `1px solid ${colors.border}`,
+                border: `1px solid ${colors.accent}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '11px',
-                background: 'rgba(255,255,255,0.05)'
+                fontSize: '11px'
               }}
             >
               📊
@@ -1248,9 +1235,9 @@ export default function PNLTrackerApp() {
               style={{
                 padding: '6px 12px',
                 borderRadius: '999px',
-                border: `1px solid ${colors.border}`,
-                background: 'rgba(255,255,255,0.05)',
-                color: colors.ink,
+                border: `1px solid ${colors.accent}`,
+                background: colors.panelBg,
+                color: colors.accent,
                 fontSize: '10px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.14em',
@@ -1269,8 +1256,8 @@ export default function PNLTrackerApp() {
                 padding: '4px 10px',
                 borderRadius: '999px',
                 background:
-                  pnlData?.summary?.totalRealizedProfit >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171',
+                  pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2',
+                color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b',
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
                 fontSize: '10px',
@@ -1367,8 +1354,8 @@ export default function PNLTrackerApp() {
                 gap: '10px',
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 fontSize: '11px',
-                color: colors.ink,
-                background: 'rgba(255,255,255,0.05)',
+                color: colors.accent,
+                background: '#f3f4f6',
                 padding: '8px 12px',
                 borderRadius: '8px',
                 border: `1px solid ${colors.border}`
@@ -1431,7 +1418,7 @@ export default function PNLTrackerApp() {
             marginBottom: '24px',
             padding: '12px 14px',
             borderRadius: '12px',
-            background: 'rgba(255,255,255,0.02)',
+            background: colors.panelBg,
             border: `1px dashed ${colors.border}`,
             fontSize: '12px',
             color: colors.muted,
@@ -1486,9 +1473,9 @@ export default function PNLTrackerApp() {
                   padding: '4px 12px',
                   borderRadius: '999px',
                   background:
-                    pnlData.summary.profitPercentage >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2',
                   color:
-                    pnlData.summary.profitPercentage >= 0 ? '#4ade80' : '#f87171',
+                    pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b',
                   fontSize: '12px',
                   fontWeight: '500'
                 }}
@@ -1570,8 +1557,8 @@ export default function PNLTrackerApp() {
                 padding: '9px 16px',
                 borderRadius: '999px',
                 border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
-                background: activeTab === tab ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: activeTab === tab ? colors.ink : colors.muted,
+                background: activeTab === tab ? colors.accent : colors.panelBg,
+                color: activeTab === tab ? colors.pillText : colors.muted,
                 fontSize: '11px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.16em',
