@@ -351,80 +351,25 @@ export default function PNLTrackerApp() {
   const [claimedBadges, setClaimedBadges] = useState([]);
   const [mintTxHash, setMintTxHash] = useState(null);
   const [mintError, setMintError] = useState(null);
-  const [ethProvider, setEthProvider] = useState(null);
 
-  // Initialize Ethereum provider from Farcaster SDK
-  const initEthProvider = useCallback(async () => {
-    try {
-      const { sdk } = await import('@farcaster/miniapp-sdk');
-      const provider = sdk.wallet.ethProvider;
-      if (provider) {
-        setEthProvider(provider);
-        return provider;
-      }
-    } catch (err) {
-      console.error('Failed to get eth provider:', err);
-    }
-    return null;
-  }, []);
-
-  // Mint badge using direct provider calls
-  const handleClaimBadge = useCallback(async (badgeType) => {
-    if (!ethProvider || !primaryWallet) {
-      setMintError('Wallet not connected');
-      return;
-    }
+  // Use viem to properly encode the function call
+  const encodeMintBadgeCall = async (badgeType, summary) => {
+    const { encodeFunctionData } = await import('viem');
     
-    if (BADGE_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
-      setMintError('Badge contract not deployed yet');
-      return;
-    }
+    const winRate = BigInt(Math.floor((summary.winRate || 0) * 100));
+    const volume = BigInt(Math.floor(summary.totalTradingVolume || 0));
+    const profit = BigInt(Math.floor(Math.abs(summary.totalRealizedProfit || 0)));
+    
+    const data = encodeFunctionData({
+      abi: BADGE_ABI,
+      functionName: 'mintBadge',
+      args: [badgeType, winRate, volume, profit]
+    });
+    
+    return data;
+  };
 
-    setClaimingBadge(badgeType);
-    setMintError(null);
-    setMintTxHash(null);
-
-    try {
-      const summary = pnlData?.summary || {};
-      const winRate = Math.floor((summary.winRate || 0) * 100); // Convert to basis points
-      const volume = Math.floor(summary.totalTradingVolume || 0);
-      const profit = Math.floor(Math.abs(summary.totalRealizedProfit || 0));
-
-      // Encode the function call
-      // mintBadge(uint8 badgeType, uint256 winRate, uint256 volume, uint256 profit)
-      const functionSelector = '0x6a627842'; // keccak256("mintBadge(uint8,uint256,uint256,uint256)").slice(0,10)
-      
-      // Properly encode the parameters
-      const encodedBadgeType = badgeType.toString(16).padStart(64, '0');
-      const encodedWinRate = winRate.toString(16).padStart(64, '0');
-      const encodedVolume = volume.toString(16).padStart(64, '0');
-      const encodedProfit = profit.toString(16).padStart(64, '0');
-      
-      const data = `0x${encodedBadgeType}${encodedWinRate}${encodedVolume}${encodedProfit}`;
-      
-      // Use eth_sendTransaction
-      const txHash = await ethProvider.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: primaryWallet,
-          to: BADGE_CONTRACT_ADDRESS,
-          data: '0x' + 'a0712d68' + encodedBadgeType + encodedWinRate + encodedVolume + encodedProfit, // mintBadge selector
-          value: '0x0'
-        }]
-      });
-
-      setMintTxHash(txHash);
-      setClaimedBadges(prev => [...prev, badgeType]);
-      
-    } catch (err) {
-      console.error('Mint failed:', err);
-      setMintError(err.message || 'Failed to mint badge');
-    } finally {
-      setClaimingBadge(null);
-    }
-  }, [ethProvider, primaryWallet, pnlData]);
-
-  // Alternative: Use SDK swapToken-style action for simpler tx
+  // Main badge claiming function using eth provider
   const handleClaimBadgeViaSDK = useCallback(async (badgeType) => {
     setClaimingBadge(badgeType);
     setMintError(null);
@@ -433,31 +378,32 @@ export default function PNLTrackerApp() {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
       
-      // For now, we'll use a simple ETH send to self as a "claim" action
-      // This creates a transaction without any purchase
-      // You can replace this with your actual contract call
-      
       const summary = pnlData?.summary || {};
       
-      // Option 1: If badge contract is deployed, call it
+      // If badge contract is deployed, call it
       if (BADGE_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000') {
         // Use the wallet provider directly
         const provider = sdk.wallet.ethProvider;
         if (provider) {
+          // Properly encode the function call using viem
+          const callData = await encodeMintBadgeCall(badgeType, summary);
+          
           const txHash = await provider.request({
             method: 'eth_sendTransaction',
             params: [{
               from: primaryWallet,
               to: BADGE_CONTRACT_ADDRESS,
-              data: encodeMintBadgeCall(badgeType, summary),
+              data: callData,
               value: '0x0'
             }]
           });
           setMintTxHash(txHash);
           setClaimedBadges(prev => [...prev, badgeType]);
+        } else {
+          setMintError('Wallet provider not available');
         }
       } else {
-        // Option 2: Simple self-transfer as proof of engagement (0 ETH)
+        // Fallback: Simple self-transfer as proof of engagement (0 ETH)
         // This still creates a transaction for Farcaster ranking purposes
         const result = await sdk.actions.sendToken({
           token: BASE_ETH_CAIP19,
@@ -473,8 +419,11 @@ export default function PNLTrackerApp() {
       
     } catch (err) {
       console.error('Claim failed:', err);
-      if (err.message?.includes('rejected') || err.message?.includes('denied')) {
+      if (err.message?.includes('rejected') || err.message?.includes('denied') || err.message?.includes('User rejected')) {
         setMintError('Transaction cancelled');
+      } else if (err.message?.includes('already minted') || err.message?.includes('Badge already')) {
+        setMintError('You already minted this badge');
+        setClaimedBadges(prev => [...prev, badgeType]);
       } else {
         setMintError(err.message || 'Failed to claim badge');
       }
@@ -482,26 +431,6 @@ export default function PNLTrackerApp() {
       setClaimingBadge(null);
     }
   }, [primaryWallet, pnlData, user]);
-
-  // Helper to encode the mintBadge call
-  const encodeMintBadgeCall = (badgeType, summary) => {
-    const winRate = Math.floor((summary.winRate || 0) * 100);
-    const volume = Math.floor(summary.totalTradingVolume || 0);
-    const profit = Math.floor(Math.abs(summary.totalRealizedProfit || 0));
-    
-    // Function selector for mintBadge(uint8,uint256,uint256,uint256)
-    // This is keccak256("mintBadge(uint8,uint256,uint256,uint256)").slice(0,10)
-    const selector = 'a0712d68'; // You'll need to verify this matches your contract
-    
-    const params = [
-      badgeType.toString(16).padStart(64, '0'),
-      winRate.toString(16).padStart(64, '0'),
-      volume.toString(16).padStart(64, '0'),
-      profit.toString(16).padStart(64, '0')
-    ].join('');
-    
-    return '0x' + selector + params;
-  };
 
   const handleSharePnL = async () => {
     try {
@@ -707,9 +636,6 @@ export default function PNLTrackerApp() {
           if (context?.user?.fid) { fid = context.user.fid; setUser(context.user); } 
           else { setEnvError('PNL Tracker needs a Farcaster user context.'); setCheckingGate(false); setLoading(false); return; }
           sdk.actions.ready();
-          
-          // Initialize eth provider for badge minting
-          await initEthProvider();
         } catch (err) { setEnvError('PNL Tracker runs as a Farcaster miniapp.'); setCheckingGate(false); setLoading(false); return; }
         if (fid) {
           const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, { headers: { accept: 'application/json', api_key: import.meta.env.VITE_NEYNAR_API_KEY || '' } });
