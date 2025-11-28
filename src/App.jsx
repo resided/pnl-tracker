@@ -6,6 +6,9 @@ import React, { useState, useEffect } from 'react';
 
 const DEMO_MODE = false; // Set to true if you want mock data
 
+// Cache TTL (10 minutes)
+const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
+
 // Token gate configuration
 const PNL_TOKEN_ADDRESS =
   import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000';
@@ -829,7 +832,7 @@ export default function PNLTrackerApp() {
     }
   };
 
-  // Fetch PNL data - now also computing biggest fumble
+  // Fetch PNL data - now also computing biggest fumble, with localStorage cache
   const fetchPNLData = async (addresses) => {
     try {
       setLoading(true);
@@ -839,6 +842,33 @@ export default function PNLTrackerApp() {
         setPnlData(MOCK_PNL_DATA);
         setLoading(false);
         return;
+      }
+
+      // Build cache key: user fid + sorted addresses
+      let cacheKey = null;
+      if (typeof window !== 'undefined' && Array.isArray(addresses) && addresses.length > 0) {
+        const sortedAddresses = addresses.map((a) => a.toLowerCase()).sort();
+        const fidPart = user?.fid ? `fid_${user.fid}` : 'anon';
+        cacheKey = `pnl_cache_${fidPart}_${sortedAddresses.join(',')}`;
+
+        try {
+          const raw = window.localStorage.getItem(cacheKey);
+          if (raw) {
+            const stored = JSON.parse(raw);
+            if (
+              stored &&
+              stored.timestamp &&
+              stored.data &&
+              Date.now() - stored.timestamp < PNL_CACHE_TTL_MS
+            ) {
+              setPnlData(stored.data);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (storageErr) {
+          console.log('localStorage read failed', storageErr);
+        }
       }
 
       // Fetch all addresses in parallel
@@ -966,7 +996,23 @@ export default function PNLTrackerApp() {
         }
       }
 
-      setPnlData({ summary, tokens: allTokenData, biggestFumble: biggestFumbleToken });
+      const resultData = { summary, tokens: allTokenData, biggestFumble: biggestFumbleToken };
+      setPnlData(resultData);
+
+      if (cacheKey && typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              timestamp: Date.now(),
+              data: resultData
+            })
+          );
+        } catch (storageErr) {
+          console.log('localStorage write failed', storageErr);
+        }
+      }
+
       setLoading(false);
     } catch (err) {
       console.error('fetchPNLData error', err);
