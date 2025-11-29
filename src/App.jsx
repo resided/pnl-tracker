@@ -151,19 +151,19 @@ const calculatePercentile = (summary) => {
 };
 
 const getRankTitle = (percentile, profit, winRate) => {
-  // Titles based on percentile
-  if (percentile >= 99) return { title: 'Legendary', emoji: '👑', vibe: 'Top 1% of Base traders' };
+  // Titles that describe the trader clearly
+  if (percentile >= 99) return { title: 'Top 1%', emoji: '👑', vibe: 'Elite performer' };
   if (percentile >= 95) return { title: 'Elite', emoji: '💎', vibe: 'Outperforming 95% of traders' };
   if (percentile >= 90) return { title: 'Expert', emoji: '🏆', vibe: 'Consistently profitable' };
   if (percentile >= 80) return { title: 'Skilled', emoji: '📈', vibe: 'Well above average' };
-  if (percentile >= 70) return { title: 'Proficient', emoji: '✓', vibe: 'Solid track record' };
-  if (percentile >= 60) return { title: 'Competent', emoji: '↗', vibe: 'Beating the majority' };
-  if (percentile >= 50) return { title: 'Average', emoji: '―', vibe: 'Middle of the pack' };
-  if (percentile >= 40) return { title: 'Developing', emoji: '↘', vibe: 'Room to improve' };
-  if (percentile >= 30) return { title: 'Novice', emoji: '•', vibe: 'Learning the ropes' };
-  if (percentile >= 20) return { title: 'Beginner', emoji: '•', vibe: 'Early days' };
-  if (percentile >= 10) return { title: 'Struggling', emoji: '•', vibe: 'Tough market' };
-  return { title: 'Underwater', emoji: '•', vibe: 'It happens to everyone' };
+  if (percentile >= 70) return { title: 'Profitable', emoji: '✓', vibe: 'Solid track record' };
+  if (percentile >= 60) return { title: 'Above Average', emoji: '↗', vibe: 'Beating the majority' };
+  if (percentile >= 50) return { title: 'Holding Steady', emoji: '―', vibe: 'Middle of the pack' };
+  if (percentile >= 40) return { title: 'Below Average', emoji: '↘', vibe: 'Room to improve' };
+  if (percentile >= 30) return { title: 'Down Bad', emoji: '•', vibe: 'Tough stretch' };
+  if (percentile >= 20) return { title: 'Struggling', emoji: '•', vibe: 'Finding your footing' };
+  if (percentile >= 10) return { title: 'Rekt', emoji: '•', vibe: 'It happens' };
+  return { title: 'Wrecked', emoji: '•', vibe: 'Nowhere to go but up' };
 };
 
 // Styles
@@ -819,12 +819,14 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      const topText = `Top ${topPercent}% on Base`;
-      const bottomText = `${rank.title}`;
+      // For the OG image - just show the key stat
+      const topText = `Top ${topPercent}%`;
+      const bottomText = `Base Traders`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
-      const castText = `Top ${topPercent}% trader on Base\n\nRealized P&L: ${pnlValue >= 0 ? '+' : ''}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck your ranking:\n${appLink}`;
+      // Cast text with context
+      const castText = `Top ${topPercent}% of traders on Base\n\nRealized P&L: ${pnlValue >= 0 ? '+' : ''}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\nRank: ${rank.title}\n\nCheck yours:\n${appLink}`;
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
