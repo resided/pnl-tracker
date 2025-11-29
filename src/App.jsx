@@ -831,7 +831,7 @@ export default function PNLTrackerApp() {
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=80px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       // Cast text with proper signs
-      const castText = `Top ${topPercent}% of traders on Base · ${statusWord}\n\nRealized P&L: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
+      const castText = `I'm in the top ${topPercent}% of traders on Base · ${statusWord}\n\nRealized P&L: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
