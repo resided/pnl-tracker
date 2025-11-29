@@ -822,15 +822,16 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      // Simple OG image with trident, rank and PNL
-      const pnlDisplay = pnlValue >= 0 ? `+${realized}` : `-${realized}`;
-      const topText = `Ψ Top ${topPercent}%`;
-      const bottomText = `${pnlDisplay}`;
+      // Simple OG image with trident, rank, PNL and status word
+      const pnlSign = pnlValue >= 0 ? '+' : '-';
+      const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
+      const topText = `Ψ Top ${topPercent}% · ${statusWord}`;
+      const bottomText = `${pnlSign}${realized}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=80px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
-      // Cast text with context
-      const castText = `Top ${topPercent}% of traders on Base\n\nRealized P&L: ${pnlValue >= 0 ? '+' : ''}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\nRank: ${rank.title}\n\nCheck yours:\n${appLink}`;
+      // Cast text with proper signs
+      const castText = `Top ${topPercent}% of traders on Base · ${statusWord}\n\nRealized P&L: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
