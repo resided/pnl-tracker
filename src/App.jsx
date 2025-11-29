@@ -100,6 +100,72 @@ const formatCurrency = (val) => val === undefined || val === null ? '$0.00' : `$
 const formatNumber = (num) => num >= 1000000 ? (num / 1000000).toFixed(1) + 'M' : num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toLocaleString();
 const truncateAddress = (addr) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : '';
 
+// Percentile calculation based on realistic crypto trading distributions
+// Most traders lose money, so being profitable at all is top ~35%
+const calculatePercentile = (summary) => {
+  if (!summary) return { percentile: 50, title: 'Trader', emoji: '📊' };
+  
+  const profit = summary.totalRealizedProfit || 0;
+  const winRate = summary.winRate || 0;
+  const volume = summary.totalTradingVolume || 0;
+  
+  // Profit-based percentile (primary factor)
+  // Distribution: ~65% lose money, ~25% small gains, ~8% good gains, ~2% exceptional
+  let profitPercentile;
+  if (profit <= -10000) profitPercentile = 5;
+  else if (profit <= -5000) profitPercentile = 12;
+  else if (profit <= -1000) profitPercentile = 25;
+  else if (profit <= -100) profitPercentile = 40;
+  else if (profit <= 0) profitPercentile = 50;
+  else if (profit <= 100) profitPercentile = 58;
+  else if (profit <= 500) profitPercentile = 65;
+  else if (profit <= 1000) profitPercentile = 72;
+  else if (profit <= 2500) profitPercentile = 80;
+  else if (profit <= 5000) profitPercentile = 86;
+  else if (profit <= 10000) profitPercentile = 92;
+  else if (profit <= 25000) profitPercentile = 96;
+  else if (profit <= 50000) profitPercentile = 98;
+  else profitPercentile = 99;
+  
+  // Win rate bonus (secondary factor)
+  let winRateBonus = 0;
+  if (winRate >= 70) winRateBonus = 5;
+  else if (winRate >= 60) winRateBonus = 3;
+  else if (winRate >= 50) winRateBonus = 1;
+  else if (winRate < 30) winRateBonus = -3;
+  
+  // Volume consideration (shows experience)
+  let volumeBonus = 0;
+  if (volume >= 100000) volumeBonus = 2;
+  else if (volume >= 50000) volumeBonus = 1;
+  
+  const rawPercentile = Math.min(99, Math.max(1, profitPercentile + winRateBonus + volumeBonus));
+  
+  // Round to nice numbers for display
+  const percentile = rawPercentile >= 99 ? 99 : 
+                     rawPercentile >= 95 ? Math.round(rawPercentile) :
+                     rawPercentile >= 90 ? Math.round(rawPercentile) :
+                     Math.round(rawPercentile);
+  
+  return { percentile, ...getRankTitle(percentile, profit, winRate) };
+};
+
+const getRankTitle = (percentile, profit, winRate) => {
+  // Titles based on percentile
+  if (percentile >= 99) return { title: 'Legendary', emoji: '👑', vibe: 'Top 1% of Base traders' };
+  if (percentile >= 95) return { title: 'Elite', emoji: '💎', vibe: 'Outperforming 95% of traders' };
+  if (percentile >= 90) return { title: 'Expert', emoji: '🏆', vibe: 'Consistently profitable' };
+  if (percentile >= 80) return { title: 'Skilled', emoji: '📈', vibe: 'Well above average' };
+  if (percentile >= 70) return { title: 'Proficient', emoji: '✓', vibe: 'Solid track record' };
+  if (percentile >= 60) return { title: 'Competent', emoji: '↗', vibe: 'Beating the majority' };
+  if (percentile >= 50) return { title: 'Average', emoji: '―', vibe: 'Middle of the pack' };
+  if (percentile >= 40) return { title: 'Developing', emoji: '↘', vibe: 'Room to improve' };
+  if (percentile >= 30) return { title: 'Novice', emoji: '•', vibe: 'Learning the ropes' };
+  if (percentile >= 20) return { title: 'Beginner', emoji: '•', vibe: 'Early days' };
+  if (percentile >= 10) return { title: 'Struggling', emoji: '•', vibe: 'Tough market' };
+  return { title: 'Underwater', emoji: '•', vibe: 'It happens to everyone' };
+};
+
 // Styles
 const colors = {
   bg: '#fafafa', ink: '#0b0b0b', muted: '#6b7280', accent: '#111827', border: '#e5e7eb',
@@ -197,32 +263,119 @@ const InfoPanel = ({ isVisible, onClose }) => {
   if (!isVisible) return null;
   
   const infoItems = [
-    { icon: '💰', title: 'Realized P&L', desc: 'Profit/loss from tokens you\'ve actually sold. Doesn\'t include tokens you\'re still holding.' },
-    { icon: '🎁', title: 'Airdrops', desc: 'Free tokens show as 100% profit since your cost basis was $0.' },
-    { icon: '📊', title: 'Win Rate', desc: 'Percentage of sold tokens that were profitable. A "win" = sold for more than you paid.' },
-    { icon: '🤦', title: 'Fumbled', desc: 'Gains you missed by selling early. Calculated from current price vs your sell price.' },
-    { icon: '⛓️', title: 'Base Only', desc: 'Currently tracking Base chain only. Other chains coming soon.' },
+    { title: 'Realized P&L', desc: 'Profit or loss from tokens you\'ve sold. Does not include tokens you\'re still holding.' },
+    { title: 'Airdrops', desc: 'Tokens received for free show as 100% profit since your cost basis was $0.' },
+    { title: 'Win Rate', desc: 'Percentage of sold tokens that were profitable. A win means you sold for more than you paid.' },
+    { title: 'Fumbled', desc: 'Potential gains missed by selling early. Based on current price vs your sell price.' },
+    { title: 'Base Only', desc: 'Currently tracking Base chain only. Other chains may be added in future updates.' },
   ];
   
   return (
-    <Panel title="Understanding Your Numbers" subtitle="tap to close" style={{ marginBottom: '20px', cursor: 'pointer' }}>
+    <Panel title="How This Works" subtitle="tap to close" style={{ marginBottom: '20px', cursor: 'pointer' }}>
       <div onClick={onClose}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {infoItems.map((item, i) => (
-            <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '16px', lineHeight: '1' }}>{item.icon}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: colors.ink, marginBottom: '2px' }}>{item.title}</div>
-                <div style={{ fontSize: '11px', color: colors.muted, lineHeight: '1.4' }}>{item.desc}</div>
-              </div>
+            <div key={i} style={{ paddingBottom: i < infoItems.length - 1 ? '12px' : '0', borderBottom: i < infoItems.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: colors.ink, marginBottom: '3px' }}>{item.title}</div>
+              <div style={{ fontSize: '11px', color: colors.muted, lineHeight: '1.5' }}>{item.desc}</div>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.border}`, fontSize: '10px', color: colors.metricLabel, textAlign: 'center' }}>
+        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: `1px solid ${colors.border}`, fontSize: '10px', color: colors.metricLabel, textAlign: 'center' }}>
           Data from the API. Excludes unrealized gains, bridged tokens, and LP positions.
         </div>
       </div>
     </Panel>
+  );
+};
+
+const RankCard = ({ summary, onShare }) => {
+  const rank = calculatePercentile(summary);
+  const profit = summary?.totalRealizedProfit || 0;
+  
+  // Dynamic colors based on rank
+  const getBgGradient = () => {
+    if (rank.percentile >= 95) return 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'; // Dark
+    if (rank.percentile >= 80) return 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)'; // Blue
+    if (rank.percentile >= 60) return 'linear-gradient(135deg, #14532d 0%, #166534 100%)'; // Green
+    if (rank.percentile >= 40) return 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'; // Gray
+    return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'; // Red
+  };
+  
+  return (
+    <div style={{ 
+      background: getBgGradient(),
+      borderRadius: '16px', 
+      padding: '20px',
+      marginBottom: '20px',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)', fontWeight: '500' }}>
+            Your Ranking
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>Base Chain</div>
+        </div>
+        
+        {/* Main percentile display */}
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '36px', fontWeight: '600', color: '#fff', lineHeight: '1', letterSpacing: '-0.02em' }}>
+              Top {100 - rank.percentile}%
+            </span>
+            <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)' }}>{rank.emoji}</span>
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', marginTop: '4px' }}>
+            {rank.title}
+          </div>
+        </div>
+        
+        {/* Vibe text */}
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
+          {rank.vibe}
+        </div>
+        
+        {/* Stats row */}
+        <div style={{ display: 'flex', gap: '20px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Realized P&L</div>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>{profit >= 0 ? '+' : ''}{formatCurrency(profit)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Win Rate</div>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>{(summary?.winRate || 0).toFixed(1)}%</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Tokens</div>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>{summary?.totalTokensTraded || 0}</div>
+          </div>
+        </div>
+        
+        {/* Share button */}
+        <button 
+          onClick={onShare}
+          style={{ 
+            marginTop: '14px',
+            width: '100%',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(255,255,255,0.1)',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}
+        >
+          Share Rank
+        </button>
+      </div>
+    </div>
   );
 };
 
@@ -282,11 +435,11 @@ const BigFumbleCard = ({ token }) => {
     <div style={{ flex: '1 1 140px', padding: '12px', borderRadius: '16px', border: `1px solid ${colors.goldBorder}`, background: colors.goldBg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.gold }}>Biggest Fumble</div>
-        <div style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fef3c7', color: colors.gold }}>Ouch</div>
+        <div style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fef3c7', color: colors.gold }}>Sold Early</div>
       </div>
       <div>
         <div style={{ fontSize: '20px', fontWeight: '700', color: colors.gold, letterSpacing: '-0.02em', lineHeight: '1', marginBottom: '4px' }}>{missed >= 0 ? '+' : '-'}{formatCurrency(missed)}</div>
-        <div style={{ fontSize: '11px', color: colors.gold }}>{token.name || token.symbol} · Left on table</div>
+        <div style={{ fontSize: '11px', color: colors.gold }}>{token.name || token.symbol}</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px dashed ${colors.goldBorder}` }}>
         <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>You Sold</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(sold)}</div></div>
@@ -661,16 +814,18 @@ export default function PNLTrackerApp() {
           return;
       }
 
+      const rank = calculatePercentile(summary);
       const pnlValue = summary.totalRealizedProfit || 0;
-      const isWin = pnlValue >= 0;
-      const tokensCount = summary.totalTokensTraded || 0;
       const realized = formatCurrency(pnlValue);
-      const direction = isWin ? 'up' : 'down';
-      const topText = `( Ψ ) PnL: @${username}`;
-      const bottomText = realized;
+      const topPercent = 100 - rank.percentile;
+      
+      const topText = `Top ${topPercent}% on Base`;
+      const bottomText = `${rank.title}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
-      const castText = `My PnL on Base is ${realized} (${direction}) across ${tokensCount} tokens.\n\nCheck yours: ${appLink}`;
+      
+      const castText = `Top ${topPercent}% trader on Base\n\nRealized P&L: ${pnlValue >= 0 ? '+' : ''}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck your ranking:\n${appLink}`;
+      
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
   };
@@ -926,7 +1081,7 @@ export default function PNLTrackerApp() {
     </div>
   );
 
-  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '12px', color: colors.muted }}>syncing...</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
+  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
   if (envError) return <ErrorScreen title="Access Locked" message={envError} />;
 
   const tokens = pnlData?.tokens || [];
@@ -982,6 +1137,11 @@ export default function PNLTrackerApp() {
         
         {/* Info Panel - Shows explanation of numbers */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
+        
+        {/* Rank Card - Shows percentile ranking */}
+        {!isGated && pnlData?.summary && (
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+        )}
         
         {/* Badge Claiming Section - Only show when not gated */}
         {!isGated && pnlData?.summary && (
