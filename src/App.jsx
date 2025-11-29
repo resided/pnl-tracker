@@ -5,7 +5,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 // Token gated: requires 10M PNL tokens to access full view
 // NOW WITH: Badge Claiming (free mint, gas only)
 
-const DEMO_MODE = false; 
+// Auto-detect demo mode: true in development, false in production
+// Override with VITE_DEMO_MODE=true or VITE_DEMO_MODE=false
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' ? true : 
+                  import.meta.env.VITE_DEMO_MODE === 'false' ? false :
+                  import.meta.env.DEV || false; 
 const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
 
 // Token gate configuration
@@ -438,6 +442,26 @@ export default function PNLTrackerApp() {
   const checkMintedBadges = useCallback(async (userAddress) => {
     if (!userAddress || BADGE_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') return;
     
+    // Skip in demo mode
+    if (DEMO_MODE) {
+      console.log('[DEMO] Skipping badge check');
+      return;
+    }
+    
+    // Check cache first (valid for 5 minutes)
+    const cacheKey = `minted_badges_${userAddress.toLowerCase()}`;
+    try {
+      const cached = window.localStorage.getItem(cacheKey);
+      if (cached) {
+        const { badges, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          console.log('Using cached minted badges:', badges);
+          if (badges.length > 0) setClaimedBadges(badges);
+          return;
+        }
+      }
+    } catch (e) {}
+    
     try {
       const { createPublicClient, http } = await import('viem');
       const { base } = await import('viem/chains');
@@ -466,6 +490,11 @@ export default function PNLTrackerApp() {
           console.log(`Error checking badge ${badgeType}:`, e);
         }
       }
+      
+      // Cache the result
+      try {
+        window.localStorage.setItem(cacheKey, JSON.stringify({ badges: minted, timestamp: Date.now() }));
+      } catch (e) {}
       
       if (minted.length > 0) {
         console.log('Already minted badges:', minted);
@@ -625,6 +654,7 @@ export default function PNLTrackerApp() {
     
     // Whitelist check
     if (address && WHITELISTED_WALLETS.includes(address.toLowerCase())) {
+       console.log('[WHITELIST] Bypassing token gate for:', address);
        setTokenBalance(REQUIRED_PNL_BALANCE); // Fake the balance for display
        setCheckingGate(false);
        setIsGated(false);
@@ -632,11 +662,13 @@ export default function PNLTrackerApp() {
     }
 
     if (DEMO_MODE) {
+      console.log('[DEMO] Skipping token gate API call');
       await new Promise((r) => setTimeout(r, 500));
       setTokenBalance(REQUIRED_PNL_BALANCE + 100);
       setCheckingGate(false); setIsGated(false); return true;
     }
     try {
+      console.log('[API] Checking token gate for:', address);
       const response = await fetch(
         `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
         { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }
@@ -659,6 +691,7 @@ export default function PNLTrackerApp() {
     try {
       setLoading(true);
       if (DEMO_MODE) {
+        console.log('[DEMO] Using mock PNL data');
         await new Promise((r) => setTimeout(r, 600));
         setPnlData(MOCK_PNL_DATA); setLoading(false); return;
       }
@@ -678,6 +711,7 @@ export default function PNLTrackerApp() {
         } catch (e) {}
       }
 
+      console.log('[API] Fetching PNL data for', addresses.length, 'addresses');
       const fetchPromises = addresses.map((address) =>
         fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base`, {
           headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' }
@@ -768,22 +802,29 @@ export default function PNLTrackerApp() {
   useEffect(() => {
     const initialize = async () => {
       try {
+        console.log('[INIT] Starting app initialization');
+        console.log('[INIT] DEMO_MODE:', DEMO_MODE);
+        console.log('[INIT] DEV:', import.meta.env.DEV);
+        
         setLoading(true);
         if (DEMO_MODE) {
+          console.log('[DEMO] Running in demo mode - no API calls will be made');
           await new Promise((r) => setTimeout(r, 800)); setUser(MOCK_USER); setWallets(MOCK_WALLETS); await checkTokenGate(MOCK_WALLETS[0]); setPnlData(MOCK_PNL_DATA); setLoading(false); return;
         }
         let fid = null;
         try {
           const { sdk } = await import('@farcaster/miniapp-sdk');
           const context = await sdk.context;
-          if (context?.user?.fid) { fid = context.user.fid; setUser(context.user); } 
+          if (context?.user?.fid) { fid = context.user.fid; setUser(context.user); console.log('[INIT] Got Farcaster context, fid:', fid); } 
           else { setEnvError('PNL Tracker needs a Farcaster user context.'); setCheckingGate(false); setLoading(false); return; }
           sdk.actions.ready();
-        } catch (err) { setEnvError('PNL Tracker runs as a Farcaster miniapp.'); setCheckingGate(false); setLoading(false); return; }
+        } catch (err) { console.log('[INIT] No Farcaster SDK context'); setEnvError('PNL Tracker runs as a Farcaster miniapp.'); setCheckingGate(false); setLoading(false); return; }
         if (fid) {
+          console.log('[API] Fetching user data from Neynar');
           const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, { headers: { accept: 'application/json', api_key: import.meta.env.VITE_NEYNAR_API_KEY || '' } });
           const neynarData = await neynarResponse.json();
           const primaryEth = neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
+          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
           const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
           if (allEth.length === 0) { setEnvError('No verified Base wallets found.'); setCheckingGate(false); setLoading(false); return; }
           setWallets(allEth);
@@ -864,7 +905,11 @@ export default function PNLTrackerApp() {
       {isGated && renderGatedOverlay()}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px', transition: 'all 0.4s ease' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>📊</div><span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>📊</div>
+            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span>
+            {DEMO_MODE && <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Demo</span>}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={handleSharePnL} disabled={!pnlData?.summary} style={{ padding: '6px 12px', borderRadius: '999px', border: `1px solid ${colors.accent}`, background: colors.panelBg, color: colors.accent, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', cursor: 'pointer' }}>Share PnL</button>
             <div style={{ padding: '4px 10px', borderRadius: '999px', background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '7px', height: '7px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />{pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}</div>
