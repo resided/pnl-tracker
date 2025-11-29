@@ -822,9 +822,11 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      // For the OG image - just show the key stat
-      const topText = `Top ${topPercent}%`;
-      const bottomText = `Base Traders`;
+      // Simple OG image with trident, rank and PNL
+      const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
+      const pnlDisplay = pnlValue >= 0 ? `+${realized}` : `-${realized}`;
+      const topText = `Ψ Top ${topPercent}%`;
+      const bottomText = `${pnlDisplay}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=100px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
