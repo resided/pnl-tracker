@@ -193,20 +193,53 @@ const Panel = ({ title, subtitle, children, style }) => (
   </div>
 );
 
+const InfoPanel = ({ isVisible, onClose }) => {
+  if (!isVisible) return null;
+  
+  const infoItems = [
+    { icon: '💰', title: 'Realized P&L', desc: 'Profit/loss from tokens you\'ve actually sold. Doesn\'t include tokens you\'re still holding.' },
+    { icon: '🎁', title: 'Airdrops', desc: 'Free tokens show as 100% profit since your cost basis was $0.' },
+    { icon: '📊', title: 'Win Rate', desc: 'Percentage of sold tokens that were profitable. A "win" = sold for more than you paid.' },
+    { icon: '🤦', title: 'Fumbled', desc: 'Gains you missed by selling early. Calculated from current price vs your sell price.' },
+    { icon: '⛓️', title: 'Base Only', desc: 'Currently tracking Base chain only. Other chains coming soon.' },
+  ];
+  
+  return (
+    <Panel title="Understanding Your Numbers" subtitle="tap to close" style={{ marginBottom: '20px', cursor: 'pointer' }}>
+      <div onClick={onClose}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {infoItems.map((item, i) => (
+            <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '16px', lineHeight: '1' }}>{item.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: colors.ink, marginBottom: '2px' }}>{item.title}</div>
+                <div style={{ fontSize: '11px', color: colors.muted, lineHeight: '1.4' }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.border}`, fontSize: '10px', color: colors.metricLabel, textAlign: 'center' }}>
+          Data from the API. Excludes unrealized gains, bridged tokens, and LP positions.
+        </div>
+      </div>
+    </Panel>
+  );
+};
+
 const TokenRow = ({ token }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600', color: colors.accent, border: `1px solid ${colors.border}` }}>{token.symbol?.charAt(0)}</div>
       <div>
         <div style={{ fontSize: '14px', fontWeight: '500', color: colors.ink }}>{token.symbol}</div>
-        <div style={{ fontSize: '11px', color: colors.muted }}>Avg Buy: ${token.avgBuy?.toFixed(4) || '-'}</div>
+        <div style={{ fontSize: '11px', color: colors.muted }}>Bought: {formatCurrency(token.totalUsdInvested)}</div>
       </div>
     </div>
     <div style={{ textAlign: 'right' }}>
       <div style={{ fontSize: '14px', fontWeight: '500', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>
         {token.realizedProfitUsd >= 0 ? '+' : '-'}{formatCurrency(token.realizedProfitUsd)}
       </div>
-      <div style={{ fontSize: '11px', color: colors.muted }}>{formatCurrency(token.totalUsdInvested)} vol</div>
+      <div style={{ fontSize: '11px', color: colors.muted }}>Realized P&L</div>
     </div>
   </div>
 );
@@ -228,11 +261,11 @@ const BigMoveCard = ({ label, token, isWin }) => {
       </div>
       <div>
         <div style={{ fontSize: '20px', fontWeight: '700', color: text, letterSpacing: '-0.02em', lineHeight: '1', marginBottom: '4px' }}>{pnl >= 0 ? '+' : '-'}{formatCurrency(pnl)}</div>
-        <div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div>
+        <div style={{ fontSize: '11px', color: colors.muted }}>{token.name} · Realized</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px dashed ${isWin ? '#bbf7d0' : '#fecaca'}` }}>
-        <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>Invested</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested)}</div></div>
-        <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>Realized</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested + pnl)}</div></div>
+        <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>You Paid</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested)}</div></div>
+        <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>You Got</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested + pnl)}</div></div>
       </div>
     </div>
   );
@@ -249,14 +282,14 @@ const BigFumbleCard = ({ token }) => {
     <div style={{ flex: '1 1 140px', padding: '12px', borderRadius: '16px', border: `1px solid ${colors.goldBorder}`, background: colors.goldBg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.gold }}>Biggest Fumble</div>
-        <div style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fef3c7', color: colors.gold }}>Missed</div>
+        <div style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fef3c7', color: colors.gold }}>Ouch</div>
       </div>
       <div>
         <div style={{ fontSize: '20px', fontWeight: '700', color: colors.gold, letterSpacing: '-0.02em', lineHeight: '1', marginBottom: '4px' }}>{missed >= 0 ? '+' : '-'}{formatCurrency(missed)}</div>
-        <div style={{ fontSize: '11px', color: colors.gold }}>{token.name || token.symbol}</div>
+        <div style={{ fontSize: '11px', color: colors.gold }}>{token.name || token.symbol} · Left on table</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px dashed ${colors.goldBorder}` }}>
-        <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>Sold For</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(sold)}</div></div>
+        <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>You Sold</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(sold)}</div></div>
         <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>Worth Now</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(current)} {multiple > 0 && <span style={{ opacity: 0.7 }}>({multiple.toFixed(1)}x)</span>}</div></div>
       </div>
     </div>
@@ -437,6 +470,9 @@ export default function PNLTrackerApp() {
   const [claimedBadges, setClaimedBadges] = useState([]);
   const [mintTxHash, setMintTxHash] = useState(null);
   const [mintError, setMintError] = useState(null);
+  
+  // Info panel state
+  const [showInfo, setShowInfo] = useState(false);
 
   // Check which badges have already been minted by this user
   const checkMintedBadges = useCallback(async (userAddress) => {
@@ -922,10 +958,10 @@ export default function PNLTrackerApp() {
           </div>
         )}
         {pnlData?.summary && (
-          <Panel title="Total Realized P&L" subtitle="Base Chain">
+          <Panel title="Realized P&L" subtitle={<span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowInfo(!showInfo)}>Base Chain · {showInfo ? 'hide info' : 'what\'s this?'}</span>}>
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens</div>
             </div>
             {!isGated && badges.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -933,16 +969,19 @@ export default function PNLTrackerApp() {
                 </div>
             )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
-              <Metric label="Volume" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
+              <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
               <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
               {!isGated && pnlData.summary.totalFumbled > 0 
-                 ? <Metric label="Total Fumbled" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
-                 : <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
+                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
+                 : <Metric label="Tokens Sold" value={pnlData.summary.totalTokensTraded} />
               }
             </div>
             {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
           </Panel>
         )}
+        
+        {/* Info Panel - Shows explanation of numbers */}
+        {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
         
         {/* Badge Claiming Section - Only show when not gated */}
         {!isGated && pnlData?.summary && (
@@ -959,13 +998,13 @@ export default function PNLTrackerApp() {
         
         {(biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
-            <Panel title="Highlights">
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Biggest win" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Biggest loss" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} />}</div>
+            <Panel title="Highlights" subtitle="From sold tokens">
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} />}</div>
             </Panel>
           </div>
         )}
-        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px', filter: isGated ? 'blur(5px)' : 'none' }}>{['overview', 'tokens'].map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '9px 16px', borderRadius: '999px', border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, background: activeTab === tab ? colors.accent : colors.panelBg, color: activeTab === tab ? colors.pillText : colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.16em', cursor: 'pointer' }}>{tab}</button>)}</div>
-        <div style={{ filter: isGated ? 'blur(5px)' : 'none' }}>{activeTab === 'overview' && pnlData?.tokens && <Panel title="Top Performers">{pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 3).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}{activeTab === 'tokens' && pnlData?.tokens && <Panel title="All Tokens">{pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}</div>
+        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px', filter: isGated ? 'blur(5px)' : 'none' }}>{['overview', 'tokens'].map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '9px 16px', borderRadius: '999px', border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, background: activeTab === tab ? colors.accent : colors.panelBg, color: activeTab === tab ? colors.pillText : colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.16em', cursor: 'pointer' }}>{tab === 'overview' ? 'Top Wins' : 'All Sold'}</button>)}</div>
+        <div style={{ filter: isGated ? 'blur(5px)' : 'none' }}>{activeTab === 'overview' && pnlData?.tokens && <Panel title="Best Performers" subtitle="Realized gains">{pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 3).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}{activeTab === 'tokens' && pnlData?.tokens && <Panel title="All Sold Tokens" subtitle="Realized P&L per token">{pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}</div>
       </div>
     </div>
   );
