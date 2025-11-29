@@ -526,12 +526,17 @@ const getBadges = (summary) => {
 };
 
 // Claim Badge Panel Component
-const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, mintTxHash, mintError, canClaim }) => {
+const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, mintTxHash, mintError, canClaim, currentWallet }) => {
   const allBadges = getAllBadges(summary);
   const qualifiedCount = allBadges.filter(b => b.qualified).length;
   
   return (
     <Panel title="Your Badges" subtitle={`${qualifiedCount} of ${allBadges.length} unlocked`} style={{ marginTop: '20px' }}>
+      {currentWallet && (
+        <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px' }}>
+          Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4)}
+        </div>
+      )}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
@@ -637,15 +642,15 @@ export default function PNLTrackerApp() {
       return;
     }
     
-    // Check cache first (valid for 5 minutes)
+    // Check cache first (valid for 1 minute)
     const cacheKey = `minted_badges_${userAddress.toLowerCase()}`;
     try {
       const cached = window.localStorage.getItem(cacheKey);
       if (cached) {
         const { badges, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < 5 * 60 * 1000) {
+        if (Date.now() - timestamp < 60 * 1000) {
           console.log('Using cached minted badges:', badges);
-          if (badges.length > 0) setClaimedBadges(badges);
+          setClaimedBadges(badges); // Always set, even if empty
           return;
         }
       }
@@ -685,10 +690,8 @@ export default function PNLTrackerApp() {
         window.localStorage.setItem(cacheKey, JSON.stringify({ badges: minted, timestamp: Date.now() }));
       } catch (e) {}
       
-      if (minted.length > 0) {
-        console.log('Already minted badges:', minted);
-        setClaimedBadges(minted);
-      }
+      console.log('Minted badges for', userAddress.slice(0,8), ':', minted);
+      setClaimedBadges(minted); // Always set, even if empty
     } catch (err) {
       console.error('Error checking minted badges:', err);
     }
@@ -1047,7 +1050,20 @@ export default function PNLTrackerApp() {
     const scope = event.target.value;
     setActiveScope(scope);
     if (DEMO_MODE) return;
+    
+    // Determine which wallet(s) we're looking at
     let addresses = scope === 'all' ? wallets : (scope === 'primary' && primaryWallet ? [primaryWallet] : [scope]);
+    
+    // Clear badge-related state for new wallet
+    setClaimedBadges([]); // Clear while we re-check
+    setMintTxHash(null);
+    setMintError(null);
+    
+    // Check badges for the selected wallet
+    if (addresses.length > 0) {
+      checkMintedBadges(addresses[0]); // Check badges for first/selected wallet
+    }
+    
     if (addresses.length > 0 && !isGated) await fetchPNLData(addresses);
   };
 
@@ -1155,6 +1171,7 @@ export default function PNLTrackerApp() {
             mintTxHash={mintTxHash}
             mintError={mintError}
             canClaim={!!primaryWallet}
+            currentWallet={activeScope === 'all' ? (primaryWallet || wallets[0]) : (activeScope === 'primary' ? primaryWallet : activeScope)}
           />
         )}
         
