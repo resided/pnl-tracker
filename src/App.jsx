@@ -825,7 +825,6 @@ export default function PNLTrackerApp() {
           const neynarData = await neynarResponse.json();
           const primaryEth = neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
           const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
-          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
           if (allEth.length === 0) { setEnvError('No verified Base wallets found.'); setCheckingGate(false); setLoading(false); return; }
           setWallets(allEth);
           if (primaryEth) { setPrimaryWallet(primaryEth); setActiveScope('primary'); } else { setPrimaryWallet(allEth[0]); setActiveScope(allEth.length > 1 ? 'all' : 'primary'); }
