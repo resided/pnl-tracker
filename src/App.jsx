@@ -823,7 +823,6 @@ export default function PNLTrackerApp() {
       const topPercent = 100 - rank.percentile;
       
       // Simple OG image with trident, rank and PNL
-      const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
       const pnlDisplay = pnlValue >= 0 ? `+${realized}` : `-${realized}`;
       const topText = `Ψ Top ${topPercent}%`;
       const bottomText = `${pnlDisplay}`;
