@@ -271,7 +271,7 @@ const InfoPanel = ({ isVisible, onClose }) => {
   ];
   
   return (
-    <Panel title="How This Works" subtitle="tap to close" style={{ marginBottom: '20px', cursor: 'pointer' }}>
+    <Panel title="Explaining These Numbers" subtitle="tap to close" style={{ marginBottom: '20px', cursor: 'pointer' }}>
       <div onClick={onClose}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {infoItems.map((item, i) => (
@@ -1133,7 +1133,7 @@ export default function PNLTrackerApp() {
           </div>
         )}
         {pnlData?.summary && (
-          <Panel title="Realized P&L" subtitle={<span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowInfo(!showInfo)}>Base Chain · {showInfo ? 'hide info' : 'what\'s this?'}</span>}>
+          <Panel title="Realized P&L">
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens</div>
@@ -1151,6 +1151,18 @@ export default function PNLTrackerApp() {
                  : <Metric label="Tokens Sold" value={pnlData.summary.totalTokensTraded} />
               }
             </div>
+            {!isGated && (
+              <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.border}` }}>
+                <span style={{ fontSize: '11px', color: colors.muted }}>Base Chain</span>
+                <span style={{ fontSize: '11px', color: colors.muted, margin: '0 8px' }}>·</span>
+                <span 
+                  onClick={() => setShowInfo(!showInfo)} 
+                  style={{ fontSize: '11px', color: colors.accent, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {showInfo ? 'Hide' : 'Explain these numbers'}
+                </span>
+              </div>
+            )}
             {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
           </Panel>
         )}
