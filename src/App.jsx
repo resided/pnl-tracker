@@ -474,7 +474,7 @@ const RankCard = ({ summary, onShare }) => {
             <span style={{ fontWeight: 600 }}>
               {rank.title === 'Below Average' ? 'Room to improve' : rank.title}
             </span>
-          </div>v>
+          </div>
         </div>
         
         {/* Main percentile display */}
