@@ -376,30 +376,6 @@ const RankCard = ({ summary, onShare }) => {
     return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'; // Red
   };
   
-  const getTierBadgeStyle = () => {
-    if (rank.percentile >= 90) {
-      return {
-        background: 'linear-gradient(135deg, #facc15, #f97316)',
-        border: 'rgba(250, 204, 21, 0.8)',
-        shadow: '0 10px 30px rgba(15, 23, 42, 0.75)',
-      };
-    }
-    if (rank.percentile >= 60) {
-      return {
-        background: 'linear-gradient(135deg, #0f172a, #065f46)',
-        border: 'rgba(34, 197, 94, 0.7)',
-        shadow: '0 10px 30px rgba(15, 23, 42, 0.7)',
-      };
-    }
-    return {
-      background: 'linear-gradient(135deg, #111827, #7f1d1d)',
-      border: 'rgba(248, 113, 113, 0.6)',
-      shadow: '0 10px 30px rgba(15, 23, 42, 0.8)',
-    };
-  };
-
-  const tierBadge = getTierBadgeStyle();
-  
   return (
     <div style={{ 
       background: getBgGradient(),
@@ -433,47 +409,28 @@ const RankCard = ({ summary, onShare }) => {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div
-              style={{
-                fontSize: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.14em',
-                color: 'rgba(255,255,255,0.5)',
-                fontWeight: '500',
-                marginBottom: '6px',
-              }}
-            >
-              Your ranking
+            <div style={{ 
+              fontSize: '10px', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.14em', 
+              color: 'rgba(255,255,255,0.5)', 
+              fontWeight: '500',
+              marginBottom: '2px'
+            }}>
+              Rank
             </div>
-
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 16px',
-                borderRadius: '999px',
-                background: tierBadge.background,
-                boxShadow: `0 0 0 1px ${tierBadge.border}, ${tierBadge.shadow}`,
-                fontSize: '11px',
-                color: '#f9fafb',
-                fontWeight: 600,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <span style={{ fontSize: '14px' }}>{rank.emoji}</span>
-              <span>{rank.title}</span>
-            </div>
-
-            <div
-              style={{
-                marginTop: '6px',
-                fontSize: '11px',
-                color: 'rgba(255,255,255,0.7)',
-              }}
-            >
-              {rank.callout || 'Most traders are here'}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'flex-end',
+              gap: '6px' 
+            }}>
+              <span style={{ fontSize: '16px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                {rank.title}
+              </span>
+              <span style={{ fontSize: '20px', lineHeight: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
+                {rank.emoji}
+              </span>
             </div>
           </div>
         </div>
@@ -1598,8 +1555,35 @@ export default function PNLTrackerApp() {
                     {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
                 </div>
             )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
-              <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
-              <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
-              {!isGated && pnlData.summary.totalFumbled > 0 
-                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} is
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '24px',
+                borderTop: `1px solid ${colors.border}`,
+                paddingTop: '18px',
+                marginTop: '16px',
+              }}
+            >
+              <Metric
+                label="Total Bought"
+                value={formatCurrency(pnlData.summary.totalTradingVolume)}
+              />
+              <Metric
+                label="Win Rate"
+                value={`${pnlData.summary.winRate.toFixed(1)}%`}
+                isPositive={pnlData.summary.winRate >= 50}
+              />
+              {!isGated && pnlData.summary.totalFumbled > 0 ? (
+                <Metric
+                  label="Fumbled Gains"
+                  value={formatCurrency(pnlData.summary.totalFumbled)}
+                  isWarning
+                />
+              ) : (
+                <Metric
+                  label="Tokens Sold"
+                  value={pnlData.summary.totalTokensTraded}
+                />
+              )}
+            </div>
