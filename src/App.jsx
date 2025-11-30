@@ -804,16 +804,11 @@ export default function PNLTrackerApp() {
 
       const username = user?.username || 'user';
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
-      const invisibleLogo = 'https://assets.vercel.com/image/upload/front/assets/design/vercel-triangle-white.svg';
 
       if (isGated) {
           const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
-          const topText = `( Ψ ) Win Rate: ${winRate}%`;
-          const bottomText = `PnL: LOCKED 🔒`;
-          const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-          const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=80px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
-          const castText = `My Base Win Rate is ${winRate}%... but my PnL is locked 🔒\n\nNeed 10M $PNL to unlock the tracker. @ireside.eth let me in!\n\n${appLink}`;
-          await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+          const castText = `Ψ My Base Win Rate is ${winRate}%... but my PnL is locked 🔒\n\nNeed 10M $PNL to unlock the tracker. @ireside.eth let me in!\n\n${appLink}`;
+          await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
           return;
       }
 
@@ -822,19 +817,14 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      // Simple OG image with username, rank, PNL (no external images - they don't load reliably)
       const pnlSign = pnlValue >= 0 ? '+' : '-';
       const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
-      const displayName = user?.username ? `@${user.username}` : 'Trader';
-      const topText = `Ψ ${displayName}`;
-      const bottomText = `Top ${topPercent}% · ${pnlSign}${realized}`;
-      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=75px`;
       
-      // Cast text with proper signs
-      const castText = `I'm in the top ${topPercent}% of traders on Base · ${statusWord}\n\nRealized P&L: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
+      // Cast text - no image embed (Vercel OG shows their triangle logo)
+      // The app link will show its own preview
+      const castText = `Ψ I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
     } catch (err) { console.error('share pnl failed', err); }
   };
 
