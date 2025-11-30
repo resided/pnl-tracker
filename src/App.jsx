@@ -365,6 +365,7 @@ const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
   const topPercent = 100 - rank.percentile;
+  const score = rank.percentile; // Use percentile as the 0-100 score
   
   // Dynamic colors based on rank
   const getBgGradient = () => {
@@ -387,7 +388,27 @@ const RankCard = ({ summary, onShare }) => {
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Header row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ 
+              fontSize: '10px', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.14em', 
+              color: 'rgba(255,255,255,0.5)', 
+              fontWeight: '500' 
+            }}>
+              Trading Score
+            </div>
+            <div style={{ 
+              fontSize: '24px', 
+              fontWeight: '800', 
+              color: '#fff', 
+              textShadow: '0 0 20px rgba(255,255,255,0.3)',
+              lineHeight: '1'
+            }}>
+              {score}<span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>/100</span>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.5)', fontWeight: '500', marginBottom: '4px' }}>
               Your Ranking
             </div>
@@ -960,6 +981,7 @@ export default function PNLTrackerApp() {
       }
 
       const rank = calculatePercentile(summary);
+      const score = rank.percentile;
       const pnlValue = summary.totalRealizedProfit || 0;
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
@@ -970,13 +992,17 @@ export default function PNLTrackerApp() {
       
       // Use a reliable transparent pixel or blank image
       const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      
+      // NEW: Trading Score layout
       const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
-      const bottomText = `Top ${topPercent}%  ·  ${pnlSign}${realized}`;
+      const bottomText = `Trading Score: ${score}/100  ·  ${pnlSign}${realized}`;
+      
+      // Switch theme to 'light' for the cool aesthetic
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       // Cast text
-      const castText = `Using $PNL: I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:`;
+      const castText = `Using $PNL: My Trading Score is ${score}/100 📊\n\nTop ${topPercent}% on Base\n${statusWord}: ${pnlSign}${realized}\n\nGet your score:`;
       
       // FIX: Pass embeds as string[]
       await sdk.actions.composeCast({ 
@@ -1183,7 +1209,7 @@ export default function PNLTrackerApp() {
 
       console.log('[API] Fetching PNL data for', addresses.length, 'addresses');
       const fetchPromises = addresses.map((address) =>
-        fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base`, {
+        fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base&exclude_spam=false`, {
           headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' }
         }).then((res) => res.json())
       );
@@ -1200,7 +1226,7 @@ export default function PNLTrackerApp() {
             const avgBuy = invested > 0 ? (invested / parseFloat(token.total_tokens_bought || 1)) : 0;
             const soldUsd = parseFloat(token.total_sold_usd) || 0;
             // Airdrop = received for free (no/tiny investment) but has value
-            const isAirdrop = invested < 1 && (realized > 0 || soldUsd > 0);
+            const isAirdrop = invested < 5 && (realized > 0 || soldUsd > 0);
             allTokenData.push({
               name: token.name, symbol: token.symbol, tokenAddress: token.token_address?.toLowerCase(),
               totalUsdInvested: invested, realizedProfitUsd: realized, isProfitable: realized > 0,
@@ -1584,8 +1610,8 @@ export default function PNLTrackerApp() {
               <div style={{ marginBottom: '16px' }}>
                 <Panel title="Highlights" subtitle="From sold tokens">
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
-                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
+                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
                     {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
                   </div>
                 </Panel>
