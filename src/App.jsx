@@ -807,11 +807,8 @@ export default function PNLTrackerApp() {
 
       if (isGated) {
           const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
-          const tridentUrl = 'https://pnl-tracker-three.vercel.app/trident.svg';
-          const topText = `Win Rate: ${winRate}%`;
-          const bottomText = `PnL: LOCKED 🔒`;
-          const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-          const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=80px&images=${encodeURIComponent(tridentUrl)}&widths=100&heights=100`;
+          const textPath = encodeURIComponent(`Ψ PNL Tracker\nWin Rate: ${winRate}%  ·  LOCKED 🔒`);
+          const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=0&fontSize=48px`;
           const castText = `Ψ My Base Win Rate is ${winRate}%... but my PnL is locked 🔒\n\nNeed 10M $PNL to unlock the tracker. @ireside.eth let me in!\n\n${appLink}`;
           await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
           return;
@@ -826,12 +823,11 @@ export default function PNLTrackerApp() {
       const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
       const displayName = user?.username ? `@${user.username}` : '';
       
-      // Use hosted trident image instead of Vercel triangle
-      const tridentUrl = 'https://pnl-tracker-three.vercel.app/trident.svg';
-      const topText = displayName ? `${displayName}` : 'PNL Tracker';
-      const bottomText = `Top ${topPercent}% · ${pnlSign}${realized}`;
-      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=75px&images=${encodeURIComponent(tridentUrl)}&widths=100&heights=100`;
+      // Clean text-only OG image (md=0 removes the Vercel triangle)
+      const topText = displayName ? `Ψ ${displayName}` : 'Ψ PNL Tracker';
+      const bottomText = `Top ${topPercent}%  ·  ${pnlSign}${realized}`;
+      const textPath = encodeURIComponent(`${topText}\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=0&fontSize=48px`;
       
       // Cast text
       const castText = `Ψ I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
