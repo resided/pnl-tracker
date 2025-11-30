@@ -1128,4 +1128,407 @@ export default function PNLTrackerApp() {
       
       const messages = [
         `Using $PNL I discovered I made +${formatCurrency(profit)} from ${count} airdrop${count !== 1 ? 's' : ''} 🪂\n\nFree money is the best money.`,
-        `$PNL says I've cashed +${formatCurrency(profit)} in airdrops 💰\n\n${count} free token${count !== 1 ? 's' : ''} turned
+        `$PNL says I've cashed +${formatCurrency(profit)} in airdrops 💰\n\n${count} free token${count !== 1 ? 's' : ''} turned into real gains.`,
+        `My airdrop haul on Base: +${formatCurrency(profit)} 🎁\n\nWho says there's no such thing as free lunch?`,
+      ];
+      const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nCheck your airdrops:`;
+      
+      // Generate dynamic image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = `$PNL  ·  Airdrops`;
+      const bottomText = `+${formatCurrency(profit)} Free Money`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { console.error('share airdrops failed', err); }
+  };
+
+  const handleSwapForAccess = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const pnlCaip19 = getPnlCaip19();
+      if (!pnlCaip19) { await sdk.actions.openUrl('https://app.uniswap.org'); return; }
+      await sdk.actions.swapToken({ sellToken: BASE_ETH_CAIP19, buyToken: pnlCaip19 });
+    } catch (err) { console.error('swap for $PNL failed', err); }
+  };
+
+  // MODIFIED: Check Whitelist
+  const checkTokenGate = async (address) => {
+    if (!PNL_TOKEN_ADDRESS) { setTokenBalance(0); setCheckingGate(false); setIsGated(false); return true; }
+    
+    // Whitelist check
+    if (address && WHITELISTED_WALLETS.includes(address.toLowerCase())) {
+       console.log('[WHITELIST] Bypassing token gate for:', address);
+       setTokenBalance(REQUIRED_PNL_BALANCE); // Fake the balance for display
+       setCheckingGate(false);
+       setIsGated(false);
+       return true;
+    }
+
+    if (DEMO_MODE) {
+      console.log('[DEMO] Skipping token gate API call');
+      await new Promise((r) => setTimeout(r, 500));
+      setTokenBalance(REQUIRED_PNL_BALANCE + 100);
+      setCheckingGate(false); setIsGated(false); return true;
+    }
+    try {
+      console.log('[API] Checking token gate for:', address);
+      const response = await fetch(
+        `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
+        { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }
+      );
+      const data = await response.json();
+      const pnlToken = data?.[0];
+      const balance = pnlToken ? parseInt(pnlToken.balance) / 10 ** (pnlToken.decimals || 18) : 0;
+      setTokenBalance(balance);
+      const gated = balance < REQUIRED_PNL_BALANCE;
+      setIsGated(gated);
+      setCheckingGate(false);
+      return !gated;
+    } catch (err) {
+      console.error('Token gate check failed:', err);
+      setCheckingGate(false); setIsGated(true); return false;
+    }
+  };
+
+  const fetchPNLData = async (addresses) => {
+    try {
+      setLoading(true);
+      if (DEMO_MODE) {
+        console.log('[DEMO] Using mock PNL data');
+        await new Promise((r) => setTimeout(r, 600));
+        setPnlData(MOCK_PNL_DATA); setLoading(false); return;
+      }
+      let cacheKey = null;
+      if (typeof window !== 'undefined' && Array.isArray(addresses) && addresses.length > 0) {
+        const sortedAddresses = addresses.map((a) => a.toLowerCase()).sort();
+        const fidPart = user?.fid ? `fid_${user.fid}` : 'anon';
+        cacheKey = `pnl_cache_${fidPart}_${sortedAddresses.join(',')}`;
+        try {
+          const raw = window.localStorage.getItem(cacheKey);
+          if (raw) {
+            const stored = JSON.parse(raw);
+            if (stored && stored.timestamp && stored.data && Date.now() - stored.timestamp < PNL_CACHE_TTL_MS) {
+              setPnlData(stored.data); setLoading(false); return;
+            }
+          }
+        } catch (e) {}
+      }
+
+      console.log('[API] Fetching PNL data for', addresses.length, 'addresses');
+      const fetchPromises = addresses.map((address) =>
+        fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base&exclude_spam=false`, {
+          headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' }
+        }).then((res) => res.json())
+      );
+
+      const results = await Promise.all(fetchPromises);
+      const allTokenData = [];
+      const tokenAddressesForFumble = new Set();
+
+      results.forEach((data) => {
+        if (data.result) {
+          data.result.forEach((token) => {
+            const invested = parseFloat(token.total_usd_invested) || 0;
+            const realized = parseFloat(token.realized_profit_usd) || 0;
+            const avgBuy = invested > 0 ? (invested / parseFloat(token.total_tokens_bought || 1)) : 0;
+            const soldUsd = parseFloat(token.total_sold_usd) || 0;
+            // Airdrop = received for free (no/tiny investment) but has value
+            const isAirdrop = invested < 5 && (realized > 0 || soldUsd > 0);
+            allTokenData.push({
+              name: token.name, symbol: token.symbol, tokenAddress: token.token_address?.toLowerCase(),
+              totalUsdInvested: invested, realizedProfitUsd: realized, isProfitable: realized > 0,
+              totalTokensSold: parseFloat(token.total_tokens_sold) || 0, totalSoldUsd: soldUsd,
+              avgBuy: avgBuy,
+              isAirdrop: isAirdrop
+            });
+            if (token.token_address && parseFloat(token.total_tokens_sold) > 0) tokenAddressesForFumble.add(token.token_address);
+          });
+        }
+      });
+
+      const profitableTokens = allTokenData.filter((t) => t.isProfitable).length;
+      const airdrops = allTokenData.filter((t) => t.isAirdrop);
+      const airdropProfit = airdrops.reduce((acc, t) => acc + t.realizedProfitUsd, 0);
+      const summary = {
+        totalRealizedProfit: allTokenData.reduce((acc, t) => acc + t.realizedProfitUsd, 0),
+        totalUnrealizedProfit: 0,
+        totalTradingVolume: allTokenData.reduce((acc, t) => acc + t.totalUsdInvested, 0),
+        profitPercentage: 0, 
+        totalTokensTraded: allTokenData.length,
+        winRate: allTokenData.length > 0 ? (profitableTokens / allTokenData.length) * 100 : 0,
+        totalFumbled: 0,
+        airdropCount: airdrops.length,
+        airdropProfit: airdropProfit
+      };
+      summary.profitPercentage = summary.totalTradingVolume > 0 ? (summary.totalRealizedProfit / summary.totalTradingVolume) * 100 : 0;
+      
+      let biggestWin = null;
+      let biggestLoss = null;
+      allTokenData.forEach(token => {
+        if(token.realizedProfitUsd > 0) { if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token; }
+        if(token.realizedProfitUsd < 0) { if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token; }
+      });
+
+      let biggestFumbleToken = null;
+      let totalFumbledAmount = 0;
+
+      if (tokenAddressesForFumble.size > 0) {
+        try {
+          const priceResponse = await fetch('https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=base', {
+            method: 'POST',
+            headers: { accept: 'application/json', 'content-type': 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' },
+            body: JSON.stringify({ tokens: Array.from(tokenAddressesForFumble).map((addr) => ({ token_address: addr })) })
+          });
+          const priceData = await priceResponse.json();
+          const priceArray = Array.isArray(priceData) ? priceData : priceData.result || priceData.tokens || [];
+          const priceMap = new Map();
+          priceArray.forEach((p) => {
+             const addr = (p.tokenAddress || p.token_address || '').toLowerCase();
+             const rawUsd = p.usdPrice ?? p.usd_price ?? p.usdPriceFormatted;
+             if(addr && parseFloat(rawUsd) > 0) priceMap.set(addr, parseFloat(rawUsd));
+          });
+          allTokenData.forEach((t) => {
+            if (!t.tokenAddress || !t.totalTokensSold) return;
+            const priceUsd = priceMap.get(t.tokenAddress);
+            if (!priceUsd) return;
+            const currentValueSoldTokens = t.totalTokensSold * priceUsd;
+            const missedUpsideUsd = currentValueSoldTokens - t.totalSoldUsd;
+            if (missedUpsideUsd > 0) {
+                totalFumbledAmount += missedUpsideUsd;
+                if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) {
+                    biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens, currentPriceUsd: priceUsd };
+                }
+            }
+          });
+        } catch (e) { console.log('error computing biggest fumble', e); }
+      }
+      summary.totalFumbled = totalFumbledAmount;
+      const resultData = { summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble: biggestFumbleToken };
+      setPnlData(resultData);
+      if (cacheKey && typeof window !== 'undefined') window.localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: resultData }));
+      setLoading(false);
+    } catch (err) { console.error('fetchPNLData error', err); setLoading(false); }
+  };
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        console.log('[INIT] Starting app initialization');
+        console.log('[INIT] DEMO_MODE:', DEMO_MODE);
+        console.log('[INIT] DEV:', import.meta.env.DEV);
+        
+        setLoading(true);
+        if (DEMO_MODE) {
+          console.log('[DEMO] Running in demo mode - no API calls will be made');
+          await new Promise((r) => setTimeout(r, 800)); setUser(MOCK_USER); setWallets(MOCK_WALLETS); await checkTokenGate(MOCK_WALLETS[0]); setPnlData(MOCK_PNL_DATA); setLoading(false); return;
+        }
+        let fid = null;
+        try {
+          const { sdk } = await import('@farcaster/miniapp-sdk');
+          const context = await sdk.context;
+          if (context?.user?.fid) { fid = context.user.fid; setUser(context.user); console.log('[INIT] Got Farcaster context, fid:', fid); } 
+          else { setEnvError('PNL Tracker needs a Farcaster user context.'); setCheckingGate(false); setLoading(false); return; }
+          sdk.actions.ready();
+        } catch (err) { console.log('[INIT] No Farcaster SDK context'); setEnvError('PNL Tracker runs as a Farcaster miniapp.'); setCheckingGate(false); setLoading(false); return; }
+        if (fid) {
+          console.log('[API] Fetching user data from Neynar');
+          const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, { headers: { accept: 'application/json', api_key: import.meta.env.VITE_NEYNAR_API_KEY || '' } });
+          const neynarData = await neynarResponse.json();
+          const primaryEth = neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
+          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+          if (allEth.length === 0) { setEnvError('No verified Base wallets found.'); setCheckingGate(false); setLoading(false); return; }
+          setWallets(allEth);
+          const resolvedPrimary = primaryEth || allEth[0];
+          setPrimaryWallet(resolvedPrimary);
+
+          // Default to 'all' if multiple wallets exist, otherwise the specific wallet address
+          const defaultScope = resolvedPrimary;
+          setActiveScope(defaultScope);
+          
+          // Check which badges have already been minted
+          checkMintedBadges(resolvedPrimary);
+          
+          // Fetch data for the selected scope (All or Single)
+          const initialAddresses = defaultScope === 'all' ? allEth : [resolvedPrimary];
+          if (initialAddresses.length > 0) {
+            await checkTokenGate(resolvedPrimary);
+            // Always fetch real PNL data - gate just controls visibility (blurring)
+            await fetchPNLData(initialAddresses);
+          }
+        }
+        setCheckingGate(false);
+      } catch (err) { console.error('init error', err); setEnvError('Init failed.'); setLoading(false); setCheckingGate(false); }
+    };
+    initialize();
+  }, []);
+
+  const handleWalletScopeChange = async (event) => {
+    const scope = event.target.value;
+    setActiveScope(scope);
+    if (DEMO_MODE) return;
+    
+    // Determine which wallet(s) we're looking at
+    let addresses = scope === 'all' ? wallets : (scope === 'primary' && primaryWallet ? [primaryWallet] : [scope]);
+    
+    // Clear badge-related state for new wallet
+    setClaimedBadges([]); // Clear while we re-check
+    setMintTxHash(null);
+    setMintError(null);
+    
+    // Check badges for the selected wallet
+    if (addresses.length > 0) {
+      checkMintedBadges(addresses[0]); // Check badges for first/selected wallet
+    }
+    
+    if (addresses.length > 0 && !isGated) await fetchPNLData(addresses);
+  };
+
+  const handleRetryGate = () => {
+    setCheckingGate(true);
+    if (wallets.length > 0) {
+       const target = primaryWallet || wallets[0];
+       checkTokenGate(target).then((hasAccess) => { if(hasAccess) fetchPNLData([target]); });
+    }
+  };
+
+  const renderGatedOverlay = () => (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
+      <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '28px 24px', maxWidth: '360px', width: '90%', marginTop: '180px', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
+        
+        {/* Header */}
+        <div style={{ fontSize: '32px', marginBottom: '8px' }}>Ψ</div>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', color: colors.ink, margin: '0 0 6px' }}>Unlock Full Access</h2>
+        <p style={{ fontSize: '12px', color: colors.muted, margin: '0 0 20px' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock</p>
+        
+        {/* Win Rate Teaser - if we have data */}
+        {pnlData?.summary && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)', 
+            borderRadius: '12px', 
+            padding: '16px', 
+            marginBottom: '16px',
+            color: '#fff'
+          }}>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Your Win Rate</div>
+            <div style={{ fontSize: '28px', fontWeight: '700' }}>{pnlData.summary.winRate.toFixed(1)}%</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>across {pnlData.summary.totalTokensTraded} tokens on Base</div>
+          </div>
+        )}
+        
+        {/* Feature Preview */}
+        <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: '12px', textAlign: 'center' }}>What You'll Unlock</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { icon: '📊', text: 'Realized P&L & ROI breakdown' },
+              { icon: '🏆', text: 'Your rank among Base traders' },
+              { icon: '🤦', text: 'Fumbled gains (what you left on the table)' },
+              { icon: '🎖️', text: 'Mint achievement badges as NFTs' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: colors.ink }}>
+                <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Balance Status */}
+        <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px', marginBottom: '16px', border: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+            <span style={{ color: colors.metricLabel }}>Your Balance</span>
+            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+            <span style={{ color: colors.metricLabel }}>Required</span>
+            <span style={{ fontWeight: '600' }}>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</span>
+          </div>
+          {tokenBalance > 0 && tokenBalance < REQUIRED_PNL_BALANCE && (
+            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${colors.border}` }}>
+              <div style={{ fontSize: '10px', color: colors.muted }}>
+                Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* CTA Buttons */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: '12px', borderRadius: '99px', background: colors.pill, color: colors.pillText, fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
+          <button onClick={handleRetryGate} style={{ flex: 1, padding: '12px', borderRadius: '99px', background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
+  if (envError) return <ErrorScreen title="Access Locked" message={envError} />;
+
+  const tokens = pnlData?.tokens || [];
+  const biggestWin = pnlData?.biggestWin || null;
+  const biggestLoss = pnlData?.biggestLoss || null;
+  const biggestFumble = pnlData?.biggestFumble || null;
+  const badges = getBadges(pnlData?.summary);
+
+  return (
+    <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
+      {isGated && renderGatedOverlay()}
+      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
+        
+        {/* Compact Header */}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1.5px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '600' }}>Ψ</div>
+            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '600' }}>PNL Tracker</span>
+            {DEMO_MODE && <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Demo</span>}
+          </div>
+          {/* Wallet selector in header */}
+          {wallets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+              <select 
+                value={activeScope} 
+                onChange={handleWalletScopeChange} 
+                style={{ 
+                  fontSize: '11px', 
+                  padding: '6px 10px', 
+                  borderRadius: '6px', 
+                  border: `1px solid ${colors.border}`, 
+                  background: colors.panelBg, 
+                  color: colors.muted,
+                  maxWidth: '140px',
+                  cursor: 'pointer'
+                }}
+              >
+                {wallets.map((addr) => (
+                  <option key={addr} value={addr}>
+                    {addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}
+                  </option>
+                ))}
+                {wallets.length > 1 && <option value="all">All wallets</option>}
+              </select>
+              <div style={{ fontSize: '9px', color: colors.muted, letterSpacing: '0.02em', opacity: 0.6 }}>check wallets here ↑</div>
+            </div>
+          )}
+        </header>
+
+        {/* User info row */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img src={user.pfpUrl} alt={user.username} style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${colors.border}` }} />
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: colors.ink }}>{user.displayName}</div>
+                <div style={{ fontSize: '12px', color: colors.muted }}>@{user.username}</div>
+              </div>
+            </div>
+            <div style={{ 
+              padding: '5px 12px', 
+              borderRadius: '999px', 
+              background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', 
+              color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.1em', 
+              fontSize: '10px', 
+              fon
