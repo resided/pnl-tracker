@@ -822,13 +822,17 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      // Simple OG image with trident, rank, PNL and status word
+      // OG image with username, rank, PNL and status
       const pnlSign = pnlValue >= 0 ? '+' : '-';
       const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
-      const topText = `Ψ Top ${topPercent}% · ${statusWord}`;
-      const bottomText = `${pnlSign}${realized}`;
+      const displayName = user?.username ? `@${user.username}` : 'Trader';
+      const topText = `Ψ ${displayName}`;
+      const bottomText = `Top ${topPercent}% · ${pnlSign}${realized}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=80px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      // Try to use PFP if available, otherwise invisible logo
+      const pfpUrl = user?.pfpUrl || invisibleLogo;
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=75px&images=${encodeURIComponent(pfpUrl)}&widths=125&heights=125`;
       
       // Cast text with proper signs
       const castText = `I'm in the top ${topPercent}% of traders on Base · ${statusWord}\n\nRealized P&L: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
