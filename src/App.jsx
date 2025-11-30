@@ -491,7 +491,7 @@ const TokenRow = ({ token }) => (
   </div>
 );
 
-const BigMoveCard = ({ label, token, isWin }) => {
+const BigMoveCard = ({ label, token, isWin, onShare }) => {
   if (!token) return null;
   const invested = token.totalUsdInvested || 0;
   const pnl = token.realizedProfitUsd || 0;
@@ -514,6 +514,26 @@ const BigMoveCard = ({ label, token, isWin }) => {
         <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>You Paid</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested)}</div></div>
         <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.metricLabel, marginBottom: '2px' }}>You Got</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.ink }}>{formatCurrency(invested + pnl)}</div></div>
       </div>
+      {onShare && (
+        <button 
+          onClick={onShare}
+          style={{ 
+            marginTop: '4px',
+            padding: '8px',
+            borderRadius: '8px',
+            border: `1px solid ${border}`,
+            background: isWin ? 'rgba(22, 101, 52, 0.1)' : 'rgba(153, 27, 27, 0.1)',
+            color: text,
+            fontSize: '10px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em'
+          }}
+        >
+          {isWin ? 'Share Win' : 'Share L'}
+        </button>
+      )}
     </div>
   );
 };
@@ -1000,6 +1020,53 @@ export default function PNLTrackerApp() {
     } catch (err) { console.error('share fumble failed', err); }
   };
 
+  const handleShareBestTrade = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const token = pnlData?.biggestWin;
+      if (!token) return;
+
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      const pnl = token.realizedProfitUsd || 0;
+      const tokenName = token.name || token.symbol || 'a token';
+      const invested = token.totalUsdInvested || 0;
+      const returned = invested + pnl;
+      const multiple = invested > 0 ? (returned / invested).toFixed(1) : '?';
+      
+      const messages = [
+        `Using $PNL I found my best trade: +${formatCurrency(pnl)} on ${tokenName} 🎯\n\nPut in ${formatCurrency(invested)}, got back ${formatCurrency(returned)} (${multiple}x)`,
+        `$PNL says my best Base trade was ${tokenName} 💰\n\n${formatCurrency(invested)} → ${formatCurrency(returned)}\nThat's +${formatCurrency(pnl)} profit`,
+        `My biggest W on Base according to $PNL: ${tokenName} 🏆\n\nTurned ${formatCurrency(invested)} into ${formatCurrency(returned)}`,
+      ];
+      const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your best trade:`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+    } catch (err) { console.error('share best trade failed', err); }
+  };
+
+  const handleShareWorstTrade = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const token = pnlData?.biggestLoss;
+      if (!token) return;
+
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      const pnl = Math.abs(token.realizedProfitUsd || 0);
+      const tokenName = token.name || token.symbol || 'a token';
+      const invested = token.totalUsdInvested || 0;
+      const returned = invested - pnl;
+      
+      const messages = [
+        `Using $PNL I found my worst trade: -${formatCurrency(pnl)} on ${tokenName} 💀\n\nPut in ${formatCurrency(invested)}, got back ${formatCurrency(returned)}. Pain.`,
+        `$PNL exposed my biggest L: ${tokenName} 🪦\n\n${formatCurrency(invested)} → ${formatCurrency(returned)}\nThat's -${formatCurrency(pnl)} gone forever`,
+        `My worst Base trade according to $PNL: ${tokenName} 📉\n\nLost ${formatCurrency(pnl)} on this one. We don't talk about it.`,
+      ];
+      const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your worst trade:`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+    } catch (err) { console.error('share worst trade failed', err); }
+  };
+
   const handleSwapForAccess = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -1458,8 +1525,8 @@ export default function PNLTrackerApp() {
               <div style={{ marginBottom: '16px' }}>
                 <Panel title="Highlights" subtitle="From sold tokens">
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
-                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
+                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
                     {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
                   </div>
                 </Panel>
