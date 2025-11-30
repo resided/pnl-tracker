@@ -408,8 +408,6 @@ const RankCard = ({ summary, onShare }) => {
               {score}<span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>/100</span>
             </div>
           </div>
-          
-          {/* New Sleek Rank Display (No Box) */}
           <div style={{ textAlign: 'right' }}>
             <div style={{ 
               fontSize: '10px', 
@@ -1006,7 +1004,7 @@ export default function PNLTrackerApp() {
       const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
       const bottomText = `Trading Score: ${score}/100  ·  ${pnlSign}${realized}`;
       
-      // Switch theme to 'light' for the cool aesthetic
+      // Light mode for sleek aesthetic
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
@@ -1531,4 +1529,34 @@ export default function PNLTrackerApp() {
               textTransform: 'uppercase', 
               letterSpacing: '0.1em', 
               fontSize: '10px', 
-              fon
+              fontWeight: '600',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px' 
+            }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />
+              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'In Loss'}
+            </div>
+          </div>
+        )}
+
+        {/* RANK CARD FIRST - Share immediately visible */}
+        {!isGated && pnlData?.summary && (
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+        )}
+        {pnlData?.summary && (
+          <Panel title="Realized P&L">
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens</div>
+            </div>
+            {!isGated && badges.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
+                </div>
+            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
+              <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
+              <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
+              {!isGated && pnlData.summary.totalFumbled > 0 
+                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} is
