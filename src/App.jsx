@@ -59,7 +59,8 @@ const BADGE_TYPES = {
   VOLUME_WHALE: 2,
   TOILET_PAPER_HANDS: 3,
   DIAMOND: 4,
-  TRADER: 5
+  TRADER: 5,
+  RANK: 6  // New: Rank NFT
 };
 
 // --- WHITELIST CONFIGURATION ---
@@ -289,7 +290,7 @@ const InfoPanel = ({ isVisible, onClose }) => {
   );
 };
 
-const RankCard = ({ summary, onShare }) => {
+const RankCard = ({ summary, onShare, onMint, isMinting, isMinted, canMint }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
   
@@ -354,26 +355,47 @@ const RankCard = ({ summary, onShare }) => {
           </div>
         </div>
         
-        {/* Share button */}
-        <button 
-          onClick={onShare}
-          style={{ 
-            marginTop: '14px',
-            width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.1)',
-            color: '#fff',
-            fontSize: '11px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}
-        >
-          Share Rank
-        </button>
+        {/* Buttons row */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+          <button 
+            onClick={onShare}
+            style={{ 
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.1)',
+              color: '#fff',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em'
+            }}
+          >
+            Share
+          </button>
+          <button 
+            onClick={() => onMint && onMint(BADGE_TYPES.RANK)}
+            disabled={!canMint || isMinting || isMinted}
+            style={{ 
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: isMinted ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.4)',
+              background: isMinted ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)',
+              color: '#fff',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: isMinted || isMinting || !canMint ? 'default' : 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              opacity: isMinted || !canMint ? 0.6 : 1
+            }}
+          >
+            {isMinting ? 'Minting...' : isMinted ? '✓ Minted' : 'Mint NFT'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -668,7 +690,7 @@ export default function PNLTrackerApp() {
       const minted = [];
       
       // Check each badge type (0-5)
-      for (let badgeType = 0; badgeType <= 5; badgeType++) {
+      for (let badgeType = 0; badgeType <= 6; badgeType++) {
         try {
           const hasMinted = await client.readContract({
             address: BADGE_CONTRACT_ADDRESS,
@@ -1079,23 +1101,69 @@ export default function PNLTrackerApp() {
 
   const renderGatedOverlay = () => (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '32px 28px', maxWidth: '340px', width: '90%', marginTop: '180px', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
-        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🔒</div>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', color: colors.ink, margin: '0 0 8px' }}>Unlock PnL Tracker</h2>
-        <p style={{ fontSize: '13px', color: colors.muted, lineHeight: '1.5', margin: '0 0 20px' }}>You need <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to see your real performance.</p>
-        <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${colors.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-            <span style={{ color: colors.metricLabel }}>Your Balance</span>
-            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)}</span>
+      <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '28px 24px', maxWidth: '360px', width: '90%', marginTop: '180px', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
+        
+        {/* Header */}
+        <div style={{ fontSize: '32px', marginBottom: '8px' }}>Ψ</div>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', color: colors.ink, margin: '0 0 6px' }}>Unlock Full Access</h2>
+        <p style={{ fontSize: '12px', color: colors.muted, margin: '0 0 20px' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock</p>
+        
+        {/* Win Rate Teaser - if we have data */}
+        {pnlData?.summary && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)', 
+            borderRadius: '12px', 
+            padding: '16px', 
+            marginBottom: '16px',
+            color: '#fff'
+          }}>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Your Win Rate</div>
+            <div style={{ fontSize: '28px', fontWeight: '700' }}>{pnlData.summary.winRate.toFixed(1)}%</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>across {pnlData.summary.totalTokensTraded} tokens on Base</div>
           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-            <span style={{ color: colors.metricLabel }}>Required</span>
-            <span style={{ fontWeight: '600' }}>{formatNumber(REQUIRED_PNL_BALANCE)}</span>
+        )}
+        
+        {/* Feature Preview */}
+        <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: '12px', textAlign: 'center' }}>What You'll Unlock</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { icon: '📊', text: 'Realized P&L & ROI breakdown' },
+              { icon: '🏆', text: 'Your rank among Base traders' },
+              { icon: '🤦', text: 'Fumbled gains (what you left on the table)' },
+              { icon: '🎖️', text: 'Mint achievement badges as NFTs' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: colors.ink }}>
+                <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                <span>{item.text}</span>
+              </div>
+            ))}
           </div>
         </div>
+        
+        {/* Balance Status */}
+        <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px', marginBottom: '16px', border: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+            <span style={{ color: colors.metricLabel }}>Your Balance</span>
+            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+            <span style={{ color: colors.metricLabel }}>Required</span>
+            <span style={{ fontWeight: '600' }}>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</span>
+          </div>
+          {tokenBalance > 0 && tokenBalance < REQUIRED_PNL_BALANCE && (
+            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${colors.border}` }}>
+              <div style={{ fontSize: '10px', color: colors.muted }}>
+                Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* CTA Buttons */}
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: '11px', borderRadius: '99px', background: colors.pill, color: colors.pillText, fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
-          <button onClick={handleRetryGate} style={{ flex: 1, padding: '11px', borderRadius: '99px', background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Check Again</button>
+          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: '12px', borderRadius: '99px', background: colors.pill, color: colors.pillText, fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
+          <button onClick={handleRetryGate} style={{ flex: 1, padding: '12px', borderRadius: '99px', background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
         </div>
       </div>
     </div>
@@ -1172,7 +1240,14 @@ export default function PNLTrackerApp() {
         
         {/* Rank Card - Shows percentile ranking */}
         {!isGated && pnlData?.summary && (
-          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+          <RankCard 
+            summary={pnlData.summary} 
+            onShare={handleSharePnL}
+            onMint={handleClaimBadgeViaSDK}
+            isMinting={claimingBadge === BADGE_TYPES.RANK}
+            isMinted={claimedBadges.includes(BADGE_TYPES.RANK)}
+            canMint={!!primaryWallet}
+          />
         )}
         
         {/* Badge Claiming Section - Only show when not gated */}
