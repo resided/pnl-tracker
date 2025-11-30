@@ -822,15 +822,13 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      // OG image with username, rank, PNL
+      // Simple OG image with username, rank, PNL (no external images - they don't load reliably)
       const pnlSign = pnlValue >= 0 ? '+' : '-';
       const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
       const displayName = user?.username ? `@${user.username}` : 'Trader';
       const topText = `Ψ ${displayName}`;
       const bottomText = `Top ${topPercent}% · ${pnlSign}${realized}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      
-      // No image - Vercel OG can't fetch external PFPs reliably
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=75px`;
       
       // Cast text with proper signs
@@ -1165,7 +1163,7 @@ export default function PNLTrackerApp() {
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px', transition: 'all 0.4s ease' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>📊</div>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600' }}>Ψ</div>
             <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span>
             {DEMO_MODE && <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Demo</span>}
           </div>
