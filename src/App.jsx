@@ -238,6 +238,61 @@ const getRankTitle = (percentile, profit, winRate) => {
   };
 };
 
+// --- LORE ENGINE (NEW) ---
+// Analyzes stats to create a "Wingman" style persona
+const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
+  if (!summary) return null;
+  const { winRate, totalRealizedProfit, totalFumbled, totalTradingVolume } = summary;
+  
+  let archetype = "The NPC";
+  let quote = "I trade, therefore I am.";
+  let color = "#64748b"; // Default slate
+  
+  // Logic to determine Archetype
+  if (totalRealizedProfit > 50000) {
+    archetype = "The Based God";
+    quote = "I don't chase pumps, I create them.";
+    color = "#EAB308"; // Gold
+  } else if (totalRealizedProfit > 10000) {
+    archetype = "The Alpha Hunter";
+    quote = "Up only. Everything else is noise.";
+    color = "#22c55e"; // Green
+  } else if (winRate > 70) {
+    archetype = "The Sniper";
+    quote = "One shot, one kill. No wasted gas.";
+    color = "#06b6d4"; // Cyan
+  } else if (totalFumbled > 20000) {
+    archetype = "The Paper Handed King";
+    quote = "I sell the bottom so you can buy.";
+    color = "#f97316"; // Orange
+  } else if (totalRealizedProfit < -5000) {
+    archetype = "The Exit Liquidity";
+    quote = "I'm doing it for the culture (and the tax loss).";
+    color = "#ef4444"; // Red
+  } else if (totalTradingVolume > 100000) {
+    archetype = "The Volume Farmer";
+    quote = "Sleep is for people who don't trade 24/7.";
+    color = "#8b5cf6"; // Purple
+  } else {
+    archetype = "The Grinder";
+    quote = "Slow and steady loses the race, but I'm still running.";
+    color = "#94a3b8"; // Slate
+  }
+
+  // Generate Habits based on data
+  const habits = [
+    biggestWin ? `Legendary entry on $${biggestWin.symbol}` : "Still looking for a big win",
+    biggestLoss ? `Donated heavily to the $${biggestLoss.symbol} community` : "Risk management expert",
+    totalFumbled > 1000 ? `Allergic to holding winners (Missed $${formatNumber(totalFumbled)})` : "Diamond hands activated",
+    `Win Rate: ${winRate.toFixed(1)}% (${winRate > 50 ? 'Better than a coin flip' : 'Inverse me'})`
+  ];
+
+  // Top Bags (Most volume)
+  const topBags = [...tokens].sort((a,b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 4);
+
+  return { archetype, quote, color, habits, topBags };
+};
+
 // Styles
 const colors = {
   bg: '#fafafa', ink: '#0b0b0b', muted: '#6b7280', accent: '#111827', border: '#e5e7eb',
@@ -361,6 +416,7 @@ const InfoPanel = ({ isVisible, onClose }) => {
   );
 };
 
+// --- UPDATED RANK CARD (WITH GRADIENT BADGE) ---
 const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
@@ -446,7 +502,7 @@ const RankCard = ({ summary, onShare }) => {
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
               {rank.callout || 'Base Chain'}
             </div>
-            {/* High-Fidelity Badge */}
+            {/* High-Fidelity Gradient Badge */}
             <div style={{ 
               display: 'inline-flex',
               alignItems: 'center',
@@ -528,6 +584,135 @@ const RankCard = ({ summary, onShare }) => {
         >
           Share My Rank
         </button>
+      </div>
+    </div>
+  );
+};
+
+// --- NEW LORE COMPONENT (WINGMAN STYLE) ---
+const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) => {
+  const lore = generateLore(summary, tokens, biggestWin, biggestLoss);
+  if (!lore) return null;
+
+  return (
+    <div style={{
+      background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)', // Dark "Matrix" vibes
+      borderRadius: '24px',
+      padding: '24px',
+      color: '#fff',
+      border: `1px solid ${lore.color}`, // Dynamic border based on rank
+      boxShadow: `0 0 20px -5px ${lore.color}40`, // Colored glow
+      fontFamily: 'monospace', // Tech/Hacker font vibe
+      position: 'relative',
+      overflow: 'hidden',
+      marginBottom: '24px'
+    }}>
+      {/* Decorative Grid Background */}
+      <div style={{ 
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+        backgroundImage: 'radial-gradient(#ffffff10 1px, transparent 1px)', 
+        backgroundSize: '20px 20px', opacity: 0.3, pointerEvents: 'none' 
+      }}></div>
+
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        
+        {/* Header: Avatar & Handle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <img src={user?.pfpUrl} style={{ width: '48px', height: '48px', borderRadius: '50%', border: `2px solid ${lore.color}` }} />
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '-0.02em', fontFamily: 'system-ui' }}>{user?.displayName}</div>
+            <div style={{ fontSize: '12px', color: lore.color, opacity: 0.8 }}>@{user?.username}</div>
+          </div>
+        </div>
+
+        {/* Hero: Rank Icon & Archetype */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ 
+            width: '80px', height: '80px', margin: '0 auto 16px', 
+            background: `${lore.color}20`, borderRadius: '16px', 
+            border: `1px solid ${lore.color}`, display: 'flex', 
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: '40px', boxShadow: `0 0 15px ${lore.color}60`
+          }}>
+            {summary.winRate > 60 ? '🏆' : summary.totalRealizedProfit > 0 ? '📈' : '💀'}
+          </div>
+          <div style={{ 
+            fontSize: '22px', fontWeight: '800', textTransform: 'uppercase', 
+            color: lore.color, textShadow: `0 0 10px ${lore.color}40`,
+            letterSpacing: '0.05em', lineHeight: '1.1'
+          }}>
+            {lore.archetype}
+          </div>
+          <div style={{ fontSize: '11px', fontStyle: 'italic', marginTop: '8px', opacity: 0.8, maxWidth: '260px', margin: '8px auto 0' }}>
+            "{lore.quote}"
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div style={{ 
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '24px',
+          background: '#ffffff05', padding: '16px', borderRadius: '16px', border: '1px solid #ffffff10'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: summary.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171' }}>
+              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
+            </div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em' }}>Realized</div>
+          </div>
+          <div style={{ textAlign: 'center', borderLeft: '1px solid #ffffff10', borderRight: '1px solid #ffffff10' }}>
+            <div style={{ fontSize: '16px', fontWeight: '700' }}>{summary.winRate.toFixed(0)}%</div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em' }}>Win Rate</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '16px', fontWeight: '700' }}>{summary.totalTokensTraded}</div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em' }}>Tokens</div>
+          </div>
+        </div>
+
+        {/* Top Bags (Wingman Style) */}
+        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '12px', opacity: 0.6 }}>Top Bags</div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+            {lore.topBags.map((t, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <div style={{ 
+                  width: '40px', height: '40px', borderRadius: '50%', background: '#fff', color: '#000',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '10px',
+                  border: `2px solid ${lore.color}`
+                }}>
+                  {t.symbol.slice(0,4)}
+                </div>
+                <div style={{ fontSize: '10px', fontWeight: '600' }}>{t.symbol}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Habits */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.2em', textAlign: 'center', marginBottom: '4px', opacity: 0.6 }}>Trading Style</div>
+          {lore.habits.map((habit, i) => (
+            <div key={i} style={{ 
+              padding: '8px 12px', borderRadius: '8px', 
+              border: `1px solid ${lore.color}40`, 
+              background: `${lore.color}10`,
+              fontSize: '11px', textAlign: 'center'
+            }}>
+              {habit}
+            </div>
+          ))}
+        </div>
+
+        <button onClick={onShare} style={{ 
+          marginTop: '24px', width: '100%', padding: '14px', borderRadius: '12px', 
+          border: 'none', background: lore.color, color: '#000',
+          fontSize: '12px', fontWeight: '800', cursor: 'pointer', 
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          boxShadow: `0 4px 15px ${lore.color}60`
+        }}>
+          Share My Lore
+        </button>
+
       </div>
     </div>
   );
@@ -1573,51 +1758,26 @@ export default function PNLTrackerApp() {
         )}
 
         {/* RANK CARD FIRST - Share immediately visible */}
-        {!isGated && pnlData?.summary && (
+        {!isGated && activeTab !== 'lore' && pnlData?.summary && (
           <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
         )}
-        {pnlData?.summary && (
-          <Panel title="Realized P&L">
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens</div>
-            </div>
-            {!isGated && badges.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                    {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
-                </div>
-            )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
-              <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
-              <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
-              {!isGated && pnlData.summary.totalFumbled > 0 
-                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
-                 : <Metric label="Tokens Sold" value={pnlData.summary.totalTokensTraded} />
-              }
-            </div>
-            {!isGated && (
-              <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.border}` }}>
-                <span style={{ fontSize: '11px', color: colors.muted }}>Base Chain</span>
-                <span style={{ fontSize: '11px', color: colors.muted, margin: '0 8px' }}>·</span>
-                <span 
-                  onClick={() => setShowInfo(!showInfo)} 
-                  style={{ fontSize: '11px', color: colors.accent, cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  {showInfo ? 'Hide' : 'Explain these numbers'}
-                </span>
-              </div>
-            )}
-            {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
-          </Panel>
+
+        {/* --- MAIN CONTENT SWITCH --- */}
+        {!isGated && activeTab === 'lore' && pnlData?.summary && (
+          <LoreCard 
+            summary={pnlData.summary} 
+            tokens={tokens} 
+            user={user} 
+            biggestWin={biggestWin} 
+            biggestLoss={biggestLoss} 
+            onShare={handleSharePnL} 
+          />
         )}
-        
-        {/* Info Panel - Shows explanation of numbers */}
-        {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
-        
-        {/* Tabs: Stats / Airdrops / Badges */}
+
+        {/* Tabs: Stats / Airdrops / Badges / Lore */}
         {!isGated && pnlData?.summary && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {['stats', 'airdrops', 'badges'].map((tab) => (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
               <button 
                 key={tab} 
                 onClick={() => setActiveTab(tab)} 
@@ -1632,52 +1792,54 @@ export default function PNLTrackerApp() {
                   fontWeight: '600',
                   textTransform: 'uppercase', 
                   letterSpacing: '0.08em', 
-                  cursor: 'pointer' 
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : 'Badges'}
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? '✨ Lore' : 'Badges'}
               </button>
             ))}
           </div>
         )}
+
+        {/* --- TAB CONTENT --- */}
         
-        {/* Stats Tab Content */}
-        {!isGated && activeTab === 'stats' && (
+        {/* STATS */}
+        {!isGated && activeTab === 'stats' && pnlData?.summary && (
           <>
-            {/* Highlights section */}
-            {(biggestWin || biggestLoss || biggestFumble) && (
-              <div style={{ marginBottom: '16px' }}>
-                <Panel title="Highlights" subtitle="From sold tokens">
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
-                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
-                    {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
-                  </div>
-                </Panel>
+            <Panel title="Realized P&L">
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens</div>
               </div>
-            )}
+              {!isGated && badges.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                      {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
+                  </div>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
+                <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
+                <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
+                {!isGated && pnlData.summary.totalFumbled > 0 
+                   ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
+                   : <Metric label="Tokens Sold" value={pnlData.summary.totalTokensTraded} />
+                }
+              </div>
+            </Panel>
+
+            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <Panel title="Highlights" subtitle="From sold tokens">
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                  {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
+                  {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
+                  {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
+                </div>
+              </Panel>
+            </div>
             
             {/* Token lists */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              {['overview', 'tokens'].map((subtab) => (
-                <button 
-                  key={subtab} 
-                  onClick={() => setActiveTab(subtab === 'overview' ? 'stats' : 'all')} 
-                  style={{ 
-                    padding: '8px 14px', 
-                    borderRadius: '999px', 
-                    border: `1px solid ${colors.border}`, 
-                    background: colors.panelBg, 
-                    color: colors.muted, 
-                    fontSize: '10px', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.12em', 
-                    cursor: 'pointer' 
-                  }}
-                >
-                  {subtab === 'overview' ? 'Top Wins' : 'All Sold'}
-                </button>
-              ))}
+              <button style={{ padding: '8px 14px', borderRadius: '999px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.muted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', cursor: 'pointer' }}>Top Wins</button>
             </div>
             {pnlData?.tokens && (
               <Panel title="Best Performers" subtitle="Realized gains">
@@ -1688,117 +1850,30 @@ export default function PNLTrackerApp() {
             )}
           </>
         )}
-        
-        {/* All Tokens Tab */}
-        {!isGated && activeTab === 'all' && pnlData?.tokens && (
-          <Panel title="All Sold Tokens" subtitle="Realized P&L per token">
-            {pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => (
-              <TokenRow key={idx} token={token} />
-            ))}
-          </Panel>
-        )}
-        
-        {/* Airdrops Tab Content */}
+
+        {/* AIRDROPS */}
         {!isGated && activeTab === 'airdrops' && pnlData?.tokens && (
           <>
-            {/* Airdrop Summary */}
-            {pnlData.summary.airdropCount > 0 && (
-              <div style={{ 
-                background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-                borderRadius: '16px',
-                padding: '20px',
-                marginBottom: '16px',
-                color: '#fff'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7, marginBottom: '8px' }}>
-                      Free Money Received
-                    </div>
-                    <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '4px' }}>
-                      +{formatCurrency(pnlData.summary.airdropProfit)}
-                    </div>
-                    <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                      from {pnlData.summary.airdropCount} airdrop{pnlData.summary.airdropCount !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={handleShareAirdrops}
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: 'rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em'
-                    }}
-                  >
-                    Share
-                  </button>
-                </div>
+            <div style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', borderRadius: '16px', padding: '20px', marginBottom: '16px', color: '#fff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div><div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7, marginBottom: '8px' }}>Free Money Received</div><div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '4px' }}>+{formatCurrency(pnlData.summary.airdropProfit)}</div><div style={{ fontSize: '12px', opacity: 0.8 }}>from {pnlData.summary.airdropCount} airdrop{pnlData.summary.airdropCount !== 1 ? 's' : ''}</div></div>
+                <button onClick={handleShareAirdrops} style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Share</button>
               </div>
-            )}
-            
-            {/* Airdrop List */}
+            </div>
             <Panel title="Airdrops" subtitle="Tokens received for free">
               {pnlData.tokens.filter(t => t.isAirdrop).length > 0 ? (
-                pnlData.tokens
-                  .filter(t => t.isAirdrop)
-                  .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-                  .map((token, idx) => (
-                    <div key={idx} style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '12px 0',
-                      borderBottom: idx < pnlData.tokens.filter(t => t.isAirdrop).length - 1 ? `1px solid ${colors.border}` : 'none'
-                    }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '600' }}>{token.symbol}</span>
-                          <span style={{ 
-                            fontSize: '9px', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px', 
-                            background: '#f3e8ff', 
-                            color: '#7c3aed',
-                            fontWeight: '600'
-                          }}>
-                            AIRDROP
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ 
-                          fontSize: '14px', 
-                          fontWeight: '600', 
-                          color: token.realizedProfitUsd >= 0 ? colors.success : colors.error 
-                        }}>
-                          {token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}
-                        </div>
-                        <div style={{ fontSize: '10px', color: colors.muted }}>
-                          Sold for {formatCurrency(token.totalSoldUsd)}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px', color: colors.muted }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div>
-                  <div style={{ fontSize: '13px' }}>No airdrops found</div>
-                  <div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div>
-                </div>
-              )}
+                pnlData.tokens.filter(t => t.isAirdrop).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: idx < pnlData.tokens.filter(t => t.isAirdrop).length - 1 ? `1px solid ${colors.border}` : 'none' }}>
+                    <div><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ fontSize: '13px', fontWeight: '600' }}>{token.symbol}</span><span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', background: '#f3e8ff', color: '#7c3aed', fontWeight: '600' }}>AIRDROP</span></div><div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div></div>
+                    <div style={{ textAlign: 'right' }}><div style={{ fontSize: '14px', fontWeight: '600', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>{token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}</div><div style={{ fontSize: '10px', color: colors.muted }}>Sold for {formatCurrency(token.totalSoldUsd)}</div></div>
+                  </div>
+                ))
+              ) : (<div style={{ textAlign: 'center', padding: '24px', color: colors.muted }}><div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div><div style={{ fontSize: '13px' }}>No airdrops found</div><div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div></div>)}
             </Panel>
           </>
         )}
-        
-        {/* Badges Tab Content */}
+
+        {/* BADGES */}
         {!isGated && activeTab === 'badges' && pnlData?.summary && (
           <ClaimBadgePanel 
             summary={pnlData.summary}
@@ -1811,7 +1886,15 @@ export default function PNLTrackerApp() {
             currentWallet={activeScope === 'all' ? (primaryWallet || wallets[0]) : (activeScope === 'primary' ? primaryWallet : activeScope)}
           />
         )}
-        
+
+        {/* INFO */}
+        {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
+        {!isGated && (
+          <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '20px', opacity: 0.6 }}>
+             <div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
+          </div>
+        )}
+
         {/* Gated content blur */}
         {isGated && (biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
