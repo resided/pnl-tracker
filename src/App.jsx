@@ -1067,6 +1067,27 @@ export default function PNLTrackerApp() {
     } catch (err) { console.error('share worst trade failed', err); }
   };
 
+  const handleShareAirdrops = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const summary = pnlData?.summary;
+      if (!summary || summary.airdropCount === 0) return;
+
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      const profit = summary.airdropProfit || 0;
+      const count = summary.airdropCount || 0;
+      
+      const messages = [
+        `Using $PNL I discovered I made +${formatCurrency(profit)} from ${count} airdrop${count !== 1 ? 's' : ''} 🪂\n\nFree money is the best money.`,
+        `$PNL says I've cashed +${formatCurrency(profit)} in airdrops 💰\n\n${count} free token${count !== 1 ? 's' : ''} turned into real gains.`,
+        `My airdrop haul on Base: +${formatCurrency(profit)} 🎁\n\nWho says there's no such thing as free lunch?`,
+      ];
+      const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nCheck your airdrops:`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+    } catch (err) { console.error('share airdrops failed', err); }
+  };
+
   const handleSwapForAccess = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -1156,11 +1177,15 @@ export default function PNLTrackerApp() {
             const invested = parseFloat(token.total_usd_invested) || 0;
             const realized = parseFloat(token.realized_profit_usd) || 0;
             const avgBuy = invested > 0 ? (invested / parseFloat(token.total_tokens_bought || 1)) : 0;
+            const soldUsd = parseFloat(token.total_sold_usd) || 0;
+            // Airdrop = received for free (no/tiny investment) but has value
+            const isAirdrop = invested < 1 && (realized > 0 || soldUsd > 0);
             allTokenData.push({
               name: token.name, symbol: token.symbol, tokenAddress: token.token_address?.toLowerCase(),
               totalUsdInvested: invested, realizedProfitUsd: realized, isProfitable: realized > 0,
-              totalTokensSold: parseFloat(token.total_tokens_sold) || 0, totalSoldUsd: parseFloat(token.total_sold_usd) || 0,
-              avgBuy: avgBuy
+              totalTokensSold: parseFloat(token.total_tokens_sold) || 0, totalSoldUsd: soldUsd,
+              avgBuy: avgBuy,
+              isAirdrop: isAirdrop
             });
             if (token.token_address && parseFloat(token.total_tokens_sold) > 0) tokenAddressesForFumble.add(token.token_address);
           });
@@ -1168,6 +1193,8 @@ export default function PNLTrackerApp() {
       });
 
       const profitableTokens = allTokenData.filter((t) => t.isProfitable).length;
+      const airdrops = allTokenData.filter((t) => t.isAirdrop);
+      const airdropProfit = airdrops.reduce((acc, t) => acc + t.realizedProfitUsd, 0);
       const summary = {
         totalRealizedProfit: allTokenData.reduce((acc, t) => acc + t.realizedProfitUsd, 0),
         totalUnrealizedProfit: 0,
@@ -1175,7 +1202,9 @@ export default function PNLTrackerApp() {
         profitPercentage: 0, 
         totalTokensTraded: allTokenData.length,
         winRate: allTokenData.length > 0 ? (profitableTokens / allTokenData.length) * 100 : 0,
-        totalFumbled: 0
+        totalFumbled: 0,
+        airdropCount: airdrops.length,
+        airdropProfit: airdropProfit
       };
       summary.profitPercentage = summary.totalTradingVolume > 0 ? (summary.totalRealizedProfit / summary.totalTradingVolume) * 100 : 0;
       
@@ -1490,10 +1519,10 @@ export default function PNLTrackerApp() {
         {/* Info Panel - Shows explanation of numbers */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
         
-        {/* Tabs: Stats / Badges */}
+        {/* Tabs: Stats / Airdrops / Badges */}
         {!isGated && pnlData?.summary && (
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {['stats', 'badges'].map((tab) => (
+            {['stats', 'airdrops', 'badges'].map((tab) => (
               <button 
                 key={tab} 
                 onClick={() => setActiveTab(tab)} 
@@ -1504,14 +1533,14 @@ export default function PNLTrackerApp() {
                   border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
                   background: activeTab === tab ? colors.accent : colors.panelBg, 
                   color: activeTab === tab ? colors.pillText : colors.muted, 
-                  fontSize: '12px', 
+                  fontSize: '11px', 
                   fontWeight: '600',
                   textTransform: 'uppercase', 
-                  letterSpacing: '0.1em', 
+                  letterSpacing: '0.08em', 
                   cursor: 'pointer' 
                 }}
               >
-                {tab === 'stats' ? 'My Stats' : 'Badges'}
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : 'Badges'}
               </button>
             ))}
           </div>
@@ -1572,6 +1601,106 @@ export default function PNLTrackerApp() {
               <TokenRow key={idx} token={token} />
             ))}
           </Panel>
+        )}
+        
+        {/* Airdrops Tab Content */}
+        {!isGated && activeTab === 'airdrops' && pnlData?.tokens && (
+          <>
+            {/* Airdrop Summary */}
+            {pnlData.summary.airdropCount > 0 && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+                borderRadius: '16px',
+                padding: '20px',
+                marginBottom: '16px',
+                color: '#fff'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7, marginBottom: '8px' }}>
+                      Free Money Received
+                    </div>
+                    <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '4px' }}>
+                      +{formatCurrency(pnlData.summary.airdropProfit)}
+                    </div>
+                    <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                      from {pnlData.summary.airdropCount} airdrop{pnlData.summary.airdropCount !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleShareAirdrops}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'rgba(255,255,255,0.2)',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em'
+                    }}
+                  >
+                    Share
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Airdrop List */}
+            <Panel title="Airdrops" subtitle="Tokens received for free">
+              {pnlData.tokens.filter(t => t.isAirdrop).length > 0 ? (
+                pnlData.tokens
+                  .filter(t => t.isAirdrop)
+                  .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
+                  .map((token, idx) => (
+                    <div key={idx} style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '12px 0',
+                      borderBottom: idx < pnlData.tokens.filter(t => t.isAirdrop).length - 1 ? `1px solid ${colors.border}` : 'none'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '600' }}>{token.symbol}</span>
+                          <span style={{ 
+                            fontSize: '9px', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px', 
+                            background: '#f3e8ff', 
+                            color: '#7c3aed',
+                            fontWeight: '600'
+                          }}>
+                            AIRDROP
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ 
+                          fontSize: '14px', 
+                          fontWeight: '600', 
+                          color: token.realizedProfitUsd >= 0 ? colors.success : colors.error 
+                        }}>
+                          {token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}
+                        </div>
+                        <div style={{ fontSize: '10px', color: colors.muted }}>
+                          Sold for {formatCurrency(token.totalSoldUsd)}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '24px', color: colors.muted }}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div>
+                  <div style={{ fontSize: '13px' }}>No airdrops found</div>
+                  <div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div>
+                </div>
+              )}
+            </Panel>
+          </>
         )}
         
         {/* Badges Tab Content */}
