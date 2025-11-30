@@ -1102,13 +1102,9 @@ export default function PNLTrackerApp() {
           
           const initialAddresses = primaryEth ? [primaryEth] : allEth;
           if (initialAddresses.length > 0) {
-            const hasAccess = await checkTokenGate(initialAddresses[0]);
-            if (hasAccess) {
-               await fetchPNLData(initialAddresses);
-            } else {
-               setPnlData(MOCK_PNL_DATA);
-               setLoading(false);
-            }
+            await checkTokenGate(initialAddresses[0]);
+            // Always fetch real PNL data - gate just controls visibility (blurring)
+            await fetchPNLData(initialAddresses);
           }
         }
         setCheckingGate(false);
