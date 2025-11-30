@@ -151,19 +151,91 @@ const calculatePercentile = (summary) => {
 };
 
 const getRankTitle = (percentile, profit, winRate) => {
-  // Titles that describe the trader clearly
-  if (percentile >= 99) return { title: 'Top 1%', emoji: '👑', vibe: 'Elite performer' };
-  if (percentile >= 95) return { title: 'Elite', emoji: '💎', vibe: 'Outperforming 95% of traders' };
-  if (percentile >= 90) return { title: 'Expert', emoji: '🏆', vibe: 'Consistently profitable' };
-  if (percentile >= 80) return { title: 'Skilled', emoji: '📈', vibe: 'Well above average' };
-  if (percentile >= 70) return { title: 'Profitable', emoji: '✓', vibe: 'Solid track record' };
-  if (percentile >= 60) return { title: 'Above Average', emoji: '↗', vibe: 'Beating the majority' };
-  if (percentile >= 50) return { title: 'Holding Steady', emoji: '―', vibe: 'Middle of the pack' };
-  if (percentile >= 40) return { title: 'Below Average', emoji: '↘', vibe: 'Room to improve' };
-  if (percentile >= 30) return { title: 'Down Bad', emoji: '•', vibe: 'Tough stretch' };
-  if (percentile >= 20) return { title: 'Struggling', emoji: '•', vibe: 'Finding your footing' };
-  if (percentile >= 10) return { title: 'Rekt', emoji: '•', vibe: 'It happens' };
-  return { title: 'Wrecked', emoji: '•', vibe: 'Nowhere to go but up' };
+  // Titles with personality and trading insights
+  if (percentile >= 99) return { 
+    title: 'Top 1%', 
+    emoji: '👑', 
+    vibe: 'Elite performer',
+    insight: 'You belong in a hedge fund',
+    callout: 'One of the best on Base'
+  };
+  if (percentile >= 95) return { 
+    title: 'Elite', 
+    emoji: '💎', 
+    vibe: 'Outperforming 95% of traders',
+    insight: 'Your entries are surgical',
+    callout: 'Top 5% of all traders'
+  };
+  if (percentile >= 90) return { 
+    title: 'Expert', 
+    emoji: '🏆', 
+    vibe: 'Consistently profitable',
+    insight: 'You understand the game',
+    callout: 'Beating 90% of traders'
+  };
+  if (percentile >= 80) return { 
+    title: 'Skilled', 
+    emoji: '📈', 
+    vibe: 'Well above average',
+    insight: 'More wins than losses',
+    callout: 'Top 20% on Base'
+  };
+  if (percentile >= 70) return { 
+    title: 'Profitable', 
+    emoji: '✓', 
+    vibe: 'Solid track record',
+    insight: 'You know when to exit',
+    callout: 'Better than most'
+  };
+  if (percentile >= 60) return { 
+    title: 'Above Average', 
+    emoji: '↗', 
+    vibe: 'Beating the majority',
+    insight: 'Still in the green',
+    callout: 'Top 40%'
+  };
+  if (percentile >= 50) return { 
+    title: 'Holding Steady', 
+    emoji: '―', 
+    vibe: 'Middle of the pack',
+    insight: 'Breaking even is an achievement',
+    callout: 'Surviving the chaos'
+  };
+  if (percentile >= 40) return { 
+    title: 'Below Average', 
+    emoji: '↘', 
+    vibe: 'Room to improve',
+    insight: 'Learning expensive lessons',
+    callout: 'Most traders are here'
+  };
+  if (percentile >= 30) return { 
+    title: 'Down Bad', 
+    emoji: '📉', 
+    vibe: 'Tough stretch',
+    insight: 'Maybe try holding longer?',
+    callout: 'It gets better'
+  };
+  if (percentile >= 20) return { 
+    title: 'Struggling', 
+    emoji: '😅', 
+    vibe: 'Finding your footing',
+    insight: 'Buy high, sell low specialist',
+    callout: 'At least you are trying'
+  };
+  if (percentile >= 10) return { 
+    title: 'Rekt', 
+    emoji: '💸', 
+    vibe: 'It happens',
+    insight: 'Everyone has a rough patch',
+    callout: 'Rock bottom builds character'
+  };
+  return { 
+    title: 'Wrecked', 
+    emoji: '🪦', 
+    vibe: 'Nowhere to go but up',
+    insight: 'At least you are self-aware',
+    callout: 'Legend in the making'
+  };
 };
 
 // Styles
@@ -292,6 +364,7 @@ const InfoPanel = ({ isVisible, onClose }) => {
 const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
+  const topPercent = 100 - rank.percentile;
   
   // Dynamic colors based on rank
   const getBgGradient = () => {
@@ -307,50 +380,70 @@ const RankCard = ({ summary, onShare }) => {
       background: getBgGradient(),
       borderRadius: '16px', 
       padding: '20px',
-      marginBottom: '20px',
+      marginBottom: '16px',
       position: 'relative',
       overflow: 'hidden'
     }}>
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)', fontWeight: '500' }}>
-            Your Ranking
+        {/* Header row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <div>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.5)', fontWeight: '500', marginBottom: '4px' }}>
+              Your Ranking
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
+              {rank.callout || 'Base Chain'}
+            </div>
           </div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>Base Chain</div>
+          <div style={{ 
+            padding: '4px 10px', 
+            borderRadius: '6px', 
+            background: 'rgba(255,255,255,0.15)',
+            fontSize: '10px',
+            color: 'rgba(255,255,255,0.9)',
+            fontWeight: '600'
+          }}>
+            {rank.emoji} {rank.title}
+          </div>
         </div>
         
         {/* Main percentile display */}
-        <div style={{ marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '36px', fontWeight: '600', color: '#fff', lineHeight: '1', letterSpacing: '-0.02em' }}>
-              Top {100 - rank.percentile}%
-            </span>
-            <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)' }}>{rank.emoji}</span>
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '48px', fontWeight: '700', color: '#fff', lineHeight: '1', letterSpacing: '-0.03em' }}>
+            Top {topPercent}%
           </div>
-          <div style={{ fontSize: '14px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', marginTop: '4px' }}>
-            {rank.title}
+          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', marginTop: '8px' }}>
+            {rank.vibe}
           </div>
         </div>
         
-        {/* Vibe text */}
-        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
-          {rank.vibe}
-        </div>
+        {/* Insight quote */}
+        {rank.insight && (
+          <div style={{ 
+            fontSize: '12px', 
+            color: 'rgba(255,255,255,0.6)', 
+            marginBottom: '16px',
+            fontStyle: 'italic',
+            paddingLeft: '12px',
+            borderLeft: '2px solid rgba(255,255,255,0.2)'
+          }}>
+            "{rank.insight}"
+          </div>
+        )}
         
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '20px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div>
             <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Realized P&L</div>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>{profit >= 0 ? '+' : ''}{formatCurrency(profit)}</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: profit >= 0 ? '#4ade80' : '#f87171' }}>{profit >= 0 ? '+' : ''}{formatCurrency(profit)}</div>
           </div>
           <div>
             <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Win Rate</div>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>{(summary?.winRate || 0).toFixed(1)}%</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>{(summary?.winRate || 0).toFixed(1)}%</div>
           </div>
           <div>
             <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Tokens</div>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>{summary?.totalTokensTraded || 0}</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>{summary?.totalTokensTraded || 0}</div>
           </div>
         </div>
         
@@ -358,21 +451,22 @@ const RankCard = ({ summary, onShare }) => {
         <button 
           onClick={onShare}
           style={{ 
-            marginTop: '14px',
+            marginTop: '16px',
             width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.1)',
+            padding: '12px',
+            borderRadius: '10px',
+            border: 'none',
+            background: 'rgba(255,255,255,0.2)',
             color: '#fff',
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: '600',
             cursor: 'pointer',
             textTransform: 'uppercase',
-            letterSpacing: '0.1em'
+            letterSpacing: '0.1em',
+            backdropFilter: 'blur(10px)'
           }}
         >
-          Share Rank
+          Share My Rank
         </button>
       </div>
     </div>
@@ -640,7 +734,7 @@ export default function PNLTrackerApp() {
   const [activeScope, setActiveScope] = useState('primary');
   const [pnlData, setPnlData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('stats');
   const [isGated, setIsGated] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [checkingGate, setCheckingGate] = useState(true);
@@ -1224,24 +1318,72 @@ export default function PNLTrackerApp() {
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
       {isGated && renderGatedOverlay()}
-      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '28px 18px 60px', transition: 'all 0.4s ease' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
+        
+        {/* Compact Header */}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600' }}>Ψ</div>
-            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '500' }}>PNL Tracker</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1.5px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '600' }}>Ψ</div>
+            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '600' }}>PNL Tracker</span>
             {DEMO_MODE && <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Demo</span>}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={handleSharePnL} disabled={!pnlData?.summary} style={{ padding: '6px 12px', borderRadius: '999px', border: `1px solid ${colors.accent}`, background: colors.panelBg, color: colors.accent, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', cursor: 'pointer' }}>Share PnL</button>
-            <div style={{ padding: '4px 10px', borderRadius: '999px', background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '7px', height: '7px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />{pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'Loss'}</div>
-          </div>
+          {/* Wallet selector in header */}
+          {wallets.length > 0 && (
+            <select 
+              value={activeScope} 
+              onChange={handleWalletScopeChange} 
+              style={{ 
+                fontSize: '11px', 
+                padding: '6px 10px', 
+                borderRadius: '6px', 
+                border: `1px solid ${colors.border}`, 
+                background: colors.panelBg, 
+                color: colors.muted,
+                maxWidth: '140px'
+              }}
+            >
+              {wallets.length > 1 && <option value="all">All wallets</option>}
+              {wallets.map((addr) => (
+                <option key={addr} value={addr}>
+                  {addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}
+                </option>
+              ))}
+            </select>
+          )}
         </header>
-        {user && <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}><img src={user.pfpUrl} alt={user.username} style={{ width: '40px', height: '40px', borderRadius: '50%', border: `1px solid ${colors.border}` }} /><div><div style={{ fontSize: '14px', fontWeight: '600', color: colors.ink }}>{user.displayName}</div><div style={{ fontSize: '12px', color: colors.muted }}>@{user.username}</div></div></div>}
-        {wallets.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: colors.accent, background: '#f3f4f6', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}` }}><span style={{ color: colors.muted }}>wallet</span><span style={{ fontWeight: '600' }}>{activeScope === 'all' ? 'All wallets' : activeScope === 'primary' && primaryWallet ? truncateAddress(primaryWallet) : truncateAddress(wallets[0])}</span></div>
-            <div style={{ marginTop: '10px' }}><select value={activeScope} onChange={handleWalletScopeChange} style={{ width: '100%', fontSize: '12px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.ink }}>{primaryWallet && <option value="primary">Primary · {truncateAddress(primaryWallet)}</option>}<option value="all">All verified wallets combined</option>{wallets.map((addr) => <option key={addr} value={addr}>{truncateAddress(addr)}</option>)}</select></div>
+
+        {/* User info row */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img src={user.pfpUrl} alt={user.username} style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${colors.border}` }} />
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: colors.ink }}>{user.displayName}</div>
+                <div style={{ fontSize: '12px', color: colors.muted }}>@{user.username}</div>
+              </div>
+            </div>
+            <div style={{ 
+              padding: '5px 12px', 
+              borderRadius: '999px', 
+              background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', 
+              color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.1em', 
+              fontSize: '10px', 
+              fontWeight: '600',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px' 
+            }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />
+              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'In Loss'}
+            </div>
           </div>
+        )}
+
+        {/* RANK CARD FIRST - Share immediately visible */}
+        {!isGated && pnlData?.summary && (
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
         )}
         {pnlData?.summary && (
           <Panel title="Realized P&L">
@@ -1281,13 +1423,92 @@ export default function PNLTrackerApp() {
         {/* Info Panel - Shows explanation of numbers */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
         
-        {/* Rank Card - Shows percentile ranking */}
+        {/* Tabs: Stats / Badges */}
         {!isGated && pnlData?.summary && (
-          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            {['stats', 'badges'].map((tab) => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)} 
+                style={{ 
+                  flex: 1,
+                  padding: '12px', 
+                  borderRadius: '10px', 
+                  border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
+                  background: activeTab === tab ? colors.accent : colors.panelBg, 
+                  color: activeTab === tab ? colors.pillText : colors.muted, 
+                  fontSize: '12px', 
+                  fontWeight: '600',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em', 
+                  cursor: 'pointer' 
+                }}
+              >
+                {tab === 'stats' ? 'My Stats' : 'Badges'}
+              </button>
+            ))}
+          </div>
         )}
         
-        {/* Badge Claiming Section - Only show when not gated */}
-        {!isGated && pnlData?.summary && (
+        {/* Stats Tab Content */}
+        {!isGated && activeTab === 'stats' && (
+          <>
+            {/* Highlights section */}
+            {(biggestWin || biggestLoss || biggestFumble) && (
+              <div style={{ marginBottom: '16px' }}>
+                <Panel title="Highlights" subtitle="From sold tokens">
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+                    {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
+                  </div>
+                </Panel>
+              </div>
+            )}
+            
+            {/* Token lists */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              {['overview', 'tokens'].map((subtab) => (
+                <button 
+                  key={subtab} 
+                  onClick={() => setActiveTab(subtab === 'overview' ? 'stats' : 'all')} 
+                  style={{ 
+                    padding: '8px 14px', 
+                    borderRadius: '999px', 
+                    border: `1px solid ${colors.border}`, 
+                    background: colors.panelBg, 
+                    color: colors.muted, 
+                    fontSize: '10px', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.12em', 
+                    cursor: 'pointer' 
+                  }}
+                >
+                  {subtab === 'overview' ? 'Top Wins' : 'All Sold'}
+                </button>
+              ))}
+            </div>
+            {pnlData?.tokens && (
+              <Panel title="Best Performers" subtitle="Realized gains">
+                {pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 5).map((token, idx) => (
+                  <TokenRow key={idx} token={token} />
+                ))}
+              </Panel>
+            )}
+          </>
+        )}
+        
+        {/* All Tokens Tab */}
+        {!isGated && activeTab === 'all' && pnlData?.tokens && (
+          <Panel title="All Sold Tokens" subtitle="Realized P&L per token">
+            {pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => (
+              <TokenRow key={idx} token={token} />
+            ))}
+          </Panel>
+        )}
+        
+        {/* Badges Tab Content */}
+        {!isGated && activeTab === 'badges' && pnlData?.summary && (
           <ClaimBadgePanel 
             summary={pnlData.summary}
             onClaimBadge={handleClaimBadgeViaSDK}
@@ -1300,15 +1521,17 @@ export default function PNLTrackerApp() {
           />
         )}
         
-        {(biggestWin || biggestLoss || biggestFumble) && (
-          <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
+        {/* Gated content blur */}
+        {isGated && (biggestWin || biggestLoss || biggestFumble) && (
+          <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
             <Panel title="Highlights" subtitle="From sold tokens">
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}</div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+              </div>
             </Panel>
           </div>
         )}
-        <div style={{ display: 'flex', gap: '8px', margin: '24px 0 16px', filter: isGated ? 'blur(5px)' : 'none' }}>{['overview', 'tokens'].map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '9px 16px', borderRadius: '999px', border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, background: activeTab === tab ? colors.accent : colors.panelBg, color: activeTab === tab ? colors.pillText : colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.16em', cursor: 'pointer' }}>{tab === 'overview' ? 'Top Wins' : 'All Sold'}</button>)}</div>
-        <div style={{ filter: isGated ? 'blur(5px)' : 'none' }}>{activeTab === 'overview' && pnlData?.tokens && <Panel title="Best Performers" subtitle="Realized gains">{pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 3).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}{activeTab === 'tokens' && pnlData?.tokens && <Panel title="All Sold Tokens" subtitle="Realized P&L per token">{pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => <TokenRow key={idx} token={token} />)}</Panel>}</div>
       </div>
     </div>
   );
