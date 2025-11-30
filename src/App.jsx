@@ -1005,16 +1005,18 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your fumbles:`;
       
-      const displayName = user?.username ? `@${user.username}` : '';
-      
-      // OG image
+      // OG image - using stable transparent image
       const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
-      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
-      const bottomText = `Fumble: ${formatCurrency(missed)} left on ${tokenName}`;
+      const topText = `$PNL  ·  Biggest Fumble`;
+      const bottomText = `${formatCurrency(missed)} left on the table`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      // FIX: Pass embeds as string[]
+      await sdk.actions.composeCast({ 
+        text: castText, 
+        embeds: [imageUrl, appLink] 
+      });
     } catch (err) { console.error('share fumble failed', err); }
   };
 
@@ -1026,18 +1028,10 @@ export default function PNLTrackerApp() {
 
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const pnl = token.realizedProfitUsd || 0;
-      const tokenName = token.symbol || token.name || 'token';
+      const tokenName = token.name || token.symbol || 'a token';
       const invested = token.totalUsdInvested || 0;
       const returned = invested + pnl;
       const multiple = invested > 0 ? (returned / invested).toFixed(1) : '?';
-      const displayName = user?.username ? `@${user.username}` : '';
-      
-      // OG image
-      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
-      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
-      const bottomText = `Best Trade: +${formatCurrency(pnl)} on ${tokenName}`;
-      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       const messages = [
         `Using $PNL I found my best trade: +${formatCurrency(pnl)} on ${tokenName} 🎯\n\nPut in ${formatCurrency(invested)}, got back ${formatCurrency(returned)} (${multiple}x)`,
@@ -1046,7 +1040,7 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your best trade:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
     } catch (err) { console.error('share best trade failed', err); }
   };
 
@@ -1058,17 +1052,9 @@ export default function PNLTrackerApp() {
 
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const pnl = Math.abs(token.realizedProfitUsd || 0);
-      const tokenName = token.symbol || token.name || 'token';
+      const tokenName = token.name || token.symbol || 'a token';
       const invested = token.totalUsdInvested || 0;
       const returned = invested - pnl;
-      const displayName = user?.username ? `@${user.username}` : '';
-      
-      // OG image
-      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
-      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
-      const bottomText = `Worst Trade: -${formatCurrency(pnl)} on ${tokenName}`;
-      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       const messages = [
         `Using $PNL I found my worst trade: -${formatCurrency(pnl)} on ${tokenName} 💀\n\nPut in ${formatCurrency(invested)}, got back ${formatCurrency(returned)}. Pain.`,
@@ -1077,7 +1063,7 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your worst trade:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
     } catch (err) { console.error('share worst trade failed', err); }
   };
 
@@ -1090,14 +1076,6 @@ export default function PNLTrackerApp() {
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const profit = summary.airdropProfit || 0;
       const count = summary.airdropCount || 0;
-      const displayName = user?.username ? `@${user.username}` : '';
-      
-      // OG image
-      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
-      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
-      const bottomText = `Airdrops: +${formatCurrency(profit)} from ${count} drop${count !== 1 ? 's' : ''}`;
-      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       const messages = [
         `Using $PNL I discovered I made +${formatCurrency(profit)} from ${count} airdrop${count !== 1 ? 's' : ''} 🪂\n\nFree money is the best money.`,
@@ -1106,7 +1084,7 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nCheck your airdrops:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
     } catch (err) { console.error('share airdrops failed', err); }
   };
 
@@ -1306,15 +1284,20 @@ export default function PNLTrackerApp() {
           const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
           if (allEth.length === 0) { setEnvError('No verified Base wallets found.'); setCheckingGate(false); setLoading(false); return; }
           setWallets(allEth);
-          if (primaryEth) { setPrimaryWallet(primaryEth); setActiveScope('primary'); } else { setPrimaryWallet(allEth[0]); setActiveScope(allEth.length > 1 ? 'all' : 'primary'); }
+          const resolvedPrimary = primaryEth || allEth[0];
+          setPrimaryWallet(resolvedPrimary);
+
+          // Default to 'all' if multiple wallets exist, otherwise the specific wallet address
+          const defaultScope = resolvedPrimary;
+          setActiveScope(defaultScope);
           
           // Check which badges have already been minted
-          const walletToCheck = primaryEth || allEth[0];
-          checkMintedBadges(walletToCheck);
+          checkMintedBadges(resolvedPrimary);
           
-          const initialAddresses = primaryEth ? [primaryEth] : allEth;
+          // Fetch data for the selected scope (All or Single)
+          const initialAddresses = defaultScope === 'all' ? allEth : [resolvedPrimary];
           if (initialAddresses.length > 0) {
-            await checkTokenGate(initialAddresses[0]);
+            await checkTokenGate(resolvedPrimary);
             // Always fetch real PNL data - gate just controls visibility (blurring)
             await fetchPNLData(initialAddresses);
           }
@@ -1447,26 +1430,30 @@ export default function PNLTrackerApp() {
           </div>
           {/* Wallet selector in header */}
           {wallets.length > 0 && (
-            <select 
-              value={activeScope} 
-              onChange={handleWalletScopeChange} 
-              style={{ 
-                fontSize: '11px', 
-                padding: '6px 10px', 
-                borderRadius: '6px', 
-                border: `1px solid ${colors.border}`, 
-                background: colors.panelBg, 
-                color: colors.muted,
-                maxWidth: '140px'
-              }}
-            >
-              {wallets.length > 1 && <option value="all">All wallets</option>}
-              {wallets.map((addr) => (
-                <option key={addr} value={addr}>
-                  {addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+              <select 
+                value={activeScope} 
+                onChange={handleWalletScopeChange} 
+                style={{ 
+                  fontSize: '11px', 
+                  padding: '6px 10px', 
+                  borderRadius: '6px', 
+                  border: `1px solid ${colors.border}`, 
+                  background: colors.panelBg, 
+                  color: colors.muted,
+                  maxWidth: '140px',
+                  cursor: 'pointer'
+                }}
+              >
+                {wallets.map((addr) => (
+                  <option key={addr} value={addr}>
+                    {addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}
+                  </option>
+                ))}
+                {wallets.length > 1 && <option value="all">All wallets</option>}
+              </select>
+              <div style={{ fontSize: '9px', color: colors.muted, letterSpacing: '0.02em', opacity: 0.6 }}>check wallets here ↑</div>
+            </div>
           )}
         </header>
 
