@@ -424,7 +424,7 @@ const BigMoveCard = ({ label, token, isWin }) => {
   );
 };
 
-const BigFumbleCard = ({ token }) => {
+const BigFumbleCard = ({ token, onShare }) => {
   if (!token) return null;
   const sold = token.totalSoldUsd || 0;
   const missed = token.missedUpsideUsd || 0;
@@ -448,6 +448,26 @@ const BigFumbleCard = ({ token }) => {
         <div><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>You Sold</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(sold)}</div></div>
         <div style={{ textAlign: 'right' }}><div style={{ fontSize: '9px', textTransform: 'uppercase', color: colors.gold, marginBottom: '2px' }}>Worth Now</div><div style={{ fontSize: '11px', fontWeight: '600', color: colors.gold }}>{formatCurrency(current)} {multiple > 0 && <span style={{ opacity: 0.7 }}>({multiple.toFixed(1)}x)</span>}</div></div>
       </div>
+      {onShare && (
+        <button 
+          onClick={onShare}
+          style={{ 
+            marginTop: '4px',
+            padding: '8px',
+            borderRadius: '8px',
+            border: `1px solid ${colors.goldBorder}`,
+            background: 'rgba(180, 83, 9, 0.1)',
+            color: colors.gold,
+            fontSize: '10px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em'
+          }}
+        >
+          Share My Pain
+        </button>
+      )}
     </div>
   );
 };
@@ -839,6 +859,36 @@ export default function PNLTrackerApp() {
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
+  };
+
+  const handleShareFumble = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const fumble = pnlData?.biggestFumble;
+      if (!fumble) return;
+
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      const missed = fumble.missedUpsideUsd || 0;
+      const tokenName = fumble.name || fumble.symbol || 'a token';
+      const multiple = fumble.totalSoldUsd > 0 ? (fumble.currentValueSoldTokens / fumble.totalSoldUsd).toFixed(1) : '?';
+      
+      // Funny snippy messages
+      const messages = [
+        `Using $PNL I discovered I left ${formatCurrency(missed)} on the table selling ${tokenName} early 🤡\n\nIt's up ${multiple}x since I sold. Cool cool cool.`,
+        `Using $PNL I found out I paper-handed ${tokenName} and missed ${formatCurrency(missed)} 📄🙌\n\nWould be ${multiple}x richer if I just... didn't.`,
+        `Using $PNL I learned I sold ${tokenName} too early and missed ${formatCurrency(missed)} 💀\n\n${multiple}x gain... for someone else.`,
+      ];
+      const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your fumbles:`;
+      
+      // OG image
+      const invisibleLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Solid_white.svg/2048px-Solid_white.svg.png';
+      const topText = `$PNL  ·  Biggest Fumble`;
+      const bottomText = `${formatCurrency(missed)} left on the table`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { console.error('share fumble failed', err); }
   };
 
   const handleSwapForAccess = async () => {
@@ -1242,7 +1292,7 @@ export default function PNLTrackerApp() {
         {(biggestWin || biggestLoss || biggestFumble) && (
           <div style={{ marginTop: '20px', filter: isGated ? 'blur(5px)' : 'none' }}>
             <Panel title="Highlights" subtitle="From sold tokens">
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} />}</div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>{biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}{biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}{biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}</div>
             </Panel>
           </div>
         )}
