@@ -1005,18 +1005,16 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your fumbles:`;
       
-      // OG image - using stable transparent image
+      const displayName = user?.username ? `@${user.username}` : '';
+      
+      // OG image
       const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
-      const topText = `$PNL  ·  Biggest Fumble`;
-      const bottomText = `${formatCurrency(missed)} left on the table`;
+      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
+      const bottomText = `Fumble: ${formatCurrency(missed)} left on ${tokenName}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
-      // FIX: Pass embeds as string[]
-      await sdk.actions.composeCast({ 
-        text: castText, 
-        embeds: [imageUrl, appLink] 
-      });
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share fumble failed', err); }
   };
 
@@ -1028,10 +1026,18 @@ export default function PNLTrackerApp() {
 
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const pnl = token.realizedProfitUsd || 0;
-      const tokenName = token.name || token.symbol || 'a token';
+      const tokenName = token.symbol || token.name || 'token';
       const invested = token.totalUsdInvested || 0;
       const returned = invested + pnl;
       const multiple = invested > 0 ? (returned / invested).toFixed(1) : '?';
+      const displayName = user?.username ? `@${user.username}` : '';
+      
+      // OG image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
+      const bottomText = `Best Trade: +${formatCurrency(pnl)} on ${tokenName}`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       const messages = [
         `Using $PNL I found my best trade: +${formatCurrency(pnl)} on ${tokenName} 🎯\n\nPut in ${formatCurrency(invested)}, got back ${formatCurrency(returned)} (${multiple}x)`,
@@ -1040,7 +1046,7 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your best trade:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share best trade failed', err); }
   };
 
@@ -1052,9 +1058,17 @@ export default function PNLTrackerApp() {
 
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const pnl = Math.abs(token.realizedProfitUsd || 0);
-      const tokenName = token.name || token.symbol || 'a token';
+      const tokenName = token.symbol || token.name || 'token';
       const invested = token.totalUsdInvested || 0;
       const returned = invested - pnl;
+      const displayName = user?.username ? `@${user.username}` : '';
+      
+      // OG image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
+      const bottomText = `Worst Trade: -${formatCurrency(pnl)} on ${tokenName}`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       const messages = [
         `Using $PNL I found my worst trade: -${formatCurrency(pnl)} on ${tokenName} 💀\n\nPut in ${formatCurrency(invested)}, got back ${formatCurrency(returned)}. Pain.`,
@@ -1063,7 +1077,7 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your worst trade:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share worst trade failed', err); }
   };
 
@@ -1076,6 +1090,14 @@ export default function PNLTrackerApp() {
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       const profit = summary.airdropProfit || 0;
       const count = summary.airdropCount || 0;
+      const displayName = user?.username ? `@${user.username}` : '';
+      
+      // OG image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
+      const bottomText = `Airdrops: +${formatCurrency(profit)} from ${count} drop${count !== 1 ? 's' : ''}`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
       const messages = [
         `Using $PNL I discovered I made +${formatCurrency(profit)} from ${count} airdrop${count !== 1 ? 's' : ''} 🪂\n\nFree money is the best money.`,
@@ -1084,7 +1106,7 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nCheck your airdrops:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share airdrops failed', err); }
   };
 
