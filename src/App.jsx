@@ -837,10 +837,10 @@ export default function PNLTrackerApp() {
           const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
           const castText = `Using $PNL: My Base Win Rate is ${winRate}%... but my full stats are locked 🔒\n\nNeed 10M $PNL to unlock. @ireside.eth let me in!`;
           
-          // FIX: Pass embeds as objects with 'url' property
+          // FIX: Pass embeds as string[]
           await sdk.actions.composeCast({ 
             text: castText, 
-            embeds: [{ url: imageUrl }, { url: appLink }] 
+            embeds: [imageUrl, appLink] 
           });
           return;
       }
@@ -864,10 +864,10 @@ export default function PNLTrackerApp() {
       // Cast text
       const castText = `Using $PNL: I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:`;
       
-      // FIX: Pass embeds as objects with 'url' property
+      // FIX: Pass embeds as string[]
       await sdk.actions.composeCast({ 
         text: castText, 
-        embeds: [{ url: imageUrl }, { url: appLink }] 
+        embeds: [imageUrl, appLink] 
       });
     } catch (err) { console.error('share pnl failed', err); }
   };
@@ -898,10 +898,10 @@ export default function PNLTrackerApp() {
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
-      // FIX: Pass embeds as objects with 'url' property
+      // FIX: Pass embeds as string[]
       await sdk.actions.composeCast({ 
         text: castText, 
-        embeds: [{ url: imageUrl }, { url: appLink }] 
+        embeds: [imageUrl, appLink] 
       });
     } catch (err) { console.error('share fumble failed', err); }
   };
