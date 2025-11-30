@@ -375,6 +375,14 @@ const RankCard = ({ summary, onShare }) => {
     if (rank.percentile >= 40) return 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'; // Gray
     return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'; // Red
   };
+
+  // Rank badge color logic
+  const getRankColor = (p) => {
+    if (p >= 90) return '#fbbf24'; // Gold
+    if (p >= 50) return '#4ade80'; // Green
+    return '#f87171'; // Red
+  };
+  const rankColor = getRankColor(rank.percentile);
   
   return (
     <div style={{ 
@@ -408,23 +416,23 @@ const RankCard = ({ summary, onShare }) => {
               {score}<span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>/100</span>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.5)', fontWeight: '500', marginBottom: '4px' }}>
-              Your Ranking
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
-              {rank.callout || 'Base Chain'}
-            </div>
-          </div>
+          
+          {/* New Rank Badge */}
           <div style={{ 
-            padding: '4px 10px', 
-            borderRadius: '6px', 
-            background: 'rgba(255,255,255,0.15)',
-            fontSize: '10px',
-            color: 'rgba(255,255,255,0.9)',
-            fontWeight: '600'
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            padding: '6px 12px', 
+            borderRadius: '12px', 
+            background: 'rgba(255,255,255,0.1)', 
+            border: `1px solid ${rankColor}40`, // 25% opacity border
+            backdropFilter: 'blur(4px)'
           }}>
-            {rank.emoji} {rank.title}
+            <div style={{ fontSize: '20px', lineHeight: 1 }}>{rank.emoji}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: '600', letterSpacing: '0.05em' }}>Tier</div>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: rankColor, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{rank.title}</div>
+            </div>
           </div>
         </div>
         
