@@ -830,11 +830,18 @@ export default function PNLTrackerApp() {
 
       if (isGated) {
           const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
-          const invisibleLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Solid_white.svg/2048px-Solid_white.svg.png';
+          // Use a reliable transparent pixel or blank image instead of the Wikipedia link which can block bot requests
+          const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png'; 
           const textPath = encodeURIComponent(`**$PNL Tracker**\nWin Rate: ${winRate}%  ·  LOCKED 🔒`);
+          // Using Vercel OG with simple params
           const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
           const castText = `Using $PNL: My Base Win Rate is ${winRate}%... but my full stats are locked 🔒\n\nNeed 10M $PNL to unlock. @ireside.eth let me in!`;
-          await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+          
+          // FIX: Pass embeds as objects with 'url' property
+          await sdk.actions.composeCast({ 
+            text: castText, 
+            embeds: [{ url: imageUrl }, { url: appLink }] 
+          });
           return;
       }
 
@@ -847,8 +854,8 @@ export default function PNLTrackerApp() {
       const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
       const displayName = user?.username ? `@${user.username}` : '';
       
-      // Use white/invisible logo to hide Vercel triangle
-      const invisibleLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Solid_white.svg/2048px-Solid_white.svg.png';
+      // Use a reliable transparent pixel or blank image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
       const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
       const bottomText = `Top ${topPercent}%  ·  ${pnlSign}${realized}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
@@ -857,7 +864,11 @@ export default function PNLTrackerApp() {
       // Cast text
       const castText = `Using $PNL: I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      // FIX: Pass embeds as objects with 'url' property
+      await sdk.actions.composeCast({ 
+        text: castText, 
+        embeds: [{ url: imageUrl }, { url: appLink }] 
+      });
     } catch (err) { console.error('share pnl failed', err); }
   };
 
@@ -880,14 +891,18 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your fumbles:`;
       
-      // OG image
-      const invisibleLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Solid_white.svg/2048px-Solid_white.svg.png';
+      // OG image - using stable transparent image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
       const topText = `$PNL  ·  Biggest Fumble`;
       const bottomText = `${formatCurrency(missed)} left on the table`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      // FIX: Pass embeds as objects with 'url' property
+      await sdk.actions.composeCast({ 
+        text: castText, 
+        embeds: [{ url: imageUrl }, { url: appLink }] 
+      });
     } catch (err) { console.error('share fumble failed', err); }
   };
 
