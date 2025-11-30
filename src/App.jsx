@@ -1040,7 +1040,14 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your best trade:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+      // Generate dynamic image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = `$PNL  ·  Best Trade`;
+      const bottomText = `+${formatCurrency(pnl)} on ${token.symbol || 'Token'}`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share best trade failed', err); }
   };
 
@@ -1063,7 +1070,14 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nFind your worst trade:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+      // Generate dynamic image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = `$PNL  ·  Worst Trade`;
+      const bottomText = `-${formatCurrency(pnl)} on ${token.symbol || 'Token'}`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share worst trade failed', err); }
   };
 
@@ -1084,7 +1098,14 @@ export default function PNLTrackerApp() {
       ];
       const castText = messages[Math.floor(Math.random() * messages.length)] + `\n\nCheck your airdrops:`;
       
-      await sdk.actions.composeCast({ text: castText, embeds: [appLink] });
+      // Generate dynamic image
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = `$PNL  ·  Airdrops`;
+      const bottomText = `+${formatCurrency(profit)} Free Money`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share airdrops failed', err); }
   };
 
