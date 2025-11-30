@@ -807,9 +807,9 @@ export default function PNLTrackerApp() {
 
       if (isGated) {
           const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
-          const textPath = encodeURIComponent(`Ψ PNL Tracker\nWin Rate: ${winRate}%  ·  LOCKED 🔒`);
+          const textPath = encodeURIComponent(`$PNL Tracker\nWin Rate: ${winRate}%  ·  LOCKED 🔒`);
           const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=0&fontSize=48px`;
-          const castText = `Ψ My Base Win Rate is ${winRate}%... but my PnL is locked 🔒\n\nNeed 10M $PNL to unlock the tracker. @ireside.eth let me in!\n\n${appLink}`;
+          const castText = `Using $PNL: My Base Win Rate is ${winRate}%... but my full stats are locked 🔒\n\nNeed 10M $PNL to unlock. @ireside.eth let me in!\n\n${appLink}`;
           await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
           return;
       }
@@ -824,13 +824,13 @@ export default function PNLTrackerApp() {
       const displayName = user?.username ? `@${user.username}` : '';
       
       // Clean text-only OG image (md=0 removes the Vercel triangle)
-      const topText = displayName ? `Ψ ${displayName}` : 'Ψ PNL Tracker';
+      const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
       const bottomText = `Top ${topPercent}%  ·  ${pnlSign}${realized}`;
       const textPath = encodeURIComponent(`${topText}\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=0&fontSize=48px`;
       
       // Cast text
-      const castText = `Ψ I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
+      const castText = `Using $PNL: I'm in the top ${topPercent}% of traders on Base\n\n${statusWord}: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('share pnl failed', err); }
