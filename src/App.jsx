@@ -822,7 +822,7 @@ export default function PNLTrackerApp() {
       const realized = formatCurrency(pnlValue);
       const topPercent = 100 - rank.percentile;
       
-      // OG image with username, rank, PNL and status
+      // OG image with username, rank, PNL
       const pnlSign = pnlValue >= 0 ? '+' : '-';
       const statusWord = pnlValue >= 0 ? 'Profitable' : 'Unprofitable';
       const displayName = user?.username ? `@${user.username}` : 'Trader';
@@ -830,9 +830,8 @@ export default function PNLTrackerApp() {
       const bottomText = `Top ${topPercent}% · ${pnlSign}${realized}`;
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       
-      // Try to use PFP if available, otherwise invisible logo
-      const pfpUrl = user?.pfpUrl || invisibleLogo;
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=75px&images=${encodeURIComponent(pfpUrl)}&widths=125&heights=125`;
+      // No image - Vercel OG can't fetch external PFPs reliably
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=75px`;
       
       // Cast text with proper signs
       const castText = `I'm in the top ${topPercent}% of traders on Base · ${statusWord}\n\nRealized P&L: ${pnlSign}${realized}\nWin Rate: ${summary.winRate.toFixed(1)}%\n\nCheck yours:\n${appLink}`;
