@@ -1547,16 +1547,107 @@ export default function PNLTrackerApp() {
         {pnlData?.summary && (
           <Panel title="Realized P&L">
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px', filter: isGated ? 'blur(10px)' : 'none' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500', filter: isGated ? 'blur(5px)' : 'none' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens</div>
+              <div
+                style={{
+                  fontSize: '32px',
+                  fontWeight: '600',
+                  letterSpacing: '0.03em',
+                  color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
+                  marginBottom: '8px',
+                  filter: isGated ? 'blur(10px)' : 'none'
+                }}
+              >
+                {pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}
+                {formatCurrency(pnlData.summary.totalRealizedProfit)}
+              </div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2',
+                  color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b',
+                  fontSize: '11px',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '999px',
+                    background: pnlData.summary.profitPercentage >= 0 ? colors.success : colors.error
+                  }}
+                />
+                {pnlData.summary.profitPercentage >= 0 ? 'Profitable' : 'In Loss'} ·{' '}
+                {Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI on sold tokens
+              </div>
             </div>
+
             {!isGated && badges.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                    {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
-                </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginBottom: '16px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                {badges.map((b, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 8px',
+                      background: '#f9fafb',
+                      borderRadius: '10px',
+                      border: `1px solid ${colors.border}`,
+                      fontSize: '11px',
+                      color: colors.ink
+                    }}
+                  >
+                    <span>{b.icon}</span> {b.label}
+                  </div>
+                ))}
+              </div>
             )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
-              <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
-              <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
-              {!isGated && pnlData.summary.totalFumbled > 0 
-                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} is
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '16px',
+                borderTop: `1px solid ${colors.border}`,
+                paddingTop: '18px',
+                marginTop: '16px'
+              }}
+            >
+              <Metric
+                label="Total Bought"
+                value={formatCurrency(pnlData.summary.totalTradingVolume)}
+              />
+              <Metric
+                label="Win Rate"
+                value={`${pnlData.summary.winRate.toFixed(1)}%`}
+                isPositive={pnlData.summary.winRate >= 50}
+              />
+              {!isGated && pnlData.summary.totalFumbled > 0 && (
+                <Metric
+                  label="Fumbled Gains"
+                  value={formatCurrency(pnlData.summary.totalFumbled)}
+                  isWarning
+                />
+              )}
+            </div>
+          </Panel>
+        )}
+      </div>
+    </div>
+  );
+}
