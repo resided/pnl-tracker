@@ -1610,8 +1610,8 @@ export default function PNLTrackerApp() {
               <div style={{ marginBottom: '16px' }}>
                 <Panel title="Highlights" subtitle="From sold tokens">
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
-                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
+                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
                     {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
                   </div>
                 </Panel>
