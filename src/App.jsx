@@ -376,28 +376,29 @@ const RankCard = ({ summary, onShare }) => {
     return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'; // Red
   };
   
+  const getTierBadgeStyle = () => {
+    if (rank.percentile >= 90) {
+      return {
+        background: 'linear-gradient(135deg, #facc15, #f97316)',
+        border: 'rgba(250, 204, 21, 0.8)',
+        shadow: '0 10px 30px rgba(15, 23, 42, 0.75)',
+      };
+    }
+    if (rank.percentile >= 60) {
+      return {
+        background: 'linear-gradient(135deg, #0f172a, #065f46)',
+        border: 'rgba(34, 197, 94, 0.7)',
+        shadow: '0 10px 30px rgba(15, 23, 42, 0.7)',
+      };
+    }
+    return {
+      background: 'linear-gradient(135deg, #111827, #7f1d1d)',
+      border: 'rgba(248, 113, 113, 0.6)',
+      shadow: '0 10px 30px rgba(15, 23, 42, 0.8)',
+    };
+  };
 
-  const tierStyles =
-    rank.percentile >= 70
-      ? {
-          bg: 'rgba(34,197,94,0.12)',
-          border: 'rgba(74,222,128,0.5)',
-          dot: '#4ade80',
-          label: 'In profit',
-        }
-      : rank.percentile >= 40
-      ? {
-          bg: 'rgba(148,163,184,0.15)',
-          border: 'rgba(148,163,184,0.6)',
-          dot: '#e5e7eb',
-          label: 'Mixed',
-        }
-      : {
-          bg: 'rgba(248,113,113,0.10)',
-          border: 'rgba(248,113,113,0.45)',
-          dot: '#fecaca',
-          label: 'Learning',
-        };
+  const tierBadge = getTierBadgeStyle();
   
   return (
     <div style={{ 
@@ -432,48 +433,48 @@ const RankCard = ({ summary, onShare }) => {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.5)', fontWeight: '500', marginBottom: '4px' }}>
-              Your Ranking
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
-              {rank.callout || 'Base Chain'}
-            </div>
-          </div>
-          <div
-            style={{
-              padding: '6px 11px',
-              borderRadius: '999px',
-              background: tierStyles.bg,
-              border: `1px solid ${tierStyles.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: '10px',
-              color: 'rgba(255,255,255,0.9)',
-              fontWeight: 500
-            }}
-          >
-            <span
+            <div
               style={{
-                width: 6,
-                height: 6,
-                borderRadius: '999px',
-                background: tierStyles.dot
-              }}
-            />
-            <span
-              style={{
+                fontSize: '10px',
                 textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                fontSize: '9px',
-                opacity: 0.65
+                letterSpacing: '0.14em',
+                color: 'rgba(255,255,255,0.5)',
+                fontWeight: '500',
+                marginBottom: '6px',
               }}
             >
-              Tier
-            </span>
-            <span style={{ fontWeight: 600 }}>
-              {rank.title === 'Below Average' ? 'Room to improve' : rank.title}
-            </span>
+              Your ranking
+            </div>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 16px',
+                borderRadius: '999px',
+                background: tierBadge.background,
+                boxShadow: `0 0 0 1px ${tierBadge.border}, ${tierBadge.shadow}`,
+                fontSize: '11px',
+                color: '#f9fafb',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}
+            >
+              <span style={{ fontSize: '14px' }}>{rank.emoji}</span>
+              <span>{rank.title}</span>
+            </div>
+
+            <div
+              style={{
+                marginTop: '6px',
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.7)',
+              }}
+            >
+              {rank.callout || 'Most traders are here'}
+            </div>
           </div>
         </div>
         
@@ -1046,7 +1047,7 @@ export default function PNLTrackerApp() {
       const topText = displayName ? `$PNL  ·  ${displayName}` : '$PNL Tracker';
       const bottomText = `Trading Score: ${score}/100  ·  ${pnlSign}${realized}`;
       
-      // Switch theme to 'light' for the cool aesthetic
+      // Light mode for sleek aesthetic
       const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
       
@@ -1601,239 +1602,4 @@ export default function PNLTrackerApp() {
               <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
               <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
               {!isGated && pnlData.summary.totalFumbled > 0 
-                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
-                 : <Metric label="Tokens Sold" value={pnlData.summary.totalTokensTraded} />
-              }
-            </div>
-            {!isGated && (
-              <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.border}` }}>
-                <span style={{ fontSize: '11px', color: colors.muted }}>Base Chain</span>
-                <span style={{ fontSize: '11px', color: colors.muted, margin: '0 8px' }}>·</span>
-                <span 
-                  onClick={() => setShowInfo(!showInfo)} 
-                  style={{ fontSize: '11px', color: colors.accent, cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  {showInfo ? 'Hide' : 'Explain these numbers'}
-                </span>
-              </div>
-            )}
-            {isGated && <div style={{ textAlign: 'center', fontSize: '10px', color: colors.metricLabel, marginTop: '10px', fontStyle: 'italic' }}>Unlock to see PnL & Badges</div>}
-          </Panel>
-        )}
-        
-        {/* Info Panel - Shows explanation of numbers */}
-        {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
-        
-        {/* Tabs: Stats / Airdrops / Badges */}
-        {!isGated && pnlData?.summary && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {['stats', 'airdrops', 'badges'].map((tab) => (
-              <button 
-                key={tab} 
-                onClick={() => setActiveTab(tab)} 
-                style={{ 
-                  flex: 1,
-                  padding: '12px', 
-                  borderRadius: '10px', 
-                  border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
-                  background: activeTab === tab ? colors.accent : colors.panelBg, 
-                  color: activeTab === tab ? colors.pillText : colors.muted, 
-                  fontSize: '11px', 
-                  fontWeight: '600',
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.08em', 
-                  cursor: 'pointer' 
-                }}
-              >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : 'Badges'}
-              </button>
-            ))}
-          </div>
-        )}
-        
-        {/* Stats Tab Content */}
-        {!isGated && activeTab === 'stats' && (
-          <>
-            {/* Highlights section */}
-            {(biggestWin || biggestLoss || biggestFumble) && (
-              <div style={{ marginBottom: '16px' }}>
-                <Panel title="Highlights" subtitle="From sold tokens">
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                    {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
-                    {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
-                    {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
-                  </div>
-                </Panel>
-              </div>
-            )}
-            
-            {/* Token lists */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              {['overview', 'tokens'].map((subtab) => (
-                <button 
-                  key={subtab} 
-                  onClick={() => setActiveTab(subtab === 'overview' ? 'stats' : 'all')} 
-                  style={{ 
-                    padding: '8px 14px', 
-                    borderRadius: '999px', 
-                    border: `1px solid ${colors.border}`, 
-                    background: colors.panelBg, 
-                    color: colors.muted, 
-                    fontSize: '10px', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.12em', 
-                    cursor: 'pointer' 
-                  }}
-                >
-                  {subtab === 'overview' ? 'Top Wins' : 'All Sold'}
-                </button>
-              ))}
-            </div>
-            {pnlData?.tokens && (
-              <Panel title="Best Performers" subtitle="Realized gains">
-                {pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 5).map((token, idx) => (
-                  <TokenRow key={idx} token={token} />
-                ))}
-              </Panel>
-            )}
-          </>
-        )}
-        
-        {/* All Tokens Tab */}
-        {!isGated && activeTab === 'all' && pnlData?.tokens && (
-          <Panel title="All Sold Tokens" subtitle="Realized P&L per token">
-            {pnlData.tokens.slice().sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => (
-              <TokenRow key={idx} token={token} />
-            ))}
-          </Panel>
-        )}
-        
-        {/* Airdrops Tab Content */}
-        {!isGated && activeTab === 'airdrops' && pnlData?.tokens && (
-          <>
-            {/* Airdrop Summary */}
-            {pnlData.summary.airdropCount > 0 && (
-              <div style={{ 
-                background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-                borderRadius: '16px',
-                padding: '20px',
-                marginBottom: '16px',
-                color: '#fff'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7, marginBottom: '8px' }}>
-                      Free Money Received
-                    </div>
-                    <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '4px' }}>
-                      +{formatCurrency(pnlData.summary.airdropProfit)}
-                    </div>
-                    <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                      from {pnlData.summary.airdropCount} airdrop{pnlData.summary.airdropCount !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={handleShareAirdrops}
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: 'rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em'
-                    }}
-                  >
-                    Share
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {/* Airdrop List */}
-            <Panel title="Airdrops" subtitle="Tokens received for free">
-              {pnlData.tokens.filter(t => t.isAirdrop).length > 0 ? (
-                pnlData.tokens
-                  .filter(t => t.isAirdrop)
-                  .sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)
-                  .map((token, idx) => (
-                    <div key={idx} style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '12px 0',
-                      borderBottom: idx < pnlData.tokens.filter(t => t.isAirdrop).length - 1 ? `1px solid ${colors.border}` : 'none'
-                    }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '600' }}>{token.symbol}</span>
-                          <span style={{ 
-                            fontSize: '9px', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px', 
-                            background: '#f3e8ff', 
-                            color: '#7c3aed',
-                            fontWeight: '600'
-                          }}>
-                            AIRDROP
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ 
-                          fontSize: '14px', 
-                          fontWeight: '600', 
-                          color: token.realizedProfitUsd >= 0 ? colors.success : colors.error 
-                        }}>
-                          {token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}
-                        </div>
-                        <div style={{ fontSize: '10px', color: colors.muted }}>
-                          Sold for {formatCurrency(token.totalSoldUsd)}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px', color: colors.muted }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div>
-                  <div style={{ fontSize: '13px' }}>No airdrops found</div>
-                  <div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div>
-                </div>
-              )}
-            </Panel>
-          </>
-        )}
-        
-        {/* Badges Tab Content */}
-        {!isGated && activeTab === 'badges' && pnlData?.summary && (
-          <ClaimBadgePanel 
-            summary={pnlData.summary}
-            onClaimBadge={handleClaimBadgeViaSDK}
-            claimingBadge={claimingBadge}
-            claimedBadges={claimedBadges}
-            mintTxHash={mintTxHash}
-            mintError={mintError}
-            canClaim={!!primaryWallet}
-            currentWallet={activeScope === 'all' ? (primaryWallet || wallets[0]) : (activeScope === 'primary' ? primaryWallet : activeScope)}
-          />
-        )}
-        
-        {/* Gated content blur */}
-        {isGated && (biggestWin || biggestLoss || biggestFumble) && (
-          <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
-            <Panel title="Highlights" subtitle="From sold tokens">
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
-                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
-              </div>
-            </Panel>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                 ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} is
