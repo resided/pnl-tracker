@@ -376,6 +376,29 @@ const RankCard = ({ summary, onShare }) => {
     return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'; // Red
   };
   
+
+  const tierStyles =
+    rank.percentile >= 70
+      ? {
+          bg: 'rgba(34,197,94,0.12)',
+          border: 'rgba(74,222,128,0.5)',
+          dot: '#4ade80',
+          label: 'In profit',
+        }
+      : rank.percentile >= 40
+      ? {
+          bg: 'rgba(148,163,184,0.15)',
+          border: 'rgba(148,163,184,0.6)',
+          dot: '#e5e7eb',
+          label: 'Mixed',
+        }
+      : {
+          bg: 'rgba(248,113,113,0.10)',
+          border: 'rgba(248,113,113,0.45)',
+          dot: '#fecaca',
+          label: 'Learning',
+        };
+  
   return (
     <div style={{ 
       background: getBgGradient(),
@@ -416,16 +439,42 @@ const RankCard = ({ summary, onShare }) => {
               {rank.callout || 'Base Chain'}
             </div>
           </div>
-          <div style={{ 
-            padding: '4px 10px', 
-            borderRadius: '6px', 
-            background: 'rgba(255,255,255,0.15)',
-            fontSize: '10px',
-            color: 'rgba(255,255,255,0.9)',
-            fontWeight: '600'
-          }}>
-            {rank.emoji} {rank.title}
-          </div>
+          <div
+            style={{
+              padding: '6px 11px',
+              borderRadius: '999px',
+              background: tierStyles.bg,
+              border: `1px solid ${tierStyles.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '10px',
+              color: 'rgba(255,255,255,0.9)',
+              fontWeight: 500
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '999px',
+                background: tierStyles.dot
+              }}
+            />
+            <span
+              style={{
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                fontSize: '9px',
+                opacity: 0.65
+              }}
+            >
+              Tier
+            </span>
+            <span style={{ fontWeight: 600 }}>
+              {rank.title === 'Below Average' ? 'Room to improve' : rank.title}
+            </span>
+          </div>v>
         </div>
         
         {/* Main percentile display */}
