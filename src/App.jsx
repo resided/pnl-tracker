@@ -59,8 +59,7 @@ const BADGE_TYPES = {
   VOLUME_WHALE: 2,
   TOILET_PAPER_HANDS: 3,
   DIAMOND: 4,
-  TRADER: 5,
-  RANK: 6  // New: Rank NFT
+  TRADER: 5
 };
 
 // --- WHITELIST CONFIGURATION ---
@@ -290,7 +289,7 @@ const InfoPanel = ({ isVisible, onClose }) => {
   );
 };
 
-const RankCard = ({ summary, onShare, onMint, isMinting, isMinted, canMint }) => {
+const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
   
@@ -355,47 +354,26 @@ const RankCard = ({ summary, onShare, onMint, isMinting, isMinted, canMint }) =>
           </div>
         </div>
         
-        {/* Buttons row */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-          <button 
-            onClick={onShare}
-            style={{ 
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(255,255,255,0.1)',
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em'
-            }}
-          >
-            Share
-          </button>
-          <button 
-            onClick={() => onMint && onMint(BADGE_TYPES.RANK)}
-            disabled={!canMint || isMinting || isMinted}
-            style={{ 
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
-              border: isMinted ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.4)',
-              background: isMinted ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)',
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: '600',
-              cursor: isMinted || isMinting || !canMint ? 'default' : 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              opacity: isMinted || !canMint ? 0.6 : 1
-            }}
-          >
-            {isMinting ? 'Minting...' : isMinted ? '✓ Minted' : 'Mint NFT'}
-          </button>
-        </div>
+        {/* Share button */}
+        <button 
+          onClick={onShare}
+          style={{ 
+            marginTop: '14px',
+            width: '100%',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(255,255,255,0.1)',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}
+        >
+          Share Rank
+        </button>
       </div>
     </div>
   );
@@ -690,7 +668,7 @@ export default function PNLTrackerApp() {
       const minted = [];
       
       // Check each badge type (0-5)
-      for (let badgeType = 0; badgeType <= 6; badgeType++) {
+      for (let badgeType = 0; badgeType <= 5; badgeType++) {
         try {
           const hasMinted = await client.readContract({
             address: BADGE_CONTRACT_ADDRESS,
@@ -1240,14 +1218,7 @@ export default function PNLTrackerApp() {
         
         {/* Rank Card - Shows percentile ranking */}
         {!isGated && pnlData?.summary && (
-          <RankCard 
-            summary={pnlData.summary} 
-            onShare={handleSharePnL}
-            onMint={handleClaimBadgeViaSDK}
-            isMinting={claimingBadge === BADGE_TYPES.RANK}
-            isMinted={claimedBadges.includes(BADGE_TYPES.RANK)}
-            canMint={!!primaryWallet}
-          />
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
         )}
         
         {/* Badge Claiming Section - Only show when not gated */}
