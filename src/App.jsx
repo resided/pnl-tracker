@@ -2861,7 +2861,8 @@ const renderGatedOverlay = () => (
     colors={colors}
     ds={ds}
   />
-) => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
+)
+  <div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
           </div>
         )}
 
