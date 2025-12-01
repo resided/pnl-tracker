@@ -2574,7 +2574,7 @@ const renderGatedOverlay = () => (
                   cursor: auditLoading ? 'default' : 'pointer'
                 }}
               >
-                {auditLoading ? 'Running audit...' : 'Request financial audit'}
+                {auditLoading ? 'Running audit...' : 'Request Audit'}
               </button>
               {auditData?.meta?.addresses?.length > 0 && (
                 <div style={{
