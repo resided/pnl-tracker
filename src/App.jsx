@@ -315,12 +315,10 @@ const Metric = ({ label, value, isPositive, isWarning }) => (
   </div>
 );
 
-const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current , scoreBonus = 5}) => {
+const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current, scoreBonus = 10 }) => {
   const isLocked = !qualified;
   
-  const ctaLabel = isClaimed ? 'Mint again' : `Mint NFT • +${scoreBonus}`;
-
-      return (
+  return (
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column',
@@ -356,7 +354,7 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
       </div>
       
       {/* Mint button */}
-      {canClaim && !isClaimed && !isLocked && (
+      {canClaim && !isLocked && !isClaimed && (
         <button 
           onClick={() => onClaim(badgeType)}
           disabled={isClaiming}
@@ -365,28 +363,37 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
             padding: '6px 10px',
             borderRadius: '6px',
             border: 'none',
-            background: isClaiming ? colors.muted : colors.mint,
+            background: colors.mint,
             color: '#fff',
             fontSize: '10px',
             fontWeight: '600',
-            cursor: isClaiming ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}
         >
-          {isClaiming ? 'Minting...' : 'Mint NFT'}
+          {isClaiming ? 'Minting...' : `Mint NFT +${scoreBonus}`}
         </button>
       )}
-    {canClaim && (
-          <button 
-            onClick={() => onClaim(badgeType)} 
-            disabled={isClaiming}
-            style={{ marginTop: '6px' }}
-          >
-            {isClaiming ? 'Minting…' : ctaLabel}
-          </button>
-        )}
-      </div>
+      
+      {/* Minted state */}
+      {isClaimed && (
+        <div style={{
+            marginTop: '4px',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            background: 'rgba(34, 197, 94, 0.1)',
+            color: colors.mint,
+            fontSize: '10px',
+            fontWeight: '600',
+            textAlign: 'center',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+        }}>
+          Collected
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -1105,7 +1112,7 @@ const getAllBadges = (summary) => {
     { 
       icon: '🎯', 
       label: 'Sniper', 
-      type: BADGE_TYPES.SNIPER,
+      type: BADGE_TYPES.SNIPER, scoreBonus: 10,
       qualified: winRate >= 60,
       requirement: 'Win Rate ≥ 60%',
       current: `${winRate.toFixed(1)}%`
@@ -1113,7 +1120,7 @@ const getAllBadges = (summary) => {
     { 
       icon: '💧', 
       label: 'Exit Liquidity', 
-      type: BADGE_TYPES.EXIT_LIQUIDITY,
+      type: BADGE_TYPES.EXIT_LIQUIDITY, scoreBonus: 10,
       qualified: winRate < 40 && tokens > 5,
       requirement: 'Win Rate < 40% & 5+ tokens',
       current: `${winRate.toFixed(1)}%, ${tokens} tokens`
@@ -1121,7 +1128,7 @@ const getAllBadges = (summary) => {
     { 
       icon: '🐋', 
       label: 'Volume Whale', 
-      type: BADGE_TYPES.VOLUME_WHALE,
+      type: BADGE_TYPES.VOLUME_WHALE, scoreBonus: 20,
       qualified: volume > 50000,
       requirement: 'Volume > $50k',
       current: `$${(volume/1000).toFixed(1)}k`
@@ -1129,7 +1136,7 @@ const getAllBadges = (summary) => {
     { 
       icon: '🧻', 
       label: 'Paper Hands', 
-      type: BADGE_TYPES.TOILET_PAPER_HANDS,
+      type: BADGE_TYPES.TOILET_PAPER_HANDS, scoreBonus: 10,
       qualified: fumbled > 10000,
       requirement: 'Fumbled > $10k',
       current: `$${(fumbled/1000).toFixed(1)}k`
@@ -1137,7 +1144,7 @@ const getAllBadges = (summary) => {
     { 
       icon: '💎', 
       label: 'Diamond', 
-      type: BADGE_TYPES.DIAMOND,
+      type: BADGE_TYPES.DIAMOND, scoreBonus: 20,
       qualified: profit > 10000,
       requirement: 'Profit > $10k',
       current: `$${(profit/1000).toFixed(1)}k`
@@ -1145,7 +1152,7 @@ const getAllBadges = (summary) => {
     { 
       icon: '💰', 
       label: 'Profitable', 
-      type: BADGE_TYPES.TRADER, // Using TRADER slot for "Profitable" badge
+      type: BADGE_TYPES.TRADER, scoreBonus: 5, // Using TRADER slot for "Profitable" badge
       qualified: profit > 0,
       requirement: 'Any profit > $0',
       current: profit > 0 ? `+$${profit.toFixed(0)}` : `-$${Math.abs(profit).toFixed(0)}`
@@ -1189,6 +1196,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
             qualified={b.qualified}
             requirement={b.requirement}
             current={b.current}
+            scoreBonus={b.scoreBonus}
           />
         ))}
       </div>
@@ -1236,7 +1244,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
         color: colors.muted,
         textAlign: 'center'
       }}>
-        Free to mint (gas only ~$0.001) • Badges are repeatable; each mint increases your level
+        Free to mint (gas only ~$0.001) • One-time mint per badge • Collect all to boost score
       </div>
     </Panel>
   );
