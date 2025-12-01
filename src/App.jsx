@@ -2514,7 +2514,7 @@ export default function PNLTrackerApp() {
     } catch { return 0; }
   })();
 const renderGatedOverlay = () => (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none', overflowY: 'auto', paddingTop: '100px', paddingBottom: '40px' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'auto', overflowY: 'auto', paddingTop: '80px', paddingBottom: '32px' }}>
       <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
         
         {/* Header */}
