@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// nothing
+// noothing
 /* === GatedAccessPanel (mobile-first) === */
 const GatedAccessPanel = ({
   tokenBalance,
