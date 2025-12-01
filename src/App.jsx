@@ -1,5 +1,100 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
+/* === GatedAccessPanel (mobile-first) === */
+const GatedAccessPanel = ({
+  tokenBalance,
+  REQUIRED_PNL_BALANCE,
+  handleSwapForAccess,
+  handleRetryGate,
+  colors,
+  ds,
+  upcomingTease = 'Trading Report'
+}) => {
+  const shortfall = Math.max(0, REQUIRED_PNL_BALANCE - (Number(tokenBalance) || 0));
+  const pct = Math.min(100, Math.round(((Number(tokenBalance) || 0) / REQUIRED_PNL_BALANCE) * 100));
+  const Row = ({ t, d }) => (
+    <div style={{border:`1px solid ${colors.border}`,borderRadius:12,padding:10,background:colors.card}}>
+      <div style={{fontSize:12,fontWeight:700}}>{t}</div>
+      <div style={{fontSize:11,color:colors.muted}}>{d}</div>
+    </div>
+  );
+  return (
+    <div style={{minHeight:'100vh',background:colors.bg,color:colors.ink,display:'flex',alignItems:'stretch',justifyContent:'center',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',padding:'20px'}}>
+      <div style={{width:'100%',maxWidth:540,margin:'auto',background:colors.panelBg,border:`1px solid ${colors.border}`,borderRadius:16,boxShadow:'0 10px 24px rgba(0,0,0,0.12)',padding:'16px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+          <div style={{width:28,height:28,borderRadius:999,background:'#111827',color:'#fff',display:'grid',placeItems:'center',fontWeight:900,fontSize:16}}>Ψ</div>
+          <div style={{fontWeight:800,fontSize:16}}>PNL Tracker</div>
+          <div style={{marginLeft:'auto',fontSize:11,padding:'4px 8px',borderRadius:999,border:`1px solid ${colors.border}`,color:colors.muted}}>Gate: 10,000,000 $PNL</div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:22,fontWeight:900,lineHeight:1.15}}>Unlock your Farcaster trading profile</div>
+          <div style={{fontSize:13,color:colors.muted,marginTop:6}}>
+            Hold 10M $PNL in your Farcaster primary wallet to open the app. You will see your live PnL, biggest wins and losses, airdrops, and a combined view across your connected wallets. A ranked <strong>{upcomingTease}</strong> is landing soon, with a personal <strong>Trader Score</strong> that benchmarks you against Base traders.
+          </div>
+        </div>
+
+        <div style={{margin:'12px 0 10px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:colors.muted,marginBottom:6}}>
+            <span>Gate progress</span><span>{pct}%</span>
+          </div>
+          <div style={{height:10,background:'#f3f4f6',borderRadius:999,overflow:'hidden',border:`1px solid ${colors.border}`}}>
+            <div style={{width:`${pct}%`,height:'100%',background:'#111827'}}/>
+          </div>
+          <div style={{fontSize:11,color:colors.muted,marginTop:6}}>{shortfall>0? <>Need {Intl.NumberFormat().format(shortfall)} more $PNL</> : <>Gate met</>}</div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,margin:'12px 0'}}>
+          {[
+            { t: 'Live PnL', d: 'Realized and unrealized' },
+            { t: 'Biggest win/loss', d: 'Entry to exit' },
+            { t: 'Airdrops', d: 'Free money tracker' },
+            { t: 'Wallet switcher', d: 'Primary, others, combined' },
+            { t: 'Audit', d: 'Find habits and leaks' },
+            { t: 'Trader Score', d: 'Rank vs Base' }
+          ].map((it,i)=>(<Row key={i} t={it.t} d={it.d}/>))}
+        </div>
+
+        <button onClick={handleSwapForAccess} style={{width:'100%',padding:14,borderRadius:12,background:'#111827',color:'#fff',fontSize:16,fontWeight:800,border:'none',cursor:'pointer',marginTop:6,marginBottom:8,boxShadow:'0 6px 16px rgba(0,0,0,0.18)',position:'relative'}}>
+          Swap 10M $PNL · Unlock
+          <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:14}}>→</span>
+        </button>
+
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={handleRetryGate} style={{flex:1,padding:10,borderRadius:10,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer'}}>Refresh balance</button>
+          <button
+            onClick={async () => {
+              const variants = [
+                "Unlock your Trading Report + Trader Score in $PNL Ψ — live PnL, biggest win/loss, onchain audit. Hold 10M PNL to enter.",
+                "I’m checking my $PNL Trading Report Ψ: live PnL, ranked Trader Score, readable audit. Gate is 10M PNL. Come try it.",
+                "Want a clean onchain trading report? $PNL Ψ gives you live PnL, biggest win/loss, and a Trader Score. Gate: 10M PNL."
+              ];
+              const text = variants[Math.floor(Math.random() * variants.length)];
+              const embed = typeof window !== "undefined" ? window.location.href : "https://pnl.example";
+              const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+              try {
+                if (sdk?.actions?.openUrl) {
+                  await sdk.actions.openUrl(composeUrl, { openExternal: false });
+                } else {
+                  window.open(composeUrl, '_blank');
+                }
+              } catch {
+                window.open(composeUrl, '_blank');
+              }
+            }}
+            style={{flex:1,padding:10,borderRadius:10,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer',textAlign:'center'}}
+          >
+            Tell a friend
+          </button>
+        </div>
+
+        <div style={{marginTop:12,fontSize:11,color:colors.muted,textAlign:'center'}}>Gate checks your <strong>Farcaster primary</strong> wallet. If your $PNL is in a different wallet, move or switch your primary to unlock.</div>
+      </div>
+    </div>
+  );
+};
+/* === End GatedAccessPanel === */
+
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
@@ -21,7 +116,37 @@ const REQUIRED_PNL_BALANCE = 10000000;
 const BADGE_CONTRACT_ADDRESS = import.meta.env.VITE_BADGE_CONTRACT_ADDRESS || '0xCA3FD5824151e478d02515b59Eda3E62d4E238fe';
 
 // Badge Contract ABI (minimal for minting)
-const BADGE_ABI = JSON.parse('[{"name": "mintBadge", "type": "function", "stateMutability": "nonpayable", "inputs": [{"name": "badgeType", "type": "uint8"}, {"name": "winRate", "type": "uint256"}, {"name": "volume", "type": "uint256"}, {"name": "profit", "type": "uint256"}], "outputs": [{"name": "tokenId", "type": "uint256"}]}, {"name": "hasMintedBadge", "type": "function", "stateMutability": "view", "inputs": [{"name": "user", "type": "address"}, {"name": "badgeType", "type": "uint8"}], "outputs": [{"name": "", "type": "bool"}]}, {"name": "tokenURI", "type": "function", "stateMutability": "view", "inputs": [{"name": "tokenId", "type": "uint256"}], "outputs": [{"name": "", "type": "string"}]}]');
+const BADGE_ABI = [
+  {
+    name: 'mintBadge',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'badgeType', type: 'uint8' },
+      { name: 'winRate', type: 'uint256' },
+      { name: 'volume', type: 'uint256' },
+      { name: 'profit', type: 'uint256' }
+    ],
+    outputs: [{ name: 'tokenId', type: 'uint256' }]
+  },
+  {
+    name: 'hasMintedBadge',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'user', type: 'address' },
+      { name: 'badgeType', type: 'uint8' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+];
 
 // Badge type enum matching contract
 const BADGE_TYPES = {
@@ -1593,7 +1718,23 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
 
 
 export default function PNLTrackerApp() {
-  const [user, setUser] = useState(null);
+  
+  // Force new gate only
+  if (isGated) {
+    return (
+      <GatedAccessPanel
+        tokenBalance={tokenBalance}
+        REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+        handleSwapForAccess={handleSwapForAccess}
+        handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
+        colors={colors}
+        ds={ds}
+        upcomingTease=\"Trading Report\"
+      />
+    );
+  }
+
+const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
   const [activeScope, setActiveScope] = useState('primary');
@@ -2326,7 +2467,7 @@ const renderGatedOverlay = () => (
         
         {/* Header */}
         <div style={{ fontSize: '28px', marginBottom: '6px', lineHeight: '1' }}>🔒</div>
-        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Premium Access</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>PNL Access</h2>
         <p style={{ fontSize: '11px', color: colors.muted, margin: '0 0 12px', lineHeight: '1.4' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong></p>
         
         {/* Fumbled Gains */}
