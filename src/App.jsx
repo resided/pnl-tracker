@@ -1729,7 +1729,7 @@ export default function PNLTrackerApp() {
         handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
         colors={colors}
         ds={ds}
-        upcomingTease=\"Trading Report\"
+        upcomingTease="Trading Report"
       />
     );
   }
