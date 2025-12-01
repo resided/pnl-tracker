@@ -822,7 +822,7 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
           display: 'grid', 
           gridTemplateColumns: '1fr 1px 1fr 1px 1fr', 
           gap: '0',
-          marginBottom: '24px',
+          marginBottom: '16px',
           background: 'rgba(255,255,255,0.03)',
           padding: '18px 12px',
           borderRadius: '16px',
@@ -1252,11 +1252,11 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
           'radial-gradient(#e5e4dc 1px, transparent 1px)',
         backgroundSize: '18px 18px',
         borderRadius: '2px',
-        padding: '24px',
+        padding: '20px',
         color: '#1f2937',
-        border: '1px solid #e5e7eb',
+        border: '2px solid #1f2937',
         boxShadow:
-          '0 10px 30px -12px rgba(15,23,42,0.3), 0 0 0 1px rgba(15,23,42,0.06)',
+          '0 20px 40px -10px rgba(0,0,0,0.2)',
         fontFamily: "'Courier Prime', 'Courier New', monospace",
         position: 'relative',
         overflow: 'hidden',
@@ -1289,7 +1289,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: '24px',
+            marginBottom: '16px',
             borderBottom: '2px solid #000',
             paddingBottom: '16px',
           }}
@@ -1412,7 +1412,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
             color: '#ffffff',
             padding: '16px',
             borderRadius: '6px',
-            marginBottom: '24px',
+            marginBottom: '16px',
           }}
         >
           <div style={{ textAlign: 'center' }}>
@@ -2428,7 +2428,40 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        {/* RANK CARD FIRST - Share immediately visible */}
+        <style>{`
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`}</style>
+
+{/* Tabs: Stats / Airdrops / Badges / Lore */}
+        {!isGated && pnlData?.summary && (
+          <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px', whiteSpace: 'nowrap' }}>
+            {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)} 
+                style={{ 
+                  flex: 1,
+                  padding: '12px', 
+                  borderRadius: '10px', 
+                  border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
+                  background: activeTab === tab ? colors.accent : colors.panelBg, 
+                  color: activeTab === tab ? colors.pillText : colors.muted, 
+                  fontSize: '11px', 
+                  fontWeight: '600',
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.08em', 
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Trading' : 'Badges'}
+              </button>
+            ))}
+          </div>
+        )
+
+{/* RANK CARD FIRST - Share immediately visible */}
         {!isGated && activeTab !== 'lore' && pnlData?.summary && (
           <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
         )}
@@ -2469,33 +2502,7 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        {/* Tabs: Stats / Airdrops / Badges / Lore */}
-        {!isGated && pnlData?.summary && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
-            {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
-              <button 
-                key={tab} 
-                onClick={() => setActiveTab(tab)} 
-                style={{ 
-                  flex: 1,
-                  padding: '12px', 
-                  borderRadius: '10px', 
-                  border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
-                  background: activeTab === tab ? colors.accent : colors.panelBg, 
-                  color: activeTab === tab ? colors.pillText : colors.muted, 
-                  fontSize: '11px', 
-                  fontWeight: '600',
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.08em', 
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Trading Lore' : 'Badges'}
-              </button>
-            ))}
-          </div>
-        )}
+        }
 
         {/* --- TAB CONTENT --- */}
         
@@ -2563,7 +2570,7 @@ export default function PNLTrackerApp() {
                     <div style={{ textAlign: 'right' }}><div style={{ fontSize: '14px', fontWeight: '600', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>{token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}</div><div style={{ fontSize: '10px', color: colors.muted }}>Sold for {formatCurrency(token.totalSoldUsd)}</div></div>
                   </div>
                 ))
-              ) : (<div style={{ textAlign: 'center', padding: '24px', color: colors.muted }}><div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div><div style={{ fontSize: '13px' }}>No airdrops found</div><div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div></div>)}
+              ) : (<div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}><div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div><div style={{ fontSize: '13px' }}>No airdrops found</div><div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div></div>)}
             </Panel>
           </>
         )}
