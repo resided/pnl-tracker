@@ -333,6 +333,14 @@ const colors = {
   mint: '#059669', mintBg: '#ecfdf5', mintBorder: '#6ee7b7'
 };
 
+// Design system for consistency
+const ds = {
+  radius: { sm: '8px', md: '12px', lg: '16px', xl: '20px', pill: '999px', full: '50%' },
+  text: { xs: '10px', sm: '11px', base: '13px', md: '14px', lg: '18px', xl: '20px', xxl: '32px' },
+  space: { xs: '8px', sm: '12px', md: '16px', lg: '20px', xl: '24px' },
+  shadow: { sm: '0 2px 8px rgba(0,0,0,0.06)', md: '0 4px 12px rgba(0,0,0,0.08)', lg: '0 8px 24px rgba(0,0,0,0.1)' }
+};
+
 // Components
 const Metric = ({ label, value, isPositive, isWarning }) => (
   <div style={{ minWidth: '90px' }}>
@@ -424,11 +432,11 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
 };
 
 const Panel = ({ title, subtitle, children, style }) => (
-  <div style={{ background: colors.panelBg, borderRadius: '18px', border: `1px solid ${colors.border}`, padding: '20px 18px 16px', boxShadow: '0 14px 35px rgba(15,23,42,0.08)', ...style }}>
+  <div style={{ background: colors.panelBg, borderRadius: ds.radius.lg, border: `1px solid ${colors.border}`, padding: ds.space.lg, boxShadow: ds.shadow.md, ...style }}>
     {(title || subtitle) && (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        {title && <div style={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontSize: '10px', color: colors.metricLabel }}>{title}</div>}
-        {subtitle && <div style={{ fontSize: '11px', color: colors.muted }}>{subtitle}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: ds.space.sm }}>
+        {title && <div style={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontSize: ds.text.xs, color: colors.metricLabel }}>{title}</div>}
+        {subtitle && <div style={{ fontSize: ds.text.sm, color: colors.muted }}>{subtitle}</div>}
       </div>
     )}
     {children}
