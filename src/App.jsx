@@ -2081,7 +2081,61 @@ export default function PNLTrackerApp() {
       console.error('Token gate check failed:', err);
       setCheckingGate(false); setIsGated(true); return false;
     }
+  
+  // Sum PNL across multiple addresses (Primary, Farcaster, any connected)
+  const checkTokenGateAny = async (addresses) => {
+    try {
+      if (!Array.isArray(addresses) || addresses.length === 0) {
+        setTokenBalance(0);
+        setIsGated(true);
+        setCheckingGate(false);
+        return false;
+      }
+
+      // Whitelist short-circuit: if any address is whitelisted, pass
+      const anyWhitelisted = addresses.some(a => a && WHITELISTED_WALLETS.includes(a.toLowerCase()));
+      if (anyWhitelisted) {
+        setTokenBalance(REQUIRED_PNL_BALANCE);
+        setIsGated(false);
+        setCheckingGate(false);
+        return true;
+      }
+
+      if (DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 400));
+        setTokenBalance(REQUIRED_PNL_BALANCE + 100);
+        setIsGated(false);
+        setCheckingGate(false);
+        return true;
+      }
+
+      let total = 0;
+      for (const address of addresses) {
+        if (!address) continue;
+        try {
+          const resp = await fetch(
+            `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
+            { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }
+          );
+          const data = await resp.json();
+          const t = data?.[0];
+          const bal = t ? parseInt(t.balance) / 10 ** (t.decimals || 18) : 0;
+          total += bal;
+        } catch {}
+      }
+
+      setTokenBalance(total);
+      const gated = total < REQUIRED_PNL_BALANCE;
+      setIsGated(gated);
+      setCheckingGate(false);
+      return !gated;
+    } catch (e) {
+      setCheckingGate(false);
+      setIsGated(true);
+      return false;
+    }
   };
+
 
   const fetchPNLData = async (addresses) => {
     try {
@@ -2244,7 +2298,7 @@ export default function PNLTrackerApp() {
           // Fetch data for the selected scope (All or Single)
           const initialAddresses = defaultScope === 'all' ? allEth : [resolvedPrimary];
           if (initialAddresses.length > 0) {
-            await checkTokenGate(resolvedPrimary);
+            await checkTokenGateAny(initialAddresses);
             // Always fetch real PNL data - gate just controls visibility (blurring)
             await fetchPNLData(initialAddresses);
           }
@@ -2279,8 +2333,8 @@ export default function PNLTrackerApp() {
   const handleRetryGate = () => {
     setCheckingGate(true);
     if (wallets.length > 0) {
-       const target = primaryWallet || wallets[0];
-       checkTokenGate(target).then((hasAccess) => { if(hasAccess) fetchPNLData([target]); });
+       const addresses = activeScope === 'all' ? wallets : [primaryWallet || wallets[0]];
+       checkTokenGateAny(addresses).then((hasAccess) => { if (hasAccess) fetchPNLData(addresses); });
     }
   };
 
