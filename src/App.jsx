@@ -1592,7 +1592,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
             color: '#9ca3af',
           }}
         >
-          <div>Auditor: The Auditor</div>
+          <div>Auditor: Trident LLC</div>
           <div>Date: {auditDate}</div>
         </div>
       </div>
