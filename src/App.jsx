@@ -1718,22 +1718,6 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
 
 
 export default function PNLTrackerApp() {
-  
-  // Force new gate only
-  if (isGated) {
-    return (
-      <GatedAccessPanel
-        tokenBalance={tokenBalance}
-        REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-        handleSwapForAccess={handleSwapForAccess}
-        handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
-        colors={colors}
-        ds={ds}
-        upcomingTease="Trading Report"
-      />
-    );
-  }
-
 const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
@@ -2580,7 +2564,17 @@ const renderGatedOverlay = () => (
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      {isGated && renderGatedOverlay()}
+      {typeof isGated === 'boolean' && isGated && (
+  <GatedAccessPanel
+    tokenBalance={tokenBalance}
+    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+    handleSwapForAccess={handleSwapForAccess}
+    handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
+    colors={colors}
+    ds={ds}
+    upcomingTease="Trading Report"
+  />
+)}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
         
         {/* Compact Header */}
