@@ -2081,7 +2081,7 @@ export default function PNLTrackerApp() {
       console.error('Token gate check failed:', err);
       setCheckingGate(false); setIsGated(true); return false;
     }
-  
+  }
   // Sum PNL across multiple addresses (Primary, Farcaster, any connected)
   const checkTokenGateAny = async (addresses) => {
     try {
@@ -2135,7 +2135,7 @@ export default function PNLTrackerApp() {
       return false;
     }
   };
-
+;
 
   const fetchPNLData = async (addresses) => {
     try {
