@@ -1228,7 +1228,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
 
 
 // --- AUDIT REPORT CARD (Paper-style Lore share) ---
-const AuditReportCard = ({ user, summary, lore, rank }) => {
+const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss }) => {
   if (!user || !summary || !lore || !rank) return null;
 
   const score = rank.percentile ?? 0;
@@ -1247,14 +1247,14 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
   return (
     <div
       style={{
-        background: '#f5f1e6',
+        background: '#f2f0e9',
         backgroundImage:
-          'radial-gradient(#e2dbc7 1px, transparent 1px)',
+          'radial-gradient(#e5e4dc 1px, transparent 1px)',
         backgroundSize: '18px 18px',
         borderRadius: '2px',
         padding: '24px',
-        color: '#111827',
-        border: '1px solid #e2dbc7',
+        color: '#1f2937',
+        border: '1px solid #e5e7eb',
         boxShadow:
           '0 10px 30px -12px rgba(15,23,42,0.3), 0 0 0 1px rgba(15,23,42,0.06)',
         fontFamily: "'Courier Prime', 'Courier New', monospace",
@@ -1487,8 +1487,8 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
           </div>
         </div>
 
-        {/* Top bags */}
-        {Array.isArray(lore.topBags) && lore.topBags.length > 0 && (
+        {/* Performance Extremes */}
+        {(biggestWin || biggestLoss) && (
           <div style={{ marginBottom: '24px' }}>
             <div
               style={{
@@ -1497,58 +1497,46 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
                 letterSpacing: '0.2em',
                 textAlign: 'center',
                 marginBottom: '12px',
-                color: '#6b7280',
+                color: '#4b5563',
               }}
             >
-              Largest positions
+              Performance Extremes
             </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '16px',
-                flexWrap: 'wrap',
-              }}
-            >
-              {lore.topBags.slice(0, 4).map((t, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '999px',
-                      background: '#f9fafb',
-                      color: '#111827',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '10px',
-                      border: '1px solid #d1d5db',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
-                    }}
-                  >
-                    {t.symbol?.slice(0, 4) || '?'}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 600,
-                      color: '#4b5563',
-                    }}
-                  >
-                    {formatCurrency(t.totalUsdInvested || 0)}
-                  </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {biggestWin && (
+                <div style={{ 
+                  flex: 1, 
+                  padding: '12px', 
+                  border: '1px solid #86efac', 
+                  background: '#dcfce7', 
+                  borderRadius: '6px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#166534', fontWeight: '700' }}>Biggest Win</div>
+                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#14532d' }}>+{formatCurrency(biggestWin.realizedProfitUsd)}</div>
+                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#15803d' }}>{biggestWin.symbol}</div>
                 </div>
-              ))}
+              )}
+              {biggestLoss && (
+                <div style={{ 
+                  flex: 1, 
+                  padding: '12px', 
+                  border: '1px solid #fca5a5', 
+                  background: '#fee2e2', 
+                  borderRadius: '6px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#991b1b', fontWeight: '700' }}>Biggest Loss</div>
+                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#7f1d1d' }}>{formatCurrency(biggestLoss.realizedProfitUsd)}</div>
+                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#991b1b' }}>{biggestLoss.symbol}</div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1604,7 +1592,7 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
             color: '#9ca3af',
           }}
         >
-          <div>Auditor: Tally, Trident LLC</div>
+          <div>Auditor: The Auditor</div>
           <div>Date: {auditDate}</div>
         </div>
       </div>
@@ -2453,6 +2441,8 @@ export default function PNLTrackerApp() {
               lore={generateLore(pnlData.summary, tokens, biggestWin, biggestLoss)}
               rank={calculatePercentile(pnlData.summary)}
               user={user}
+              biggestWin={biggestWin}
+              biggestLoss={biggestLoss}
             />
             <button
               onClick={handleShareLore}
@@ -2501,7 +2491,7 @@ export default function PNLTrackerApp() {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Lore' : 'Badges'}
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Trading Lore' : 'Badges'}
               </button>
             ))}
           </div>
