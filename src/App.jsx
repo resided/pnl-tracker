@@ -11,6 +11,7 @@ const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' ? true :
                   import.meta.env.VITE_DEMO_MODE === 'false' ? false :
                   import.meta.env.DEV || false; 
 const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
+const CACHE_VERSION = 'v2'; // Increment to invalidate old cache
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS = import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x36FA7687bbA52d3C513497b69BcaD07f4919bB07';
@@ -2169,7 +2170,7 @@ export default function PNLTrackerApp() {
       if (typeof window !== 'undefined' && Array.isArray(addresses) && addresses.length > 0) {
         const sortedAddresses = addresses.map((a) => a.toLowerCase()).sort();
         const fidPart = user?.fid ? `fid_${user.fid}` : 'anon';
-        cacheKey = `pnl_cache_${fidPart}_${sortedAddresses.join(',')}`;
+        cacheKey = `pnl_cache_${CACHE_VERSION}_${fidPart}_${sortedAddresses.join(',')}`;
         try {
           const raw = window.localStorage.getItem(cacheKey);
           if (raw) {
