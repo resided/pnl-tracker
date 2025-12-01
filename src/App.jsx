@@ -1,26 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-/* === Error Boundary to avoid blank screen === */
-class ErrorBoundary extends React.Component {
-  constructor(props){ super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error){ return { hasError: true, error }; }
-  componentDidCatch(error, info){ console.error('App crashed:', error, info); }
-  render(){
-    if(this.state.hasError){
-      return (
-    <ErrorBoundary>
-      <div style={{ padding: 16, fontFamily: 'system-ui', color: '#0b0b0b' }}>
-          <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#fff' }}>
-            <div style={{ fontWeight: 800, marginBottom: 6 }}>Something went wrong</div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>The UI crashed. Try refreshing. If this keeps happening, share your wallet and steps.</div>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
@@ -42,37 +21,7 @@ const REQUIRED_PNL_BALANCE = 10000000;
 const BADGE_CONTRACT_ADDRESS = import.meta.env.VITE_BADGE_CONTRACT_ADDRESS || '0xCA3FD5824151e478d02515b59Eda3E62d4E238fe';
 
 // Badge Contract ABI (minimal for minting)
-const BADGE_ABI = [
-  {
-    name: 'mintBadge',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'badgeType', type: 'uint8' },
-      { name: 'winRate', type: 'uint256' },
-      { name: 'volume', type: 'uint256' },
-      { name: 'profit', type: 'uint256' }
-    ],
-    outputs: [{ name: 'tokenId', type: 'uint256' }]
-  },
-  {
-    name: 'hasMintedBadge',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'user', type: 'address' },
-      { name: 'badgeType', type: 'uint8' }
-    ],
-    outputs: [{ name: '', type: 'bool' }]
-  },
-  {
-    name: 'balanceOf',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'owner', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }]
-  }
-];
+const BADGE_ABI = JSON.parse('[{"name": "mintBadge", "type": "function", "stateMutability": "nonpayable", "inputs": [{"name": "badgeType", "type": "uint8"}, {"name": "winRate", "type": "uint256"}, {"name": "volume", "type": "uint256"}, {"name": "profit", "type": "uint256"}], "outputs": [{"name": "tokenId", "type": "uint256"}]}, {"name": "hasMintedBadge", "type": "function", "stateMutability": "view", "inputs": [{"name": "user", "type": "address"}, {"name": "badgeType", "type": "uint8"}], "outputs": [{"name": "", "type": "bool"}]}, {"name": "tokenURI", "type": "function", "stateMutability": "view", "inputs": [{"name": "tokenId", "type": "uint256"}], "outputs": [{"name": "", "type": "string"}]}]');
 
 // Badge type enum matching contract
 const BADGE_TYPES = {
@@ -1268,6 +1217,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   );
 };
 
+
 // --- AUDIT REPORT CARD (Paper-style Lore share) ---
 const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss }) => {
   if (!user || !summary || !lore || !rank) return null;
@@ -1641,6 +1591,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
   );
 };
 
+
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
@@ -1667,6 +1618,7 @@ export default function PNLTrackerApp() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState(null);
   const [auditData, setAuditData] = useState(null);
+
 
   // Check which badges have already been minted by this user
   const checkMintedBadges = useCallback(async (userAddress) => {
@@ -1975,6 +1927,7 @@ export default function PNLTrackerApp() {
       setAuditLoading(false);
     }
   };
+
 
   const handleShareFumble = async () => {
     try {
@@ -2363,13 +2316,119 @@ export default function PNLTrackerApp() {
   const scoreBonusTotal = (() => {
     try {
       const defs = getAllBadges(pnlData?.summary || {});
-      const counts = mintCounts || {
-    </ErrorBoundary>
-  );
+      const counts = mintCounts || {};
       return defs.reduce((acc, d) => acc + (d.scoreBonus || 0) * (counts[d.type] || 0), 0);
     } catch { return 0; }
   })();
-if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
+const renderGatedOverlay = () => (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.lg, border: `1px solid ${colors.border}`, padding: '16px', maxWidth: '360px', width: '100%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+        
+        {/* Header */}
+        <div style={{ fontSize: '28px', marginBottom: '6px', lineHeight: '1' }}>🔒</div>
+        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Premium Access</h2>
+        <p style={{ fontSize: '11px', color: colors.muted, margin: '0 0 12px', lineHeight: '1.4' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong></p>
+        
+        {/* Fumbled Gains */}
+        {pnlData?.summary?.totalFumbled > 0 && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)', 
+            borderRadius: ds.radius.sm, 
+            padding: '10px', 
+            marginBottom: '12px',
+            color: '#fff',
+            border: '1px solid #991b1b'
+          }}>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>You Fumbled</div>
+            <div style={{ fontSize: '24px', fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+              See which tokens you sold too early
+            </div>
+          </div>
+        )}
+
+        {/* Quick features */}
+        <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px', lineHeight: '1.6' }}>
+          💸 Fumbles tracker • 📊 Full P&L • 📜 Trident audit
+        </div>
+        
+        {/* Balance */}
+        {tokenBalance > 0 && (
+          <div style={{ background: '#f9fafb', padding: '8px', borderRadius: ds.radius.sm, marginBottom: '12px', fontSize: '10px' }}>
+            <span style={{ color: colors.muted }}>Balance: </span>
+            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
+            {tokenBalance < REQUIRED_PNL_BALANCE && (
+              <span style={{ color: colors.muted }}> • Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more</span>
+            )}
+          </div>
+        )}
+        
+        {/* CTA - Primary */}
+        <button 
+          onClick={handleSwapForAccess} 
+          style={{ 
+            width: '100%',
+            padding: '14px', 
+            borderRadius: ds.radius.md, 
+            background: colors.pill, 
+            color: colors.pillText, 
+            fontSize: '14px', 
+            fontWeight: '700', 
+            border: 'none', 
+            cursor: 'pointer',
+            marginBottom: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
+          Get $PNL to Unlock
+        </button>
+
+        {/* Secondary */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button 
+            onClick={handleRetryGate} 
+            style={{ 
+              flex: 1, 
+              padding: '8px', 
+              borderRadius: ds.radius.sm, 
+              background: 'transparent', 
+              color: colors.muted, 
+              border: `1px solid ${colors.border}`, 
+              fontSize: '10px', 
+              fontWeight: '600', 
+              cursor: 'pointer' 
+            }}
+          >
+            Refresh
+          </button>
+          <a 
+            href="https://farcaster.xyz/ireside.eth"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              padding: '8px',
+              borderRadius: ds.radius.sm,
+              background: 'transparent',
+              color: colors.muted,
+              border: `1px solid ${colors.border}`,
+              fontSize: '10px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Follow
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
   if (envError) return <ErrorScreen title="Access Locked" message={envError} />;
 
   const tokens = pnlData?.tokens || [];
@@ -2380,17 +2439,7 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      {isGated && (
-  <GatedAccessPanel
-    tokenBalance={tokenBalance}
-    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-    handleSwapForAccess={handleSwapForAccess}
-    handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
-    colors={colors}
-    ds={ds}
-    upcomingTease="Trading Report"
-  />
-)}
+      {isGated && renderGatedOverlay()}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
         
         {/* Compact Header */}
