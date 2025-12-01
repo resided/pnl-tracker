@@ -240,6 +240,31 @@ const getRankTitle = (percentile, profit, winRate) => {
 
 // --- LORE ENGINE (NEW) ---
 // Analyzes stats to create a "Wingman" style persona
+// Worker base for audit endpoints
+const WORKER_BASE = (import.meta.env.VITE_WORKER_BASE || 'https://pnl.jab067.workers.dev').replace(/\/$/, '');
+
+// Build audit query for current scope
+function buildAuditQueryArgs({ activeScope, wallets, primaryWallet }) {
+  if (activeScope && activeScope !== 'primary' && activeScope !== 'all') {
+    return { combined: false, addresses: [activeScope] };
+  }
+  if (activeScope === 'primary' || !activeScope) {
+    return { combined: true, addresses: [primaryWallet].filter(Boolean) };
+  }
+  return { combined: true, addresses: wallets || [] };
+}
+
+// Map Worker audit 'lore' structure to card expectations
+function mapWorkerAuditToLore(worker) {
+  const l = worker?.lore || {};
+  return {
+    archetype: l.archetype || 'Reviewed',
+    quote: l.quote || 'Audit complete.',
+    color: l.color || '#111827',
+    habits: Array.isArray(l.findings) ? l.findings : []
+  };
+}
+
 const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
   if (!summary) return null;
   const { winRate, totalRealizedProfit, totalFumbled, totalTradingVolume } = summary;
@@ -1646,6 +1671,11 @@ export default function PNLTrackerApp() {
   
   // Info panel state
   const [showInfo, setShowInfo] = useState(false);
+  // Audit state
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState(null);
+  const [auditData, setAuditData] = useState(null);
+
 
   // Check which badges have already been minted by this user
   const checkMintedBadges = useCallback(async (userAddress) => {
@@ -1927,6 +1957,31 @@ export default function PNLTrackerApp() {
       });
     } catch (err) {
       console.error('share lore failed', err);
+    }
+  };
+
+  const handleRequestAudit = async () => {
+    try {
+      setAuditLoading(true);
+      setAuditError(null);
+      setAuditData(null);
+      const { combined, addresses } = buildAuditQueryArgs({ activeScope, wallets, primaryWallet });
+      if (!addresses || addresses.length === 0) throw new Error('No wallet found to audit');
+      const year = new Date().getFullYear();
+      const url = new URL(`${WORKER_BASE}/audit`);
+      url.searchParams.set('address', addresses.join(','));
+      url.searchParams.set('chain', 'base');
+      url.searchParams.set('combine', combined ? 'true' : 'false');
+      url.searchParams.set('year', String(year));
+      const res = await fetch(url.toString(), { headers: { 'accept': 'application/json' } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || 'audit fetch failed');
+      if (!data?.summary) throw new Error('audit response malformed');
+      setAuditData(data);
+    } catch (err) {
+      setAuditError(String(err?.message || err));
+    } finally {
+      setAuditLoading(false);
     }
   };
 
@@ -2499,16 +2554,66 @@ const renderGatedOverlay = () => (
         )}
 
         {/* --- MAIN CONTENT SWITCH --- */}
+        
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <div>
+            {/* Request witty audit via Worker */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <button
+                onClick={handleRequestAudit}
+                disabled={auditLoading}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid #111827',
+                  background: auditLoading ? '#f3f4f6' : '#111827',
+                  color: auditLoading ? '#111827' : '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: auditLoading ? 'default' : 'pointer'
+                }}
+              >
+                {auditLoading ? 'Running audit...' : 'Request financial audit'}
+              </button>
+              {auditData?.meta?.addresses?.length > 0 && (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  background: '#f9fafb',
+                  fontSize: '11px',
+                  color: '#6b7280',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {auditData.meta.combined ? 'Combined' : 'Single'} · {auditData.meta.addresses.length} wallet{auditData.meta.addresses.length > 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+
+            {auditError && (
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: '1px solid #fecaca',
+                background: '#fef2f2',
+                fontSize: '12px',
+                color: '#7f1d1d'
+              }}>
+                {auditError}
+              </div>
+            )}
+
             <AuditReportCard
-              summary={pnlData.summary}
-              lore={generateLore(pnlData.summary, tokens, biggestWin, biggestLoss)}
-              rank={calculatePercentile(pnlData.summary)}
+              summary={auditData?.summary || pnlData.summary}
+              lore={auditData ? mapWorkerAuditToLore(auditData) : generateLore(pnlData.summary, tokens, biggestWin, biggestLoss)}
+              rank={auditData?.rank || calculatePercentile(pnlData.summary)}
               user={user}
-              biggestWin={biggestWin}
-              biggestLoss={biggestLoss}
+              biggestWin={auditData?.biggestWin || biggestWin}
+              biggestLoss={auditData?.biggestLoss || biggestLoss}
             />
+
             <button
               onClick={handleShareLore}
               style={{
@@ -2523,10 +2628,10 @@ const renderGatedOverlay = () => (
                 color: '#ffffff',
                 fontSize: '13px',
                 fontWeight: 700,
-                cursor: 'pointer',
+                letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                cursor: 'pointer',
+                marginTop: '12px'
               }}
             >
               Share Official Audit
@@ -2534,7 +2639,7 @@ const renderGatedOverlay = () => (
           </div>
         )}
 
-
+        {/* --- TAB CONTENT --- */}
         {/* --- TAB CONTENT --- */}
         
         {/* STATS */}
