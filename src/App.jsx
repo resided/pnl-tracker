@@ -2502,7 +2502,6 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        }
 
         {/* --- TAB CONTENT --- */}
         
