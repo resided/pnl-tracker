@@ -2432,73 +2432,16 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      {isGated &&
-      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
-        
-        {/* Compact Header */}
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1.5px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '600' }}>Ψ</div>
-            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '600' }}>PNL Tracker</span>
-            {DEMO_MODE && <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Demo</span>}
-          </div>
-          {/* Wallet selector in header */}
-          {wallets.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-              <select 
-                value={activeScope} 
-                onChange={handleWalletScopeChange} 
-                style={{ 
-                  fontSize: '11px', 
-                  padding: '6px 10px', 
-                  borderRadius: '6px', 
-                  border: `1px solid ${colors.border}`, 
-                  background: colors.panelBg, 
-                  color: colors.muted,
-                  maxWidth: '140px',
-                  cursor: 'pointer'
-                }}
-              >
-                {wallets.map((addr) => (
-                  <option key={addr} value={addr}>
-                    {addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}
-                  </option>
-                ))}
-                {wallets.length > 1 && <option value="all">All wallets</option>}
-              </select>
-              <div style={{ fontSize: '9px', color: colors.muted, letterSpacing: '0.02em', opacity: 0.6 }}>check wallets here ↑</div>
-            </div>
-          )}
-        </header>
-
-        {/* User info row */}
-        {user && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img src={user.pfpUrl} alt={user.username} style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${colors.border}` }} />
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: '600', color: colors.ink }}>{user.displayName}</div>
-                <div style={{ fontSize: '12px', color: colors.muted }}>@{user.username}</div>
-              </div>
-            </div>
-            <div style={{ 
-              padding: '5px 12px', 
-              borderRadius: '999px', 
-              background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', 
-              color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.1em', 
-              fontSize: '10px', 
-              fontWeight: '600',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px' 
-            }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />
-              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'In Loss'}
-            </div>
-          </div>
-        )}
+      {isGated && (
+  <GatedAccessPanel
+    tokenBalance={tokenBalance}
+    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+    handleSwapForAccess={handleSwapForAccess}
+    handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
+    colors={colors}
+    ds={ds}
+  />
+)}
 
         
 
@@ -2741,26 +2684,7 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
         {/* INFO */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
         {/* Gated content blur */}
-        {isGated && (
-          <>
-            <GatedAccessPanel
-              tokenBalance={tokenBalance}
-              REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-              handleSwapForAccess={handleSwapForAccess}
-              handleRetryGate={async ()=>{ await checkTokenGate(primaryWallet); }}
-              colors={colors}
-              ds={ds}
-            />
-            <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
-              <Panel title="Highlights" subtitle="From sold tokens">
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                  {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
-                  {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
-                </div>
-              </Panel>
-            </div>
-          </>
-        )}
+        
       </div>
     </div>
   );
