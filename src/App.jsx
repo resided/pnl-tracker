@@ -318,7 +318,9 @@ const Metric = ({ label, value, isPositive, isWarning }) => (
 const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current }) => {
   const isLocked = !qualified;
   
-  return (
+  const ctaLabel = isClaimed ? 'Mint again' : `Mint NFT • +${scoreBonus}`;
+      const ctaLabel = isClaimed ? 'Mint again' : `Mint NFT • +${scoreBonus}`;
+      return (
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column',
@@ -375,7 +377,16 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
           {isClaiming ? 'Minting...' : 'Mint NFT'}
         </button>
       )}
-    </div>
+    {canClaim && (
+          <button 
+            onClick={() => onClaim(badgeType)} 
+            disabled={isClaiming}
+            style={{ marginTop: '6px' }}
+          >
+            {isClaiming ? 'Minting…' : ctaLabel}
+          </button>
+        )}
+      </div>
   );
 };
 
@@ -1225,7 +1236,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
         color: colors.muted,
         textAlign: 'center'
       }}>
-        Free to mint (gas only ~$0.001) • Each badge can only be minted once
+        Free to mint (gas only ~$0.001) • Badges are repeatable; each mint increases your level
       </div>
     </Panel>
   );
@@ -2283,7 +2294,16 @@ export default function PNLTrackerApp() {
     }
   };
 
-  const renderGatedOverlay = () => (
+  
+  // Score bonus scales with badge levels
+  const scoreBonusTotal = (() => {
+    try {
+      const defs = getAllBadges(pnlData?.summary || {});
+      const counts = mintCounts || {};
+      return defs.reduce((acc, d) => acc + (d.scoreBonus || 0) * (counts[d.type] || 0), 0);
+    } catch { return 0; }
+  })();
+const renderGatedOverlay = () => (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
       <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '28px 24px', maxWidth: '360px', width: '90%', marginTop: '180px', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
         
