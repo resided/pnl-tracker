@@ -1107,7 +1107,7 @@ const BigFumbleCard = ({ token, onShare }) => {
             letterSpacing: '0.08em'
           }}
         >
-          Share My Pain
+          Share Fumble
         </button>
       )}
     </div>
@@ -1196,7 +1196,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   const qualifiedCount = allBadges.filter(b => b.qualified).length;
   
   return (
-    <Panel title="Your Badges" subtitle={`${qualifiedCount} of ${allBadges.length} unlocked`} style={{ marginTop: '20px' }}>
+    <Panel title="Your Badges" subtitle={`${claimedBadges.length} of ${allBadges.length} unlocked`} style={{ marginTop: '20px' }}>
       {currentWallet && (
         <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px' }}>
           Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4)}
