@@ -315,81 +315,73 @@ const Metric = ({ label, value, isPositive, isWarning }) => (
   </div>
 );
 
-
-const Badge = ({ 
-  icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, 
-  qualified, requirement, current, progress = 0, need = 100, tier = 'bronze', 
-  nextTip = '', scoreBonus = 0 
-}) => {
-  const pct = Math.max(0, Math.min(100, Math.round((progress / Math.max(need,1)) * 100)) );
-  const isLocked = pct < 100 && !isClaimed;
-
-  const tierColor = tier === 'diamond' ? '#38bdf8' : tier === 'gold' ? '#f59e0b' : tier === 'silver' ? '#9ca3af' : '#64748b';
-  const stateChip = isClaimed ? 'Minted' : (pct >= 100 ? 'Eligible' : 'Locked');
-
+const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current, level = 0 }) => {
+  const isLocked = !qualified;
+  
   return (
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column',
       alignItems: 'stretch',
-      gap: '6px', 
-      padding: '12px', 
-      borderRadius: '12px', 
-      border: `1px solid ${isClaimed ? colors.mintBorder : pct>=100 ? colors.border : '#e5e7eb'}`, 
-      background: isClaimed ? colors.mintBg : '#fff', 
+      gap: '4px', 
+      padding: '10px 12px', 
+      borderRadius: '10px', 
+      border: `1px solid ${isClaimed ? colors.mintBorder : isLocked ? '#e5e7eb' : colors.border}`, 
+      background: isClaimed ? colors.mintBg : isLocked ? '#f9fafb' : '#fff', 
       fontSize: '11px', 
       fontWeight: '600', 
-      color: isClaimed ? colors.mint : colors.ink,
-      opacity: pct>=100 || isClaimed ? 1 : 0.9,
-      minWidth: '160px',
-      flex: '1 1 160px',
-      position: 'relative'
+      color: isClaimed ? colors.mint : isLocked ? colors.muted : colors.ink,
+      opacity: isLocked ? 0.7 : 1,
+      minWidth: '140px',
+      flex: '1 1 140px'
     }}>
-      {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '16px' }}>{icon}</span> 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '14px' }}>{icon}</span> 
           <span>{label}</span>
         </div>
-        <span style={{ fontSize: '10px', color: pct>=100 ? colors.ink : colors.muted }}>{stateChip}</span>
+      <div style={{ fontSize: '10px', color: colors.muted, fontWeight: 700 }}>Level {typeof level!=='undefined'?level:0}</div>
+        {isClaimed && <span style={{ fontSize: '10px', color: colors.mint }}>✓ Minted</span>}
+        {isLocked && <span style={{ fontSize: '10px' }}>🔒</span>}
       </div>
-
-      {/* mini tier chip */}
-      <div style={{ fontSize: '10px', color: tierColor }}>{tier.toUpperCase()}</div>
-
-      {/* metric line */}
-      <div style={{ fontSize: '10px', color: colors.muted, fontWeight: '500' }}>
-        {pct>=100 ? <span>You: {current}</span> : <span>Need: {requirement}</span>}
+      
+      {/* Show requirement and current value */}
+      <div style={{ fontSize: '9px', color: colors.muted, fontWeight: '400' }}>
+        {isLocked ? (
+          <span>Need: {requirement}</span>
+        ) : (
+          <span>You: {current}</span>
+        )}
       </div>
-
-      {/* progress bar */}
-      <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: tierColor }} />
-      </div>
-      {nextTip && <div style={{ fontSize: '10px', color: colors.muted }}>{nextTip}</div>}
-
-      {/* CTA */}
-      {(pct>=100 && !isClaimed && canClaim) && (
+      
+      {/* Mint button */}
+      {canClaim && !isClaimed && !isLocked && (
         <button 
           onClick={() => onClaim(badgeType)}
           disabled={isClaiming}
           style={{
             marginTop: '4px',
-            padding: '8px 10px',
-            borderRadius: '8px',
+            padding: '6px 10px',
+            borderRadius: '6px',
             border: 'none',
             background: isClaiming ? colors.muted : colors.mint,
             color: '#fff',
             fontSize: '10px',
-            fontWeight: '700',
+            fontWeight: '600',
             cursor: isClaiming ? 'not-allowed' : 'pointer',
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}
         >
-          {isClaiming ? 'Minting...' : `Mint NFT • +${scoreBonus}`}
+          {isClaiming ? 'Minting...' : 'Mint NFT'}
         </button>
       )}
+      {(isClaimed && canClaim) && (
+        <button onClick={() => onClaim(badgeType)} disabled={isClaiming} style={{ marginTop: '6px', padding: '6px 10px', borderRadius: '6px', border: 'none', background: isClaiming ? colors.muted : colors.mint, color: '#fff', fontSize: '10px', fontWeight: 700, cursor: isClaiming ? 'not-allowed' : 'pointer' }}>
+          {isClaiming ? 'Minting…' : 'Mint again'}
+        </button>
+      )}
+
     </div>
   );
 };
@@ -437,12 +429,11 @@ const InfoPanel = ({ isVisible, onClose }) => {
 };
 
 // --- UPDATED RANK CARD (WITH GRADIENT BADGE) ---
-const RankCard = ({ summary, onShare, scoreBonus = 0 }) => {
+const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
   const topPercent = 100 - rank.percentile;
-  let score = rank.percentile; // Use percentile as the 0-100 score
-  score = Math.min(99, Math.max(1, score + (scoreBonus || 0)));
+  const score = rank.percentile; // Use percentile as the 0-100 score
   
   // Dynamic colors based on rank
   const getBgGradient = () => {
@@ -1098,7 +1089,6 @@ const ErrorScreen = ({ title, message }) => (
 );
 
 // Helper to get ALL badges with qualification status
-
 const getAllBadges = (summary) => {
   const s = summary || {};
   const winRate = s.winRate || 0;
@@ -1106,85 +1096,57 @@ const getAllBadges = (summary) => {
   const profit = s.totalRealizedProfit || 0;
   const fumbled = s.totalFumbled || 0;
   const tokens = s.totalTokensTraded || 0;
-
-  // tier helpers
-  const tierBy = (value, steps) => {
-    // steps: [bronze, silver, gold, diamond]
-    if (value >= steps[3]) return 'diamond';
-    if (value >= steps[2]) return 'gold';
-    if (value >= steps[1]) return 'silver';
-    if (value >= steps[0]) return 'bronze';
-    return 'bronze';
-  };
-  const scoreBonusFor = (id, tier) => {
-    const base = { SNIPER:5, EXIT:-2, VOLUME:5, PAPER:-1, DIAMOND:7, TRADER:3 };
-    const mult = { bronze:1, silver:2, gold:3, diamond:4 }[tier] || 1;
-    return Math.max(0, base[id] || 0) * mult; // negative bonuses not displayed in CTA
-  };
-
-  const defs = [
+  
+  return [
     { 
-      icon: '🎯', label: 'Sniper', type: BADGE_TYPES.SNIPER,
-      progress: winRate, need: 60, current: `${winRate.toFixed(1)}%`,
-      tier: tierBy(winRate, [40,55,70,85]),
+      icon: '🎯', 
+      label: 'Sniper', 
+      type: BADGE_TYPES.SNIPER,
       qualified: winRate >= 60,
       requirement: 'Win Rate ≥ 60%',
-      nextTip: winRate >= 60 ? '' : `Close ${Math.max(1, Math.ceil((60 - winRate)/5))} winning sells`,
-      scoreBonusId: 'SNIPER'
+      current: `${winRate.toFixed(1)}%`
     },
     { 
-      icon: '💧', label: 'Exit Liquidity', type: BADGE_TYPES.EXIT_LIQUIDITY,
-      progress: 40 - Math.min(40, winRate), need: 40, current: `${winRate.toFixed(1)}%, ${tokens} tokens`,
-      tier: tierBy(40 - Math.min(40, winRate), [10,20,30,40]),
+      icon: '💧', 
+      label: 'Exit Liquidity', 
+      type: BADGE_TYPES.EXIT_LIQUIDITY,
       qualified: winRate < 40 && tokens > 5,
       requirement: 'Win Rate < 40% & 5+ tokens',
-      nextTip: winRate < 40 ? '' : 'Stop buying tops 😅',
-      scoreBonusId: 'EXIT'
+      current: `${winRate.toFixed(1)}%, ${tokens} tokens`
     },
     { 
-      icon: '🐋', label: 'Volume Whale', type: BADGE_TYPES.VOLUME_WHALE,
-      progress: volume, need: 50000, current: `$${(volume/1000).toFixed(1)}k`,
-      tier: tierBy(volume, [10000,50000,250000,1000000]),
+      icon: '🐋', 
+      label: 'Volume Whale', 
+      type: BADGE_TYPES.VOLUME_WHALE,
       qualified: volume > 50000,
       requirement: 'Volume > $50k',
-      nextTip: volume >= 50000 ? '' : `+$${Math.max(0, 50000 - Math.round(volume)).toLocaleString()} volume to go`,
-      scoreBonusId: 'VOLUME'
+      current: `$${(volume/1000).toFixed(1)}k`
     },
     { 
-      icon: '🧻', label: 'Paper Hands', type: BADGE_TYPES.TOILET_PAPER_HANDS,
-      progress: fumbled, need: 10000, current: `$${(fumbled/1000).toFixed(1)}k`,
-      tier: tierBy(fumbled, [2500,10000,25000,100000]),
+      icon: '🧻', 
+      label: 'Paper Hands', 
+      type: BADGE_TYPES.TOILET_PAPER_HANDS,
       qualified: fumbled > 10000,
       requirement: 'Fumbled > $10k',
-      nextTip: fumbled > 10000 ? '' : 'Let winners run a bit longer',
-      scoreBonusId: 'PAPER'
+      current: `$${(fumbled/1000).toFixed(1)}k`
     },
     { 
-      icon: '💎', label: 'Diamond', type: BADGE_TYPES.DIAMOND,
-      progress: profit, need: 10000, current: `$${(profit/1000).toFixed(1)}k`,
-      tier: tierBy(profit, [1000,10000,25000,100000]),
+      icon: '💎', 
+      label: 'Diamond', 
+      type: BADGE_TYPES.DIAMOND,
       qualified: profit > 10000,
       requirement: 'Profit > $10k',
-      nextTip: profit >= 10000 ? '' : `+$${Math.max(0, 10000 - Math.round(profit)).toLocaleString()} realized`,
-      scoreBonusId: 'DIAMOND'
+      current: `$${(profit/1000).toFixed(1)}k`
     },
     { 
-      icon: '💰', label: 'In the Green', type: BADGE_TYPES.TRADER,
-      progress: profit, need: 1, current: profit > 0 ? `+$${profit.toFixed(0)}` : `-$${Math.abs(profit).toFixed(0)}`,
-      tier: tierBy(profit, [1,1000,10000,25000]),
+      icon: '💰', 
+      label: 'Profitable', 
+      type: BADGE_TYPES.TRADER, // Using TRADER slot for "Profitable" badge
       qualified: profit > 0,
       requirement: 'Any profit > $0',
-      nextTip: profit > 0 ? '' : 'Close a winning trade',
-      scoreBonusId: 'TRADER'
+      current: profit > 0 ? `+$${profit.toFixed(0)}` : `-$${Math.abs(profit).toFixed(0)}`
     }
   ];
-
-  return defs.map(d => ({
-    icon: d.icon, label: d.label, type: d.type,
-    qualified: d.qualified, requirement: d.requirement, current: d.current,
-    progress: d.progress, need: d.need, tier: d.tier, 
-    nextTip: d.nextTip, scoreBonus: scoreBonusFor(d.scoreBonusId, d.tier)
-  }));
 };
 
 // Get only qualified badges (for display in main panel)
@@ -1210,8 +1172,22 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
         gap: '10px', 
         marginBottom: mintTxHash || mintError ? '12px' : '0' 
       }}>
-        {allBadges.map((b, i) => (
-          <Badge key={i} icon={b.icon} label={b.label} badgeType={b.type} onClaim={onClaimBadge} isClaiming={claimingBadge === b.type} isClaimed={claimedBadges.includes(b.type)} canClaim={canClaim} qualified={b.qualified} requirement={b.requirement} current={b.current} progress={b.progress} need={b.need} tier={b.tier} nextTip={b.nextTip} scoreBonus={b.scoreBonus} />
+        {
+allBadges.map((b, i) => (
+          <Badge 
+            key={i} 
+            icon={b.icon} 
+            label={b.label} 
+            badgeType={b.type}
+            onClaim={onClaimBadge}
+            isClaiming={claimingBadge === b.type}
+            isClaimed={claimedBadges.includes(b.type)}
+            canClaim={canClaim}
+            qualified={b.qualified}
+            requirement={b.requirement}
+            current={b.current}
+            level={getLevel(b.type)}
+          />
         ))}
       </div>
       
@@ -1258,7 +1234,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
         color: colors.muted,
         textAlign: 'center'
       }}>
-        Free to mint (gas only ~$0.001) • Each badge can only be minted once
+        Free to mint (gas only ~$0.001) • Repeatable — mint levels stack to boost score
       </div>
     </Panel>
   );
@@ -1641,6 +1617,14 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
 
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
+
+  // --- Repeatable badges: levels stored per-wallet in localStorage
+  const [mintCounts, setMintCounts] = useState({}); // { [badgeId:number]: number }
+  const storageKeyFor = (wallet) => `pnl_mint_counts:${(wallet||'').toLowerCase()}`;
+  const loadMintCounts = (wallet) => { try { return JSON.parse(localStorage.getItem(storageKeyFor(wallet))||'{}'); } catch { return {}; } };
+  const saveMintCounts = (wallet, obj) => { try { localStorage.setItem(storageKeyFor(wallet), JSON.stringify(obj||{})); } catch {} };
+  const getLevel = (badgeId) => Number((mintCounts||{})[badgeId]||0);
+  const incLevel = (wallet, badgeId) => { const next = { ...(mintCounts||{}) }; next[badgeId] = (next[badgeId]||0) + 1; setMintCounts(next); saveMintCounts(wallet, next); };
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
   const [activeScope, setActiveScope] = useState('primary');
@@ -1803,6 +1787,8 @@ export default function PNLTrackerApp() {
       
       console.log('Transaction sent:', txHash);
       setMintTxHash(txHash);
+      try { setMintError(null); incLevel(primaryWallet, badgeType); } catch {}
+
       setClaimedBadges(prev => [...prev, badgeType]);
       
     } catch (err) {
@@ -2114,61 +2100,7 @@ export default function PNLTrackerApp() {
       console.error('Token gate check failed:', err);
       setCheckingGate(false); setIsGated(true); return false;
     }
-  }
-  // Sum PNL across multiple addresses (Primary, Farcaster, any connected)
-  const checkTokenGateAny = async (addresses) => {
-    try {
-      if (!Array.isArray(addresses) || addresses.length === 0) {
-        setTokenBalance(0);
-        setIsGated(true);
-        setCheckingGate(false);
-        return false;
-      }
-
-      // Whitelist short-circuit: if any address is whitelisted, pass
-      const anyWhitelisted = addresses.some(a => a && WHITELISTED_WALLETS.includes(a.toLowerCase()));
-      if (anyWhitelisted) {
-        setTokenBalance(REQUIRED_PNL_BALANCE);
-        setIsGated(false);
-        setCheckingGate(false);
-        return true;
-      }
-
-      if (DEMO_MODE) {
-        await new Promise((r) => setTimeout(r, 400));
-        setTokenBalance(REQUIRED_PNL_BALANCE + 100);
-        setIsGated(false);
-        setCheckingGate(false);
-        return true;
-      }
-
-      let total = 0;
-      for (const address of addresses) {
-        if (!address) continue;
-        try {
-          const resp = await fetch(
-            `https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`,
-            { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }
-          );
-          const data = await resp.json();
-          const t = data?.[0];
-          const bal = t ? parseInt(t.balance) / 10 ** (t.decimals || 18) : 0;
-          total += bal;
-        } catch {}
-      }
-
-      setTokenBalance(total);
-      const gated = total < REQUIRED_PNL_BALANCE;
-      setIsGated(gated);
-      setCheckingGate(false);
-      return !gated;
-    } catch (e) {
-      setCheckingGate(false);
-      setIsGated(true);
-      return false;
-    }
   };
-;
 
   const fetchPNLData = async (addresses) => {
     try {
@@ -2242,24 +2174,9 @@ export default function PNLTrackerApp() {
       };
       summary.profitPercentage = summary.totalTradingVolume > 0 ? (summary.totalRealizedProfit / summary.totalTradingVolume) * 100 : 0;
       
-      
-      
-      // Exclude infrastructure assets when choosing extremes
-      const INFRA_SYMBOLS = new Set([
-        'ETH','WETH','WRETH','RETH','CBETH','STETH','WSTETH','WSETH',
-        'USDC','USDBC','USDT','DAI','CBBTC','WBTC','BTC'
-      ]);
-      const isInfra = (sym) => INFRA_SYMBOLS.has((sym || '').toUpperCase());
-
-      // Build universes in priority order
-      const nonInfra = allTokenData.filter(t => !isInfra(t.symbol));
-      const tradeUniverse = nonInfra.filter(t => !(t.isAirdrop)); // allow small trades
-      const pool = tradeUniverse.length > 0 ? tradeUniverse
-                  : nonInfra.length > 0 ? nonInfra
-                  : allTokenData;
-let biggestWin = null;
+      let biggestWin = null;
       let biggestLoss = null;
-      pool.forEach(token => {
+      allTokenData.forEach(token => {
         if(token.realizedProfitUsd > 0) { if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token; }
         if(token.realizedProfitUsd < 0) { if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token; }
       });
@@ -2282,7 +2199,7 @@ let biggestWin = null;
              const rawUsd = p.usdPrice ?? p.usd_price ?? p.usdPriceFormatted;
              if(addr && parseFloat(rawUsd) > 0) priceMap.set(addr, parseFloat(rawUsd));
           });
-          nonInfra.forEach((t) => {
+          allTokenData.forEach((t) => {
             if (!t.tokenAddress || !t.totalTokensSold) return;
             const priceUsd = priceMap.get(t.tokenAddress);
             if (!priceUsd) return;
@@ -2291,7 +2208,10 @@ let biggestWin = null;
             if (missedUpsideUsd > 0) {
                 totalFumbledAmount += missedUpsideUsd;
                 if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) {
-                    biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens, currentPriceUsd: priceUsd };
+                    biggestFumbleToken 
+  // Score bonus scales with badge levels
+  const scoreBonusTotal = Object.values(mintCounts || {}).reduce((a, b) => a + Number(b||0), 0);
+= { ...t, missedUpsideUsd, currentValueSoldTokens, currentPriceUsd: priceUsd };
                 }
             }
           });
@@ -2306,6 +2226,11 @@ let biggestWin = null;
   };
 
   useEffect(() => {
+
+  useEffect(() => {
+    if (!primaryWallet) return;
+    try { setMintCounts(loadMintCounts(primaryWallet)); } catch {}
+  }, [primaryWallet]);
     const initialize = async () => {
       try {
         console.log('[INIT] Starting app initialization');
@@ -2346,7 +2271,7 @@ let biggestWin = null;
           // Fetch data for the selected scope (All or Single)
           const initialAddresses = defaultScope === 'all' ? allEth : [resolvedPrimary];
           if (initialAddresses.length > 0) {
-            await checkTokenGateAny(initialAddresses);
+            await checkTokenGate(resolvedPrimary);
             // Always fetch real PNL data - gate just controls visibility (blurring)
             await fetchPNLData(initialAddresses);
           }
@@ -2381,19 +2306,10 @@ let biggestWin = null;
   const handleRetryGate = () => {
     setCheckingGate(true);
     if (wallets.length > 0) {
-       const addresses = activeScope === 'all' ? wallets : [primaryWallet || wallets[0]];
-       checkTokenGateAny(addresses).then((hasAccess) => { if (hasAccess) fetchPNLData(addresses); });
+       const target = primaryWallet || wallets[0];
+       checkTokenGate(target).then((hasAccess) => { if(hasAccess) fetchPNLData([target]); });
     }
   };
-
-  // Score bonus from minted badges
-  const scoreBonusTotal = (() => {
-    try {
-      const defs = getAllBadges(pnlData?.summary || {});
-      const claimed = new Set(claimedBadges || []);
-      return defs.filter(d => claimed.has(d.type)).reduce((acc, d) => acc + (d.scoreBonus || 0), 0);
-    } catch { return 0; }
-  })();
 
   const renderGatedOverlay = () => (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
@@ -2579,7 +2495,7 @@ let biggestWin = null;
 
 {/* RANK CARD FIRST - Share immediately visible */}
         {!isGated && activeTab !== 'lore' && pnlData?.summary && (
-          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} scoreBonus={scoreBonusTotal} />
         )}
 
         {/* --- MAIN CONTENT SWITCH --- */}
