@@ -358,11 +358,11 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
       flexDirection: 'column',
       alignItems: 'stretch',
       gap: '4px', 
-      padding: '10px 12px', 
-      borderRadius: '10px', 
+      padding: `${ds.space.xs} ${ds.space.sm}`, 
+      borderRadius: ds.radius.md, 
       border: `1px solid ${isClaimed ? colors.mintBorder : isLocked ? '#e5e7eb' : colors.border}`, 
       background: isClaimed ? colors.mintBg : isLocked ? '#f9fafb' : '#fff', 
-      fontSize: '11px', 
+      fontSize: ds.text.sm, 
       fontWeight: '600', 
       color: isClaimed ? colors.mint : isLocked ? colors.muted : colors.ink,
       opacity: isLocked ? 0.7 : 1,
@@ -371,15 +371,14 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '14px' }}>{icon}</span> 
+          <span style={{ fontSize: ds.text.md }}>{icon}</span> 
           <span>{label}</span>
         </div>
-        {isClaimed && <span style={{ fontSize: '10px', color: colors.mint }}>✓ Minted</span>}
-        {isLocked && <span style={{ fontSize: '10px' }}>🔒</span>}
+        {isClaimed && <span style={{ fontSize: ds.text.xs, color: colors.mint }}>✓ Minted</span>}
+        {isLocked && <span style={{ fontSize: ds.text.xs }}>🔒</span>}
       </div>
       
-      {/* Show requirement and current value */}
-      <div style={{ fontSize: '9px', color: colors.muted, fontWeight: '400' }}>
+      <div style={{ fontSize: ds.text.xs, color: colors.muted, fontWeight: '400' }}>
         {isLocked ? (
           <span>Need: {requirement}</span>
         ) : (
@@ -387,19 +386,18 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
         )}
       </div>
       
-      {/* Mint button */}
       {canClaim && !isLocked && !isClaimed && (
         <button 
           onClick={() => onClaim(badgeType)}
           disabled={isClaiming}
           style={{
             marginTop: '4px',
-            padding: '6px 10px',
-            borderRadius: '6px',
+            padding: `6px ${ds.space.xs}`,
+            borderRadius: ds.radius.sm,
             border: 'none',
             background: colors.mint,
             color: '#fff',
-            fontSize: '10px',
+            fontSize: ds.text.xs,
             fontWeight: '600',
             cursor: 'pointer',
             textTransform: 'uppercase',
@@ -410,15 +408,14 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
         </button>
       )}
       
-      {/* Minted state */}
       {isClaimed && (
         <div style={{
             marginTop: '4px',
-            padding: '6px 10px',
-            borderRadius: '6px',
+            padding: `6px ${ds.space.xs}`,
+            borderRadius: ds.radius.sm,
             background: 'rgba(34, 197, 94, 0.1)',
             color: colors.mint,
-            fontSize: '10px',
+            fontSize: ds.text.xs,
             fontWeight: '600',
             textAlign: 'center',
             textTransform: 'uppercase',
@@ -2510,19 +2507,19 @@ const renderGatedOverlay = () => (
 {/* Tabs: Stats / Airdrops / Badges / Lore */}
         {/* Tabs: Stats / Airdrops / Badges / Lore */}
 {!isGated && pnlData?.summary && (
-  <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', width: '100%' }}>
+  <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.md, width: '100%' }}>
     {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
       <button
         key={tab}
         onClick={() => setActiveTab(tab)}
         style={{
           flex: 1, minWidth: 0,
-          padding: '12px 2px',
-          borderRadius: '10px',
+          padding: `${ds.space.sm} 2px`,
+          borderRadius: ds.radius.md,
           border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
           background: activeTab === tab ? colors.accent : colors.panelBg,
           color: activeTab === tab ? colors.pillText : colors.muted,
-          fontSize: '11px',
+          fontSize: ds.text.sm,
           fontWeight: '600',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
@@ -2600,16 +2597,16 @@ const renderGatedOverlay = () => (
             </div>
             
             {/* Token lists */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.sm }}>
               <button 
                 onClick={() => setTokenListView('wins')}
                 style={{ 
-                  padding: '8px 14px', 
-                  borderRadius: '999px', 
+                  padding: `${ds.space.xs} ${ds.space.sm}`, 
+                  borderRadius: ds.radius.pill, 
                   border: `1px solid ${tokenListView === 'wins' ? colors.accent : colors.border}`, 
                   background: tokenListView === 'wins' ? colors.accent : colors.panelBg, 
                   color: tokenListView === 'wins' ? '#fff' : colors.muted, 
-                  fontSize: '10px', 
+                  fontSize: ds.text.xs, 
                   textTransform: 'uppercase', 
                   letterSpacing: '0.12em', 
                   cursor: 'pointer',
@@ -2621,12 +2618,12 @@ const renderGatedOverlay = () => (
               <button 
                 onClick={() => setTokenListView('all')}
                 style={{ 
-                  padding: '8px 14px', 
-                  borderRadius: '999px', 
+                  padding: `${ds.space.xs} ${ds.space.sm}`, 
+                  borderRadius: ds.radius.pill, 
                   border: `1px solid ${tokenListView === 'all' ? colors.accent : colors.border}`, 
                   background: tokenListView === 'all' ? colors.accent : colors.panelBg, 
                   color: tokenListView === 'all' ? '#fff' : colors.muted, 
-                  fontSize: '10px', 
+                  fontSize: ds.text.xs, 
                   textTransform: 'uppercase', 
                   letterSpacing: '0.12em', 
                   cursor: 'pointer',
