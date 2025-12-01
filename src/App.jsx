@@ -1247,14 +1247,14 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
   return (
     <div
       style={{
-        background: '#ffffff',
+        background: '#f5f1e6',
         backgroundImage:
-          'radial-gradient(#f3f4f6 1px, transparent 1px)',
+          'radial-gradient(#e2dbc7 1px, transparent 1px)',
         backgroundSize: '18px 18px',
         borderRadius: '2px',
         padding: '24px',
-        color: '#1f2937',
-        border: '1px solid #e5e7eb',
+        color: '#111827',
+        border: '1px solid #e2dbc7',
         boxShadow:
           '0 10px 30px -12px rgba(15,23,42,0.3), 0 0 0 1px rgba(15,23,42,0.06)',
         fontFamily: "'Courier Prime', 'Courier New', monospace",
@@ -1500,7 +1500,7 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
                 color: '#6b7280',
               }}
             >
-              Largest holdings
+              Largest positions
             </div>
             <div
               style={{
@@ -2501,7 +2501,7 @@ export default function PNLTrackerApp() {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Trading Lore' : 'Badges'}
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Lore' : 'Badges'}
               </button>
             ))}
           </div>
