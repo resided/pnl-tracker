@@ -1322,7 +1322,6 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   );
 };
 
-
 // --- AUDIT REPORT CARD (Paper-style Lore share) ---
 const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss }) => {
   if (!user || !summary || !lore || !rank) return null;
@@ -1696,7 +1695,6 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
   );
 };
 
-
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
@@ -1723,7 +1721,6 @@ export default function PNLTrackerApp() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState(null);
   const [auditData, setAuditData] = useState(null);
-
 
   // Check which badges have already been minted by this user
   const checkMintedBadges = useCallback(async (userAddress) => {
@@ -2032,7 +2029,6 @@ export default function PNLTrackerApp() {
       setAuditLoading(false);
     }
   };
-
 
   const handleShareFumble = async () => {
     try {
