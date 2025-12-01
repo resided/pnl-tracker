@@ -319,7 +319,7 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
   const isLocked = !qualified;
   
   const ctaLabel = isClaimed ? 'Mint again' : `Mint NFT • +${scoreBonus}`;
-      const ctaLabel = isClaimed ? 'Mint again' : `Mint NFT • +${scoreBonus}`;
+
       return (
     <div style={{ 
       display: 'flex', 
