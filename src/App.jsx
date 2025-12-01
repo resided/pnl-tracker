@@ -2263,6 +2263,7 @@ export default function PNLTrackerApp() {
             if (missedUpsideUsd > 0) {
                 totalFumbledAmount += missedUpsideUsd;
                 if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) {
+                    biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens };
                 }
             }
           });
