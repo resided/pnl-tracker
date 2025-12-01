@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
-// NOW WITH: Badge Claiming (free mint, gas only) AND TRADING LORE
+// NOW WITH: Badge Claiming (free mint, gas only)
 
 // Auto-detect demo mode: true in development, false in production
 // Override with VITE_DEMO_MODE=true or VITE_DEMO_MODE=false
@@ -238,31 +238,31 @@ const getRankTitle = (percentile, profit, winRate) => {
   };
 };
 
-// --- LORE ENGINE ---
+// --- LORE ENGINE (NEW) ---
+// Analyzes stats to create a "Wingman" style persona
 const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
   if (!summary) return null;
   const { winRate, totalRealizedProfit, totalFumbled, totalTradingVolume } = summary;
-  const rank = calculatePercentile(summary);
   
   let archetype = "The NPC";
   let quote = "I trade, therefore I am.";
-  let color = "#94a3b8"; // Default slate
+  let color = "#64748b"; // Default slate
   
-  // Logic to determine Archetype & Color
-  if (rank.percentile >= 95) {
-    archetype = "God Candle Summoner";
-    quote = "I don't chase liquidity, I am the liquidity.";
+  // Logic to determine Archetype
+  if (totalRealizedProfit > 50000) {
+    archetype = "The Based God";
+    quote = "I don't chase pumps, I create them.";
     color = "#EAB308"; // Gold
-  } else if (rank.percentile >= 80) {
-    archetype = "The Alpha Predator";
+  } else if (totalRealizedProfit > 10000) {
+    archetype = "The Alpha Hunter";
     quote = "Up only. Everything else is noise.";
-    color = "#10b981"; // Emerald
-  } else if (winRate > 65) {
+    color = "#22c55e"; // Green
+  } else if (winRate > 70) {
     archetype = "The Sniper";
     quote = "One shot, one kill. No wasted gas.";
     color = "#06b6d4"; // Cyan
   } else if (totalFumbled > 20000) {
-    archetype = "Paper Handed King";
+    archetype = "The Paper Handed King";
     quote = "I sell the bottom so you can buy.";
     color = "#f97316"; // Orange
   } else if (totalRealizedProfit < -5000) {
@@ -276,22 +276,22 @@ const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
   } else {
     archetype = "The Grinder";
     quote = "Slow and steady loses the race, but I'm still running.";
-    color = "#64748b"; // Slate
+    color = "#94a3b8"; // Slate
   }
 
-  // Habits based on data
+  // Generate Habits based on data
   const habits = [
-    biggestWin ? `LEGENDARY ENTRY: $${biggestWin.symbol}` : "NO BIG WINS YET",
-    biggestLoss ? `DONATED TO: $${biggestLoss.symbol}` : "RISK MANAGER",
-    `WIN RATE: ${winRate.toFixed(1)}%`,
-    totalFumbled > 1000 ? `FUMBLED: $${formatNumber(totalFumbled)}` : "DIAMOND HANDS"
+    biggestWin ? `Legendary entry on $${biggestWin.symbol}` : "Still looking for a big win",
+    biggestLoss ? `Donated heavily to the $${biggestLoss.symbol} community` : "Risk management expert",
+    totalFumbled > 1000 ? `Allergic to holding winners (Missed $${formatNumber(totalFumbled)})` : "Diamond hands activated",
+    `Win Rate: ${winRate.toFixed(1)}% (${winRate > 50 ? 'Better than a coin flip' : 'Inverse me'})`
   ];
 
-  const topBags = [...tokens].sort((a,b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 3);
+  // Top Bags (Most volume)
+  const topBags = [...tokens].sort((a,b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 4);
 
-  return { archetype, quote, color, habits, topBags, score: rank.percentile, emoji: rank.emoji };
+  return { archetype, quote, color, habits, topBags };
 };
-
 
 // Styles
 const colors = {
@@ -416,160 +416,12 @@ const InfoPanel = ({ isVisible, onClose }) => {
   );
 };
 
-// --- NEW COMPONENT: LORE CARD (WINGMAN STYLE) ---
-const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) => {
-  const lore = generateLore(summary, tokens, biggestWin, biggestLoss);
-  if (!lore) return null;
-
-  return (
-    <div style={{
-      background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)', // Dark "Matrix" vibes
-      borderRadius: '24px',
-      padding: '24px',
-      color: '#fff',
-      border: `1px solid ${lore.color}`, // Dynamic border based on rank
-      boxShadow: `0 0 20px -5px ${lore.color}40`, // Colored glow
-      fontFamily: 'monospace', // Tech/Hacker font vibe
-      position: 'relative',
-      overflow: 'hidden',
-      marginBottom: '24px'
-    }}>
-      {/* Decorative Grid Background */}
-      <div style={{ 
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
-        backgroundImage: 'radial-gradient(#ffffff10 1px, transparent 1px)', 
-        backgroundSize: '20px 20px', opacity: 0.3, pointerEvents: 'none' 
-      }}></div>
-
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        
-        {/* Header: Avatar & Handle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <div style={{ position: 'relative' }}>
-            <img src={user?.pfpUrl} style={{ width: '52px', height: '52px', borderRadius: '16px', border: `2px solid ${lore.color}` }} />
-            {/* Floating Emoji Badge */}
-            <div style={{ 
-              position: 'absolute', bottom: '-6px', right: '-6px', 
-              background: '#0f172a', borderRadius: '50%', 
-              padding: '4px', border: `1px solid ${lore.color}`,
-              fontSize: '16px', lineHeight: 1
-            }}>
-              {lore.emoji}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '800', fontFamily: 'system-ui', lineHeight: '1.2', letterSpacing: '-0.02em' }}>{user?.displayName}</div>
-            <div style={{ fontSize: '12px', color: lore.color, opacity: 0.9, letterSpacing: '0.05em' }}>@{user?.username}</div>
-          </div>
-        </div>
-
-        {/* Hero: Score & Archetype */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
-          {/* Score Box */}
-          <div style={{ 
-            width: '120px', height: '120px', 
-            background: `rgba(15, 23, 42, 0.6)`, 
-            borderRadius: '24px', 
-            border: `2px solid ${lore.color}`,
-            boxShadow: `0 0 20px ${lore.color}40, inset 0 0 20px ${lore.color}20`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            marginBottom: '20px', backdropFilter: 'blur(10px)',
-            position: 'relative'
-          }}>
-            <div style={{ fontSize: '48px', fontWeight: '800', lineHeight: '1', textShadow: `0 0 15px ${lore.color}` }}>{lore.score}</div>
-            <div style={{ fontSize: '12px', opacity: 0.6, marginTop: '4px', letterSpacing: '0.1em' }}>/100</div>
-            {/* Status Indicator Dot */}
-            <div style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', borderRadius: '50%', background: lore.color, boxShadow: `0 0 8px ${lore.color}` }}></div>
-          </div>
-
-          <div style={{ 
-            fontSize: '24px', fontWeight: '900', textTransform: 'uppercase', 
-            textAlign: 'center', lineHeight: '1.1', color: '#fff',
-            textShadow: `0 2px 10px rgba(0,0,0,0.5), 0 0 20px ${lore.color}40`,
-            letterSpacing: '0.02em'
-          }}>
-            {lore.archetype}
-          </div>
-          <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#94a3b8', marginTop: '8px', textAlign: 'center', maxWidth: '280px', lineHeight: '1.4' }}>
-            "{lore.quote}"
-          </div>
-        </div>
-
-        {/* Stats HUD */}
-        <div style={{ 
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', 
-          background: `${lore.color}40`, padding: '1px', borderRadius: '16px', 
-          overflow: 'hidden', marginBottom: '24px' 
-        }}>
-          <div style={{ background: '#0f172a', padding: '16px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', opacity: 0.5, marginBottom: '4px', letterSpacing: '0.1em' }}>REALIZED</div>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: summary.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171' }}>
-              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
-            </div>
-          </div>
-          <div style={{ background: '#0f172a', padding: '16px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', opacity: 0.5, marginBottom: '4px', letterSpacing: '0.1em' }}>WIN RATE</div>
-            <div style={{ fontSize: '13px', fontWeight: '700' }}>{summary.winRate.toFixed(0)}%</div>
-          </div>
-          <div style={{ background: '#0f172a', padding: '16px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', opacity: 0.5, marginBottom: '4px', letterSpacing: '0.1em' }}>TRADES</div>
-            <div style={{ fontSize: '13px', fontWeight: '700' }}>{summary.totalTokensTraded}</div>
-          </div>
-        </div>
-
-        {/* Top Bags (Chips) */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '10px', opacity: 0.5, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center' }}>Heavy Bags</div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {lore.topBags.map((t, i) => (
-              <div key={i} style={{ 
-                background: '#1e293b', border: '1px solid #334155', 
-                borderRadius: '99px', padding: '6px 12px', 
-                display: 'flex', alignItems: 'center', gap: '6px',
-                fontSize: '11px', fontWeight: '700'
-              }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: lore.color }}></div>
-                {t.symbol}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Habits (Terminal) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontFamily: 'monospace' }}>
-          {lore.habits.map((habit, i) => (
-            <div key={i} style={{ 
-              fontSize: '10px', color: '#cbd5e1', 
-              background: 'rgba(255,255,255,0.03)', 
-              padding: '8px 12px', borderRadius: '4px', 
-              display: 'flex', gap: '8px', alignItems: 'center'
-            }}>
-              <span style={{ color: lore.color, fontWeight: 'bold' }}>{'>'}</span> {habit}
-            </div>
-          ))}
-        </div>
-
-        <button onClick={onShare} style={{ 
-          marginTop: '28px', width: '100%', padding: '16px', borderRadius: '14px', 
-          border: 'none', background: lore.color, color: '#0f172a',
-          fontSize: '13px', fontWeight: '900', cursor: 'pointer', 
-          textTransform: 'uppercase', letterSpacing: '0.15em',
-          boxShadow: `0 0 20px ${lore.color}50`
-        }}>
-          Share Lore
-        </button>
-
-      </div>
-    </div>
-  );
-};
-
 // --- UPDATED RANK CARD (WITH GRADIENT BADGE) ---
 const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
   const topPercent = 100 - rank.percentile;
-  const score = rank.percentile; 
+  const score = rank.percentile; // Use percentile as the 0-100 score
   
   // Dynamic colors based on rank
   const getBgGradient = () => {
@@ -580,7 +432,7 @@ const RankCard = ({ summary, onShare }) => {
     return 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'; // Red
   };
   
-  // NEW: Exciting Gradient Badges
+  // NEW: Exciting Badge Styles
   const getBadgeStyle = () => {
     // Elite / Top 1% - Gold/Diamond Gradient
     if (rank.percentile >= 95) return {
@@ -737,6 +589,370 @@ const RankCard = ({ summary, onShare }) => {
   );
 };
 
+// --- IMPROVED LORE COMPONENT WITH SCORE RING ---
+const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) => {
+  const lore = generateLore(summary, tokens, biggestWin, biggestLoss);
+  const rank = calculatePercentile(summary); // USE the score system!
+  
+  if (!lore || !rank) return null;
+
+  const score = rank.percentile;
+  const topPercent = 100 - score;
+  
+  // Score ring calculation (SVG arc)
+  const radius = 52;
+  const strokeWidth = 6;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (score / 100) * circumference;
+  const dashOffset = circumference - progress;
+
+  // Dynamic glow color based on score tier
+  const getScoreColor = () => {
+    if (score >= 95) return '#F59E0B'; // Gold
+    if (score >= 80) return '#22C55E'; // Green  
+    if (score >= 60) return '#3B82F6'; // Blue
+    if (score >= 40) return '#94A3B8'; // Slate
+    return '#EF4444'; // Red
+  };
+  
+  const scoreColor = getScoreColor();
+
+  return (
+    <div style={{
+      background: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 100%)',
+      borderRadius: '24px',
+      padding: '28px 24px',
+      color: '#fff',
+      border: `1px solid ${lore.color}30`,
+      boxShadow: `0 0 60px -20px ${lore.color}40, inset 0 1px 0 rgba(255,255,255,0.05)`,
+      fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', monospace",
+      position: 'relative',
+      overflow: 'hidden',
+      marginBottom: '24px'
+    }}>
+      
+      {/* Subtle grid background */}
+      <div style={{ 
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+        backgroundImage: `
+          linear-gradient(${lore.color}05 1px, transparent 1px),
+          linear-gradient(90deg, ${lore.color}05 1px, transparent 1px)
+        `, 
+        backgroundSize: '32px 32px',
+        pointerEvents: 'none' 
+      }} />
+      
+      {/* Corner glow accent */}
+      <div style={{
+        position: 'absolute',
+        top: '-100px',
+        right: '-100px',
+        width: '300px',
+        height: '300px',
+        background: `radial-gradient(circle, ${lore.color}15 0%, transparent 70%)`,
+        pointerEvents: 'none'
+      }} />
+
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        
+        {/* Header: Avatar & Handle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
+          <div style={{ position: 'relative' }}>
+            <img 
+              src={user?.pfpUrl} 
+              alt=""
+              style={{ 
+                width: '52px', 
+                height: '52px', 
+                borderRadius: '50%', 
+                border: `2px solid ${lore.color}`,
+                boxShadow: `0 0 20px ${lore.color}40`
+              }} 
+            />
+            {/* Online indicator */}
+            <div style={{
+              position: 'absolute',
+              bottom: '2px',
+              right: '2px',
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: '#22C55E',
+              border: '2px solid #0a0a0f'
+            }} />
+          </div>
+          <div>
+            <div style={{ 
+              fontSize: '17px', 
+              fontWeight: '700', 
+              letterSpacing: '-0.02em', 
+              fontFamily: 'system-ui, -apple-system, sans-serif' 
+            }}>
+              {user?.displayName}
+            </div>
+            <div style={{ 
+              fontSize: '13px', 
+              color: lore.color, 
+              opacity: 0.9,
+              fontFamily: 'monospace'
+            }}>
+              @{user?.username}
+            </div>
+          </div>
+        </div>
+
+        {/* HERO: Score Ring + Archetype */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          
+          {/* Score Ring (SVG) */}
+          <div style={{ 
+            position: 'relative', 
+            width: '140px', 
+            height: '140px', 
+            margin: '0 auto 20px'
+          }}>
+            <svg 
+              width="140" 
+              height="140" 
+              style={{ transform: 'rotate(-90deg)' }}
+            >
+              {/* Background track */}
+              <circle
+                cx="70"
+                cy="70"
+                r={radius}
+                fill="none"
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth={strokeWidth}
+              />
+              {/* Progress arc */}
+              <circle
+                cx="70"
+                cy="70"
+                r={radius}
+                fill="none"
+                stroke={scoreColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={dashOffset}
+                style={{
+                  filter: `drop-shadow(0 0 8px ${scoreColor}80)`,
+                  transition: 'stroke-dashoffset 0.8s ease-out'
+                }}
+              />
+            </svg>
+            
+            {/* Score number in center */}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                fontSize: '36px', 
+                fontWeight: '800', 
+                color: '#fff',
+                lineHeight: '1',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                textShadow: `0 0 30px ${scoreColor}60`
+              }}>
+                {score}
+              </div>
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'rgba(255,255,255,0.4)',
+                fontWeight: '500',
+                marginTop: '2px',
+                letterSpacing: '0.05em'
+              }}>
+                /100
+              </div>
+            </div>
+          </div>
+          
+          {/* Percentile badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: '99px',
+            background: `${scoreColor}20`,
+            border: `1px solid ${scoreColor}40`,
+            marginBottom: '16px'
+          }}>
+            <span style={{ fontSize: '11px', color: scoreColor, fontWeight: '600' }}>
+              TOP {topPercent}%
+            </span>
+            <span style={{ fontSize: '14px' }}>{rank.emoji}</span>
+          </div>
+          
+          {/* Archetype name */}
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '800', 
+            textTransform: 'uppercase', 
+            color: lore.color, 
+            textShadow: `0 0 30px ${lore.color}50`,
+            letterSpacing: '0.08em',
+            lineHeight: '1.1'
+          }}>
+            {lore.archetype}
+          </div>
+          
+          {/* Quote */}
+          <div style={{ 
+            fontSize: '12px', 
+            fontStyle: 'italic', 
+            marginTop: '10px', 
+            opacity: 0.7, 
+            maxWidth: '280px', 
+            margin: '10px auto 0',
+            lineHeight: '1.5'
+          }}>
+            "{lore.quote}"
+          </div>
+        </div>
+
+        {/* Stats Grid - Cleaner version */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1px 1fr 1px 1fr', 
+          gap: '0',
+          marginBottom: '24px',
+          background: 'rgba(255,255,255,0.03)',
+          padding: '18px 12px',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.06)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              fontSize: '18px', 
+              fontWeight: '700', 
+              color: summary.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171',
+              fontFamily: 'system-ui'
+            }}>
+              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
+            </div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
+              Realized
+            </div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'system-ui' }}>
+              {summary.winRate.toFixed(0)}%
+            </div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
+              Win Rate
+            </div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'system-ui' }}>
+              {summary.totalTokensTraded}
+            </div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
+              Tokens
+            </div>
+          </div>
+        </div>
+
+        {/* Top Bags */}
+        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: '9px', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.2em', 
+            marginBottom: '14px', 
+            opacity: 0.5 
+          }}>
+            Top Bags
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+            {lore.topBags.map((t, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                <div style={{ 
+                  width: '44px', 
+                  height: '44px', 
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                  color: '#fff',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontWeight: '700', 
+                  fontSize: '10px',
+                  border: `1px solid ${lore.color}40`,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                }}>
+                  {t.symbol.slice(0,4)}
+                </div>
+                <div style={{ fontSize: '9px', fontWeight: '600', opacity: 0.7 }}>{t.symbol}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Habits - More compact */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ 
+            fontSize: '9px', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.2em', 
+            textAlign: 'center', 
+            marginBottom: '10px', 
+            opacity: 0.5 
+          }}>
+            Trading Style
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {lore.habits.slice(0, 3).map((habit, i) => (
+              <div key={i} style={{ 
+                padding: '10px 14px', 
+                borderRadius: '10px', 
+                border: '1px solid rgba(255,255,255,0.08)', 
+                background: 'rgba(255,255,255,0.02)',
+                fontSize: '11px', 
+                textAlign: 'center',
+                lineHeight: '1.4'
+              }}>
+                {habit}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Share button - Premium feel */}
+        <button 
+          onClick={onShare} 
+          style={{ 
+            width: '100%', 
+            padding: '16px', 
+            borderRadius: '14px', 
+            border: 'none', 
+            background: `linear-gradient(135deg, ${lore.color} 0%, ${lore.color}cc 100%)`,
+            color: '#000',
+            fontSize: '12px', 
+            fontWeight: '800', 
+            cursor: 'pointer', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.12em',
+            boxShadow: `0 8px 24px ${lore.color}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+          }}
+        >
+          Share My Lore
+        </button>
+
+      </div>
+    </div>
+  );
+};
+
 const TokenRow = ({ token }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -883,8 +1099,8 @@ const getAllBadges = (summary) => {
       label: 'Exit Liquidity', 
       type: BADGE_TYPES.EXIT_LIQUIDITY,
       qualified: winRate < 40 && tokens > 5,
-      requirement: 'Win Rate < 40%',
-      current: `${winRate.toFixed(1)}%`
+      requirement: 'Win Rate < 40% & 5+ tokens',
+      current: `${winRate.toFixed(1)}%, ${tokens} tokens`
     },
     { 
       icon: '🐋', 
@@ -1711,7 +1927,7 @@ export default function PNLTrackerApp() {
       {isGated && renderGatedOverlay()}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
         
-        {/* Header */}
+        {/* Compact Header */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1.5px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '600' }}>Ψ</div>
@@ -1776,8 +1992,13 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        {/* MAIN CONTENT SWITCH: Lore vs Rank Card */}
-        {!isGated && activeTab === 'lore' && pnlData?.summary ? (
+        {/* RANK CARD FIRST - Share immediately visible */}
+        {!isGated && activeTab !== 'lore' && pnlData?.summary && (
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+        )}
+
+        {/* --- MAIN CONTENT SWITCH --- */}
+        {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <LoreCard 
             summary={pnlData.summary} 
             tokens={tokens} 
@@ -1786,13 +2007,6 @@ export default function PNLTrackerApp() {
             biggestLoss={biggestLoss} 
             onShare={handleSharePnL} 
           />
-        ) : (
-          <>
-            {/* RANK CARD FIRST - Share immediately visible */}
-            {!isGated && pnlData?.summary && (
-              <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
-            )}
-          </>
         )}
 
         {/* Tabs: Stats / Airdrops / Badges / Lore */}
@@ -1860,25 +2074,7 @@ export default function PNLTrackerApp() {
             
             {/* Token lists */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              {['overview', 'tokens'].map((subtab) => (
-                <button 
-                  key={subtab} 
-                  onClick={() => setActiveTab(subtab === 'overview' ? 'stats' : 'all')} 
-                  style={{ 
-                    padding: '8px 14px', 
-                    borderRadius: '999px', 
-                    border: `1px solid ${colors.border}`, 
-                    background: colors.panelBg, 
-                    color: colors.muted, 
-                    fontSize: '10px', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.12em', 
-                    cursor: 'pointer' 
-                  }}
-                >
-                  {subtab === 'overview' ? 'Top Wins' : 'All Sold'}
-                </button>
-              ))}
+              <button style={{ padding: '8px 14px', borderRadius: '999px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.muted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', cursor: 'pointer' }}>Top Wins</button>
             </div>
             {pnlData?.tokens && (
               <Panel title="Best Performers" subtitle="Realized gains">
@@ -1930,4 +2126,22 @@ export default function PNLTrackerApp() {
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
         {!isGated && (
           <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '20px', opacity: 0.6 }}>
-             <div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</di
+             <div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
+          </div>
+        )}
+
+        {/* Gated content blur */}
+        {isGated && (biggestWin || biggestLoss || biggestFumble) && (
+          <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
+            <Panel title="Highlights" subtitle="From sold tokens">
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+              </div>
+            </Panel>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
