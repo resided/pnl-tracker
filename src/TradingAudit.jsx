@@ -1,546 +1,559 @@
-import React, { useState, useEffect } from 'react';
+// TradingAudit.jsx
+import React from 'react';
 
-// TRADING AUDIT by Trident LLC
-// Official audit letter format - viral shareable trading report
+// viral trading scorecard
 
-const TradingAudit = ({ 
-  pnlData, 
-  user, 
-  percentileData,
-  auditNarrative
-}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
+const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
+  if (!pnlData || !pnlData.summary) return null;
 
-  const summary = pnlData?.summary || {};
-  const tokens = pnlData?.tokens || [];
-  const biggestWin = pnlData?.biggestWin;
-  const biggestLoss = pnlData?.biggestLoss;
-  const biggestFumble = pnlData?.biggestFumble;
+  const { summary, tokens = [], biggestWin, biggestLoss, biggestFumble } = pnlData;
 
-  const userName = user?.displayName || user?.username || 'Subject';
-  const walletAddress = user?.wallet || '0x7a3b...4f2d';
-  const score = percentileData?.percentile || 50;
-  const archetype = percentileData?.title || 'Trader';
+  const score = percentileData?.percentile ?? 50;
+  const rankTitle = percentileData?.title ?? 'Trader';
+  const rankEmoji = percentileData?.emoji ?? '📊';
+  const rankVibe = percentileData?.vibe ?? 'Holding steady';
+  const rankCallout = percentileData?.callout ?? 'Middle of the pack on Base';
 
-  const formatCurrency = (val) => {
-    if (!val) return '$0';
-    const abs = Math.abs(val);
-    if (abs >= 1000000) return `$${(abs / 1000000).toFixed(2)}M`;
-    if (abs >= 1000) return `$${(abs / 1000).toFixed(1)}K`;
-    return `$${abs.toFixed(2)}`;
-  };
+  const grade = getGrade(score);
+  const handle = user?.username ? `@${user.username}` : 'Unnamed trader';
+  const displayName = user?.displayName || user?.username || 'Anon';
+  const walletAddress = user?.wallet || '';
+  const shortWallet = walletAddress ? truncateAddress(walletAddress) : '';
 
-  const formatDate = () => {
-    return new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', month: 'long', day: 'numeric' 
-    });
-  };
+  const realized = summary.totalRealizedProfit ?? 0;
+  const volume = summary.totalTradingVolume ?? 0;
+  const winRate = typeof summary.winRate === 'number' ? summary.winRate.toFixed(1) : summary.winRate;
+  const fumbled = summary.totalFumbled ?? 0;
+  const tokensTraded = summary.totalTokensTraded ?? tokens.length ?? 0;
 
-  // Derived stats
-  const isProfit = (summary.totalRealizedProfit || 0) >= 0;
-  const winCount = tokens.filter(t => t.isProfitable).length;
-  const lossCount = tokens.filter(t => !t.isProfitable).length;
-  
-  // Top traded tokens by volume
-  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH'];
-  const topTokens = [...tokens]
-    .filter(t => !ignoreList.includes(t.symbol))
-    .sort((a, b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0))
-    .slice(0, 5);
+  // Simple “topics” based on your metrics for screenshot-friendly chips
+  const topics = buildTopics({ summary, tokens, biggestWin, biggestLoss, biggestFumble });
 
-  // Extended metrics (use real data or smart defaults)
-  const metrics = {
-    longestHold: summary.longestHold || '47 days',
-    shortestHold: summary.shortestHold || '2 min',
-    avgHoldTime: summary.avgHoldTime || '18 hrs',
-    avgPositionSize: summary.avgPositionSize || (summary.totalTradingVolume / (summary.totalTokensTraded || 1)),
-    bestDay: summary.bestDay || '+$2,847',
-    worstDay: summary.worstDay || '-$1,203',
-    peakDayOfWeek: summary.peakDayOfWeek || 'Tuesday',
-    mostActiveHour: summary.mostActiveHour || '2-4 AM',
-    firstTrade: summary.firstTrade || 'Mar 2024',
-    totalTrades: summary.totalTrades || (summary.totalTokensTraded || 0) * 3,
-    winStreak: summary.winStreak || 4,
-    lossStreak: summary.lossStreak || 6,
-    avgWin: summary.avgWin || (tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0) / (winCount || 1)),
-    avgLoss: summary.avgLoss || (tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0) / (lossCount || 1)),
-    mostTradedToken: summary.mostTradedToken || topTokens[0]?.symbol || 'DEGEN',
-    uniqueTokens: summary.totalTokensTraded || tokens.length,
-    profitFactor: summary.profitFactor || (Math.abs(tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0)) / Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0) || 1)).toFixed(2),
-    riskRewardRatio: summary.riskRewardRatio || '1:1.3',
-    diamondHandsScore: summary.diamondHandsScore || Math.min(100, Math.floor((parseFloat(metrics?.longestHold) || 10) * 2)),
-  };
+  const bestLabel = biggestWin?.symbol || biggestWin?.name;
+  const worstLabel = biggestLoss?.symbol || biggestLoss?.name;
+  const fumbleLabel = biggestFumble?.symbol || biggestFumble?.name;
 
-  const getScoreColor = (s) => {
-    if (s >= 80) return '#22c55e';
-    if (s >= 60) return '#3b82f6';
-    if (s >= 40) return '#f59e0b';
-    if (s >= 20) return '#f97316';
-    return '#ef4444';
-  };
-
-  const getGrade = (s) => {
-    if (s >= 90) return 'A+';
-    if (s >= 80) return 'A';
-    if (s >= 70) return 'B+';
-    if (s >= 60) return 'B';
-    if (s >= 50) return 'C+';
-    if (s >= 40) return 'C';
-    if (s >= 30) return 'D';
-    return 'F';
-  };
-
-  const scoreColor = getScoreColor(score);
-
-  // Trading behaviors
-  const generateBehaviors = () => {
-    const behaviors = [];
-    const { winRate, totalFumbled, totalTokensTraded, totalTradingVolume } = summary;
-    
-    if (winRate > 60) behaviors.push({ text: 'Above-average entry timing and position selection', type: 'positive' });
-    else if (winRate < 35) behaviors.push({ text: 'Consistently buying local tops (needs review)', type: 'negative' });
-    
-    if (totalFumbled > 5000) behaviors.push({ text: `Early profit-taking behavior (${formatCurrency(totalFumbled)} left unrealized)`, type: 'warning' });
-    
-    if (totalTokensTraded > 40) behaviors.push({ text: 'High-frequency rotation across multiple assets', type: 'neutral' });
-    else if (totalTokensTraded < 10) behaviors.push({ text: 'Concentrated position strategy with limited diversification', type: 'neutral' });
-    
-    if (metrics.lossStreak > 5) behaviors.push({ text: `Tilt risk detected: ${metrics.lossStreak} consecutive losses recorded`, type: 'negative' });
-    if (metrics.winStreak > 5) behaviors.push({ text: `Hot streak: ${metrics.winStreak} consecutive wins achieved`, type: 'positive' });
-    
-    if (biggestWin?.realizedProfitUsd > 1000) behaviors.push({ text: `Demonstrated ability to capture outsized gains ($${biggestWin.symbol})`, type: 'positive' });
-    if (biggestLoss?.realizedProfitUsd < -1000) behaviors.push({ text: `Risk management concerns on losing positions ($${biggestLoss.symbol})`, type: 'negative' });
-    
-    return behaviors.slice(0, 5);
-  };
-
-  const behaviors = generateBehaviors();
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 
   return (
-    <div style={{
-      background: '#0a0f0d',
-      color: '#e2e8e4',
-      borderRadius: '16px',
-      overflow: 'hidden',
-      fontFamily: "'JetBrains Mono', monospace"
-    }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
-        
-        .audit-card {
-          background: linear-gradient(180deg, #0f1512 0%, #0a0f0d 100%);
-          border: 1px solid #1a2420;
-          max-width: 420px;
-          width: 100%;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        
-        .serif { font-family: 'Crimson Pro', Georgia, serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        .section-divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent 0%, #2a3830 50%, transparent 100%);
-          margin: 20px 0;
-        }
-        
-        .stat-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        
-        .stat-grid-3 {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 12px;
-        }
-        
-        .stat-box {
-          padding: 12px;
-          background: #0d1210;
-          border: 1px solid #1a2420;
-          border-radius: 4px;
-        }
-        
-        .stat-box-sm {
-          padding: 10px;
-          background: #0d1210;
-          border: 1px solid #1a2420;
-          border-radius: 4px;
-          text-align: center;
-        }
-        
-        .behavior-item {
-          padding: 10px 12px;
-          margin-bottom: 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          line-height: 1.5;
-        }
-        
-        .behavior-positive { background: #052e1620; border-left: 2px solid #22c55e; color: #86efac; }
-        .behavior-negative { background: #450a0a20; border-left: 2px solid #ef4444; color: #fca5a5; }
-        .behavior-warning { background: #42200620; border-left: 2px solid #f59e0b; color: #fcd34d; }
-        .behavior-neutral { background: #1a242020; border-left: 2px solid #3b5249; color: #94a3b8; }
-        
-        .token-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 0;
-          border-bottom: 1px solid #1a2420;
-        }
-        
-        .token-row:last-child { border-bottom: none; }
-        
-        .metric-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 8px 0;
-          border-bottom: 1px solid #1a242050;
-          font-size: 11px;
-        }
-        
-        .metric-row:last-child { border-bottom: none; }
-        
-        .metric-label { color: #3b5249; }
-        .metric-value { color: #e2e8e4; font-weight: 500; }
-        
-        .watermark {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(-30deg);
-          font-size: 72px;
-          font-weight: 700;
-          opacity: 0.02;
-          pointer-events: none;
-          white-space: nowrap;
-        }
-      `}</style>
-      
-      <div style={{ 
-        background: 'linear-gradient(180deg, #0f1512 0%, #0a0f0d 100%)',
-        border: '1px solid #1a2420',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        position: 'relative'
-      }}>
-        <div className="watermark mono">TRIDENT</div>
-        
-        {/* Letterhead */}
-        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #1a2420' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '0.15em', color: '#4ade80', marginBottom: '2px' }}>
-                TRIDENT
-              </div>
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em' }}>
-                TRADING AUDIT SERVICES
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.05em' }}>
-                AUDIT #{Math.floor(Math.random() * 90000) + 10000}
-              </div>
-              <div style={{ fontSize: '9px', color: '#3b5249', marginTop: '2px' }}>
-                {formatDate()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Subject Header */}
-        <div style={{ padding: '20px 24px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '8px' }}>SUBJECT</div>
-          <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '4px' }}>{userName}</div>
-          <div style={{ fontSize: '10px', color: '#3b5249', fontFamily: 'monospace' }}>
-            {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}
-          </div>
-          <div style={{ fontSize: '9px', color: '#3b5249', marginTop: '8px' }}>
-            Trading since {metrics.firstTrade} • {metrics.totalTrades} total transactions
-          </div>
-        </div>
-
-        {/* Score & Grade */}
-        <div style={{ 
-          padding: '24px',
-          background: '#0d1210',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderTop: '1px solid #1a2420',
-          borderBottom: '1px solid #1a2420'
-        }}>
-          <div>
-            <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '8px' }}>PERFORMANCE SCORE</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{ fontSize: '48px', fontWeight: '700', color: scoreColor }}>{score}</span>
-              <span style={{ fontSize: '14px', color: '#3b5249' }}>/100</span>
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '36px', fontWeight: '700', color: scoreColor, lineHeight: 1 }}>{getGrade(score)}</div>
-            <div style={{ fontSize: '9px', color: '#3b5249', marginTop: '4px', letterSpacing: '0.1em' }}>GRADE</div>
-          </div>
-        </div>
-
-        {/* P&L Summary */}
-        <div style={{ padding: '20px 24px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '16px' }}>PROFIT & LOSS SUMMARY</div>
-          
-          <div className="stat-grid">
-            <div className="stat-box">
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '6px' }}>REALIZED P&L</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: isProfit ? '#4ade80' : '#f87171' }}>
-                {isProfit ? '+' : ''}{formatCurrency(summary.totalRealizedProfit)}
-              </div>
-            </div>
-            <div className="stat-box">
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '6px' }}>VOLUME TRADED</div>
-              <div style={{ fontSize: '20px', fontWeight: '700' }}>{formatCurrency(summary.totalTradingVolume)}</div>
-            </div>
-            <div className="stat-box">
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '6px' }}>WIN RATE</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: (summary.winRate || 0) >= 50 ? '#4ade80' : '#f87171' }}>
-                {(summary.winRate || 0).toFixed(1)}%
-              </div>
-            </div>
-            <div className="stat-box">
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '6px' }}>RECORD</div>
-              <div style={{ fontSize: '20px', fontWeight: '700' }}>
-                <span style={{ color: '#4ade80' }}>{winCount}</span>
-                <span style={{ color: '#3b5249' }}> - </span>
-                <span style={{ color: '#f87171' }}>{lossCount}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Hold Time Analysis */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '16px' }}>HOLD TIME ANALYSIS</div>
-          
-          <div className="stat-grid-3">
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '16px', fontWeight: '600', color: '#22c55e' }}>{metrics.longestHold}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px', letterSpacing: '0.05em' }}>LONGEST</div>
-            </div>
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '16px', fontWeight: '600' }}>{metrics.avgHoldTime}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px', letterSpacing: '0.05em' }}>AVERAGE</div>
-            </div>
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '16px', fontWeight: '600', color: '#f87171' }}>{metrics.shortestHold}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px', letterSpacing: '0.05em' }}>SHORTEST</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Performance Metrics */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '12px' }}>PERFORMANCE METRICS</div>
-          
-          <div className="metric-row">
-            <span className="metric-label">Avg Position Size</span>
-            <span className="metric-value">{formatCurrency(metrics.avgPositionSize)}</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-label">Avg Win</span>
-            <span className="metric-value" style={{ color: '#4ade80' }}>+{formatCurrency(metrics.avgWin)}</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-label">Avg Loss</span>
-            <span className="metric-value" style={{ color: '#f87171' }}>{formatCurrency(metrics.avgLoss)}</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-label">Profit Factor</span>
-            <span className="metric-value">{metrics.profitFactor}x</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-label">Best Streak</span>
-            <span className="metric-value" style={{ color: '#4ade80' }}>{metrics.winStreak} wins</span>
-          </div>
-          <div className="metric-row">
-            <span className="metric-label">Worst Streak</span>
-            <span className="metric-value" style={{ color: '#f87171' }}>{metrics.lossStreak} losses</span>
-          </div>
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Activity Patterns */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '16px' }}>ACTIVITY PATTERNS</div>
-          
-          <div className="stat-grid">
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '14px', fontWeight: '600' }}>{metrics.peakDayOfWeek}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px' }}>MOST ACTIVE DAY</div>
-            </div>
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '14px', fontWeight: '600' }}>{metrics.mostActiveHour}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px' }}>PEAK HOURS</div>
-            </div>
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#4ade80' }}>{metrics.bestDay}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px' }}>BEST DAY</div>
-            </div>
-            <div className="stat-box-sm">
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#f87171' }}>{metrics.worstDay}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px' }}>WORST DAY</div>
-            </div>
-          </div>
-          
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-            <span style={{ color: '#3b5249' }}>Most Traded:</span>
-            <span style={{ color: '#e2e8e4', fontWeight: '500' }}>${metrics.mostTradedToken}</span>
-          </div>
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Key Metrics Row */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '16px' }}>SUMMARY STATS</div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'center' }}>
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#4ade80' }}>{metrics.uniqueTokens}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px' }}>TOKENS</div>
-            </div>
-            <div style={{ width: '1px', background: '#1a2420' }} />
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '600' }}>{summary.greenDays || Math.floor(winCount * 1.5) || 12}</div>
-              <div style={{ fontSize: '8px', color: '#4ade80', marginTop: '4px' }}>GREEN DAYS</div>
-            </div>
-            <div style={{ width: '1px', background: '#1a2420' }} />
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '600' }}>{summary.redDays || Math.floor(lossCount * 1.2) || 8}</div>
-              <div style={{ fontSize: '8px', color: '#f87171', marginTop: '4px' }}>RED DAYS</div>
-            </div>
-            <div style={{ width: '1px', background: '#1a2420' }} />
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#f59e0b' }}>{formatCurrency(summary.totalFumbled)}</div>
-              <div style={{ fontSize: '8px', color: '#3b5249', marginTop: '4px' }}>FUMBLED</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Top Positions */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '12px' }}>TOP POSITIONS BY VOLUME</div>
-          
-          {topTokens.map((token, i) => (
-            <div key={i} className="token-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#3b5249', width: '16px' }}>{i + 1}.</span>
-                <span style={{ fontSize: '12px', fontWeight: '500' }}>${token.symbol}</span>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: token.isProfitable ? '#4ade80' : '#f87171' }}>
-                  {token.isProfitable ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}
-                </div>
-                <div style={{ fontSize: '9px', color: '#3b5249' }}>{formatCurrency(token.totalUsdInvested)} in</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Behavioral Analysis */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '12px' }}>BEHAVIORAL ANALYSIS</div>
-          
-          {behaviors.map((b, i) => (
-            <div key={i} className={`behavior-item behavior-${b.type}`}>{b.text}</div>
-          ))}
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Notable Trades */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '12px' }}>NOTABLE TRADES</div>
-          
-          <div style={{ display: 'flex', gap: '12px' }}>
-            {biggestWin && (
-              <div style={{ flex: 1, padding: '12px', background: '#052e1620', borderRadius: '4px', border: '1px solid #16532420' }}>
-                <div style={{ fontSize: '9px', color: '#22c55e', letterSpacing: '0.1em', marginBottom: '6px' }}>BEST TRADE</div>
-                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>${biggestWin.symbol}</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#4ade80' }}>+{formatCurrency(biggestWin.realizedProfitUsd)}</div>
-              </div>
-            )}
-            {biggestLoss && (
-              <div style={{ flex: 1, padding: '12px', background: '#450a0a20', borderRadius: '4px', border: '1px solid #7f1d1d20' }}>
-                <div style={{ fontSize: '9px', color: '#ef4444', letterSpacing: '0.1em', marginBottom: '6px' }}>WORST TRADE</div>
-                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>${biggestLoss.symbol}</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#f87171' }}>{formatCurrency(biggestLoss.realizedProfitUsd)}</div>
+    <div style={outerWrap}>
+      <div style={card}>
+        {/* Header: avatar + handle + meta */}
+        <div style={headerRow}>
+          <div style={avatarWrap}>
+            {user?.pfpUrl ? (
+              <img
+                src={user.pfpUrl}
+                alt={displayName}
+                style={avatarImage}
+              />
+            ) : (
+              <div style={avatarFallback}>
+                {displayName.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
-          
-          {biggestFumble && biggestFumble.missedUpsideUsd > 500 && (
-            <div style={{ marginTop: '12px', padding: '12px', background: '#42200620', borderRadius: '4px', border: '1px solid #78350f20' }}>
-              <div style={{ fontSize: '9px', color: '#f59e0b', letterSpacing: '0.1em', marginBottom: '6px' }}>BIGGEST FUMBLE</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600' }}>${biggestFumble.symbol}</span>
-                <span style={{ fontSize: '14px', fontWeight: '700', color: '#fbbf24' }}>
-                  Missed {formatCurrency(biggestFumble.missedUpsideUsd)}
-                </span>
-              </div>
-              <div style={{ fontSize: '9px', color: '#92400e', marginTop: '4px' }}>Sold early, watched it moon</div>
-            </div>
-          )}
-        </div>
-
-        {/* AI Narrative */}
-        {auditNarrative && (
-          <>
-            <div className="section-divider" />
-            <div style={{ padding: '0 24px 20px' }}>
-              <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '12px' }}>AUDITOR'S NOTES</div>
-              <div className="serif" style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.7, fontStyle: 'italic' }}>
-                "{auditNarrative}"
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Classification Footer */}
-        <div style={{ padding: '20px 24px', background: '#0d1210', borderTop: '1px solid #1a2420', textAlign: 'center' }}>
-          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.15em', marginBottom: '8px' }}>CLASSIFICATION</div>
-          <div style={{ fontSize: '20px', fontWeight: '700', color: scoreColor, marginBottom: '4px' }}>{archetype}</div>
-          <div style={{ fontSize: '10px', color: '#3b5249' }}>Top {100 - score}% of traders on Base</div>
-        </div>
-
-        {/* Official Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #1a2420', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em' }}>TRIDENT LLC</div>
-            <div style={{ fontSize: '8px', color: '#1a2420', marginTop: '2px' }}>Trading Performance Auditors</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={displayNameStyle}>{displayName}</div>
+            <div style={handleStyle}>{handle}</div>
+            {shortWallet && (
+              <div style={walletStyle}>{shortWallet}</div>
+            )}
           </div>
-          <div style={{ fontSize: '9px', color: '#3b5249', padding: '6px 12px', border: '1px solid #1a2420', borderRadius: '4px' }}>
-            Get Your Audit →
+          <div style={headerMeta}>
+            <div style={headerMetaLabel}>TRADING REPORT</div>
+            <div style={headerMetaDate}>{formattedDate}</div>
           </div>
         </div>
-        
+
+        {/* Score + Archetype row */}
+        <div style={scoreRow}>
+          <div style={scoreTile}>
+            <div style={scoreGrade}>{grade}</div>
+            <div style={scoreOutOf}>{score}/100</div>
+            <div style={scoreLabel}>Trident Score</div>
+          </div>
+
+          <div style={personaBlock}>
+            <div style={personaLabel}>
+              {rankEmoji} {rankTitle}
+            </div>
+            <div style={personaVibe}>{rankVibe}</div>
+            <div style={personaCallout}>{rankCallout}</div>
+          </div>
+        </div>
+
+        {/* Narrative / Roast */}
+        <div style={narrativeBlock}>
+          <div style={narrativeLabel}>FROM THE AUDITOR</div>
+          <div style={narrativeText}>
+            {auditNarrative ||
+              getFallbackNarrative(summary, {
+                totalTrades: summary.totalTrades,
+                winRate,
+                fumbled
+              })}
+          </div>
+        </div>
+
+        {/* Stats strip: analogous to “casts / likes / recasts” */}
+        <div style={statsRow}>
+          <StatTile
+            label="Realized PnL"
+            value={formatSignedUsd(realized)}
+            emphasis={realized >= 0 ? 'good' : 'bad'}
+          />
+          <StatTile
+            label="Win Rate"
+            value={winRate ? `${winRate}%` : '—'}
+          />
+          <StatTile
+            label="Volume Traded"
+            value={formatCompactUsd(volume)}
+          />
+        </div>
+
+        {/* Second stats strip: streaks / fumbles */}
+        <div style={{ ...statsRow, marginTop: 10 }}>
+          <StatTile
+            label="Tokens Traded"
+            value={tokensTraded.toString()}
+          />
+          <StatTile
+            label="Fumbled Gains"
+            value={formatCompactUsd(fumbled, { signed: false })}
+            emphasis={fumbled > 0 ? 'warn' : undefined}
+          />
+          <StatTile
+            label="Best Bag"
+            value={bestLabel || 'TBD'}
+          />
+        </div>
+
+        {/* “Talking to” / “Topics” equivalent */}
+        <div style={topicsBlock}>
+          <div style={topicsLabel}>TRADING HABITS</div>
+          <div style={chipRow}>
+            {topics.map((t, i) => (
+              <div key={i} style={chip}>
+                {t}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={footerRow}>
+          <span style={footerLeft}>TRIDENT LLC · $PNL TRACKER</span>
+          <span style={footerRight}>Screenshot & cast your score →</span>
+        </div>
       </div>
     </div>
   );
 };
+
+// Small stat tile component
+const StatTile = ({ label, value, emphasis }) => {
+  const baseStyle = { ...statTile };
+  if (emphasis === 'good') {
+    baseStyle.background = '#ecfdf3';
+    baseStyle.borderColor = '#bbf7d0';
+    baseStyle.color = '#166534';
+  }
+  if (emphasis === 'bad') {
+    baseStyle.background = '#fef2f2';
+    baseStyle.borderColor = '#fecaca';
+    baseStyle.color = '#991b1b';
+  }
+  if (emphasis === 'warn') {
+    baseStyle.background = '#fffbeb';
+    baseStyle.borderColor = '#fef3c7';
+    baseStyle.color = '#92400e';
+  }
+
+  return (
+    <div style={baseStyle}>
+      <div style={statValue}>{value}</div>
+      <div style={statLabel}>{label}</div>
+    </div>
+  );
+};
+
+// --- Helpers ---------------------------------------------------
+
+function getGrade(score) {
+  if (score >= 95) return 'S';
+  if (score >= 85) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 55) return 'C';
+  if (score >= 35) return 'D';
+  return 'F';
+}
+
+function truncateAddress(addr) {
+  if (!addr || typeof addr !== 'string') return '';
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function formatSignedUsd(val) {
+  if (val === null || val === undefined || Number.isNaN(val)) return '$0';
+  const sign = val >= 0 ? '+' : '−';
+  const abs = Math.abs(val);
+  const formatted = abs.toLocaleString(undefined, {
+    maximumFractionDigits: abs >= 1000 ? 0 : 2,
+    minimumFractionDigits: abs >= 1000 ? 0 : 0
+  });
+  return `${sign}$${formatted}`;
+}
+
+function formatCompactUsd(val, opts = {}) {
+  if (val === null || val === undefined || Number.isNaN(val)) return '$0';
+  const signed = opts.signed ?? true;
+  const sign = !signed ? '' : val >= 0 ? '+' : '−';
+  const abs = Math.abs(val);
+
+  let num;
+  let suffix = '';
+  if (abs >= 1_000_000) {
+    num = (abs / 1_000_000).toFixed(1);
+    suffix = 'M';
+  } else if (abs >= 1_000) {
+    num = (abs / 1_000).toFixed(1);
+    suffix = 'K';
+  } else {
+    num = abs.toFixed(0);
+  }
+
+  return `${sign}$${num}${suffix}`;
+}
+
+function buildTopics({ summary, tokens, biggestWin, biggestLoss, biggestFumble }) {
+  const topics = [];
+
+  const profit = summary.totalRealizedProfit ?? 0;
+  const winRate = summary.winRate ?? 0;
+  const fumbled = summary.totalFumbled ?? 0;
+
+  if (profit > 20000) topics.push('Cycle survivor');
+  if (profit > 50000) topics.push('Exits in profit, not in cope');
+  if (profit < 0) topics.push('Liquidity donor in recovery');
+
+  if (winRate > 65) topics.push('High hit-rate entries');
+  if (winRate < 40) topics.push('Buys tops, sells vibes');
+
+  if (fumbled > 10_000) topics.push('Lets winners run… without them');
+  if (summary.totalTokensTraded > 20) topics.push('Touches every new ticker');
+  if (summary.totalTradingVolume > 100_000) topics.push('Size is not the issue');
+
+  if (biggestWin?.symbol) topics.push(`Prints on ${biggestWin.symbol}`);
+  if (biggestLoss?.symbol) topics.push(`Still mad at ${biggestLoss.symbol}`);
+  if (biggestFumble?.symbol) topics.push(`Early exit on ${biggestFumble.symbol}`);
+
+  // Deduplicate and cap
+  const unique = Array.from(new Set(topics));
+  if (unique.length === 0) return ['Perfectly mid, statistically normal'];
+  return unique.slice(0, 5);
+}
+
+// Very lightweight local fallback if auditNarrative is missing
+function getFallbackNarrative(summary, { totalTrades, winRate, fumbled }) {
+  const profit = summary?.totalRealizedProfit ?? 0;
+  const wr = typeof winRate === 'number' ? winRate : parseFloat(winRate || '0') || 0;
+  const fum = fumbled ?? 0;
+
+  if (profit > 10000 && wr > 55) {
+    return 'Consistently up only. Either genuinely skilled or running a suspiciously long heater.';
+  }
+  if (fum > profit * 2 && fum > 5000) {
+    return 'Finds winners early, then hands the final leg to everyone else like a charity.';
+  }
+  if (wr < 35 && profit < 0) {
+    return 'A reliable counter-indicator. Buys local tops with conviction, sells bottoms with precision.';
+  }
+  if (profit > 0 && profit < 1000) {
+    return 'Slightly green. In memecoins, not losing money is already above average.';
+  }
+  return 'Performance within normal parameters. Neither catastrophic nor legendary. Yet.';
+}
+
+// --- Styles ----------------------------------------------------
+
+const outerWrap = {
+  width: '100%',
+  display: 'flex',
+  justifyContent: 'center',
+  padding: '12px 0 24px'
+};
+
+const card = {
+  width: '100%',
+  maxWidth: 420,
+  borderRadius: 20,
+  background: '#020617',
+  border: '1px solid rgba(148, 163, 184, 0.35)',
+  boxShadow:
+    '0 18px 40px rgba(15, 23, 42, 0.55), inset 0 0 0 1px rgba(15, 23, 42, 0.8)',
+  padding: 18,
+  color: '#e5e7eb',
+  fontFamily:
+    '-apple-system, BlinkMacSystemFont, system-ui, San Francisco, Inter, sans-serif',
+  position: 'relative',
+  overflow: 'hidden'
+};
+
+const headerRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  marginBottom: 16
+};
+
+const avatarWrap = {
+  width: 44,
+  height: 44,
+  borderRadius: '999px',
+  padding: 2,
+  background:
+    'radial-gradient(circle at 0% 0%, #38bdf8, #1d4ed8 40%, #0f172a 100%)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+};
+
+const avatarImage = {
+  width: '100%',
+  height: '100%',
+  borderRadius: '999px',
+  objectFit: 'cover',
+  border: '1px solid rgba(15,23,42,0.5)'
+};
+
+const avatarFallback = {
+  width: '100%',
+  height: '100%',
+  borderRadius: '999px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#020617',
+  color: '#e5e7eb',
+  fontWeight: 700,
+  fontSize: 18
+};
+
+const displayNameStyle = {
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#f9fafb',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis'
+};
+
+const handleStyle = {
+  fontSize: 11,
+  color: '#22c55e'
+};
+
+const walletStyle = {
+  fontSize: 10,
+  color: '#64748b'
+};
+
+const headerMeta = {
+  textAlign: 'right',
+  fontSize: 10,
+  color: '#94a3b8'
+};
+
+const headerMetaLabel = {
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em',
+  fontWeight: 600
+};
+
+const headerMetaDate = {
+  marginTop: 2,
+  fontVariantNumeric: 'tabular-nums'
+};
+
+const scoreRow = {
+  display: 'flex',
+  gap: 14,
+  marginBottom: 14
+};
+
+const scoreTile = {
+  width: 112,
+  borderRadius: 16,
+  background:
+    'radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.15), rgba(15, 23, 42, 1))',
+  border: '1px solid rgba(148, 163, 184, 0.65)',
+  padding: 12,
+  textAlign: 'center',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center'
+};
+
+const scoreGrade = {
+  fontSize: 32,
+  fontWeight: 800,
+  letterSpacing: '0.04em',
+  fontFamily: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace'
+};
+
+const scoreOutOf = {
+  marginTop: 2,
+  fontSize: 11,
+  color: '#e5e7eb',
+  fontVariantNumeric: 'tabular-nums'
+};
+
+const scoreLabel = {
+  marginTop: 6,
+  fontSize: 9,
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
+  color: '#9ca3af'
+};
+
+const personaBlock = {
+  flex: 1,
+  minWidth: 0,
+  borderRadius: 16,
+  background: 'rgba(15, 23, 42, 0.9)',
+  border: '1px solid rgba(51, 65, 85, 0.9)',
+  padding: 12
+};
+
+const personaLabel = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: '#e5e7eb',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  marginBottom: 4
+};
+
+const personaVibe = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: '#f9fafb',
+  marginBottom: 4
+};
+
+const personaCallout = {
+  fontSize: 11,
+  color: '#9ca3af'
+};
+
+const narrativeBlock = {
+  borderRadius: 14,
+  background: '#020617',
+  border: '1px solid rgba(51, 65, 85, 0.9)',
+  padding: 12,
+  marginBottom: 14
+};
+
+const narrativeLabel = {
+  fontSize: 9,
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
+  color: '#6b7280',
+  marginBottom: 4
+};
+
+const narrativeText = {
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: '#e5e7eb'
+};
+
+const statsRow = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 8,
+  marginTop: 4
+};
+
+const statTile = {
+  borderRadius: 12,
+  border: '1px solid rgba(51, 65, 85, 0.85)',
+  background: 'rgba(15, 23, 42, 0.95)',
+  padding: '8px 10px',
+  textAlign: 'center',
+  minHeight: 48,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center'
+};
+
+const statValue = {
+  fontSize: 13,
+  fontWeight: 600,
+  fontVariantNumeric: 'tabular-nums'
+};
+
+const statLabel = {
+  marginTop: 2,
+  fontSize: 9,
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em',
+  color: '#9ca3af'
+};
+
+const topicsBlock = {
+  marginTop: 16,
+  marginBottom: 12
+};
+
+const topicsLabel = {
+  fontSize: 9,
+  textTransform: 'uppercase',
+  letterSpacing: '0.2em',
+  color: '#6b7280',
+  marginBottom: 6
+};
+
+const chipRow = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 6
+};
+
+const chip = {
+  fontSize: 10,
+  padding: '5px 8px',
+  borderRadius: 999,
+  background: 'rgba(30, 64, 175, 0.18)',
+  border: '1px solid rgba(59, 130, 246, 0.45)',
+  color: '#e5e7eb',
+  whiteSpace: 'nowrap'
+};
+
+const footerRow = {
+  borderTop: '1px solid rgba(30, 41, 59, 0.9)',
+  marginTop: 8,
+  paddingTop: 8,
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  fontSize: 9,
+  color: '#6b7280',
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em'
+};
+
+const footerLeft = {};
+const footerRight = {};
+
+// ---------------------------------------------------------------
 
 export default TradingAudit;
