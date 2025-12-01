@@ -2428,21 +2428,18 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        <style>{`
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-`}</style>
+        
 
 {/* Tabs: Stats / Airdrops / Badges / Lore */}
         {!isGated && pnlData?.summary && (
-          <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', width: '100%' }}>
             {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
               <button 
                 key={tab} 
                 onClick={() => setActiveTab(tab)} 
                 style={{ 
-                  flex: 1,
-                  padding: '12px', 
+                  flex: 1, minWidth: 0,
+                  padding: '12px 2px', 
                   borderRadius: '10px', 
                   border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
                   background: activeTab === tab ? colors.accent : colors.panelBg, 
