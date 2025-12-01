@@ -315,7 +315,7 @@ const Metric = ({ label, value, isPositive, isWarning }) => (
   </div>
 );
 
-const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current, level = 0 }) => {
+const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current }) => {
   const isLocked = !qualified;
   
   return (
@@ -340,7 +340,6 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
           <span style={{ fontSize: '14px' }}>{icon}</span> 
           <span>{label}</span>
         </div>
-      <div style={{ fontSize: '10px', color: colors.muted, fontWeight: 700 }}>Level {typeof level!=='undefined'?level:0}</div>
         {isClaimed && <span style={{ fontSize: '10px', color: colors.mint }}>✓ Minted</span>}
         {isLocked && <span style={{ fontSize: '10px' }}>🔒</span>}
       </div>
@@ -376,12 +375,6 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
           {isClaiming ? 'Minting...' : 'Mint NFT'}
         </button>
       )}
-      {(isClaimed && canClaim) && (
-        <button onClick={() => onClaim(badgeType)} disabled={isClaiming} style={{ marginTop: '6px', padding: '6px 10px', borderRadius: '6px', border: 'none', background: isClaiming ? colors.muted : colors.mint, color: '#fff', fontSize: '10px', fontWeight: 700, cursor: isClaiming ? 'not-allowed' : 'pointer' }}>
-          {isClaiming ? 'Minting…' : 'Mint again'}
-        </button>
-      )}
-
     </div>
   );
 };
@@ -1172,8 +1165,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
         gap: '10px', 
         marginBottom: mintTxHash || mintError ? '12px' : '0' 
       }}>
-        {
-allBadges.map((b, i) => (
+        {allBadges.map((b, i) => (
           <Badge 
             key={i} 
             icon={b.icon} 
@@ -1186,7 +1178,6 @@ allBadges.map((b, i) => (
             qualified={b.qualified}
             requirement={b.requirement}
             current={b.current}
-            level={getLevel(b.type)}
           />
         ))}
       </div>
@@ -1234,7 +1225,7 @@ allBadges.map((b, i) => (
         color: colors.muted,
         textAlign: 'center'
       }}>
-        Free to mint (gas only ~$0.001) • Repeatable — mint levels stack to boost score
+        Free to mint (gas only ~$0.001) • Each badge can only be minted once
       </div>
     </Panel>
   );
@@ -1617,14 +1608,6 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
 
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
-
-  // --- Repeatable badges: levels stored per-wallet in localStorage
-  const [mintCounts, setMintCounts] = useState({}); // { [badgeId:number]: number }
-  const storageKeyFor = (wallet) => `pnl_mint_counts:${(wallet||'').toLowerCase()}`;
-  const loadMintCounts = (wallet) => { try { return JSON.parse(localStorage.getItem(storageKeyFor(wallet))||'{}'); } catch { return {}; } };
-  const saveMintCounts = (wallet, obj) => { try { localStorage.setItem(storageKeyFor(wallet), JSON.stringify(obj||{})); } catch {} };
-  const getLevel = (badgeId) => Number((mintCounts||{})[badgeId]||0);
-  const incLevel = (wallet, badgeId) => { const next = { ...(mintCounts||{}) }; next[badgeId] = (next[badgeId]||0) + 1; setMintCounts(next); saveMintCounts(wallet, next); };
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
   const [activeScope, setActiveScope] = useState('primary');
@@ -1787,8 +1770,6 @@ export default function PNLTrackerApp() {
       
       console.log('Transaction sent:', txHash);
       setMintTxHash(txHash);
-      try { setMintError(null); incLevel(primaryWallet, badgeType); } catch {}
-
       setClaimedBadges(prev => [...prev, badgeType]);
       
     } catch (err) {
@@ -2208,10 +2189,6 @@ export default function PNLTrackerApp() {
             if (missedUpsideUsd > 0) {
                 totalFumbledAmount += missedUpsideUsd;
                 if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) {
-                    biggestFumbleToken 
-  // Score bonus scales with badge levels
-  const scoreBonusTotal = Object.values(mintCounts || {}).reduce((a, b) => a + Number(b||0), 0);
-= { ...t, missedUpsideUsd, currentValueSoldTokens, currentPriceUsd: priceUsd };
                 }
             }
           });
@@ -2226,11 +2203,6 @@ export default function PNLTrackerApp() {
   };
 
   useEffect(() => {
-
-  useEffect(() => {
-    if (!primaryWallet) return;
-    try { setMintCounts(loadMintCounts(primaryWallet)); } catch {}
-  }, [primaryWallet]);
     const initialize = async () => {
       try {
         console.log('[INIT] Starting app initialization');
@@ -2495,7 +2467,7 @@ export default function PNLTrackerApp() {
 
 {/* RANK CARD FIRST - Share immediately visible */}
         {!isGated && activeTab !== 'lore' && pnlData?.summary && (
-          <RankCard summary={pnlData.summary} onShare={handleSharePnL} scoreBonus={scoreBonusTotal} />
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
         )}
 
         {/* --- MAIN CONTENT SWITCH --- */}
