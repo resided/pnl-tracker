@@ -649,332 +649,303 @@ const RankCard = ({ summary, onShare }) => {
 // --- IMPROVED LORE COMPONENT WITH SCORE RING ---
 const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) => {
   const lore = generateLore(summary, tokens, biggestWin, biggestLoss);
-  const rank = calculatePercentile(summary); // USE the score system!
+  const rank = calculatePercentile(summary);
   
   if (!lore || !rank) return null;
 
   const score = rank.percentile;
   const topPercent = 100 - score;
   
-  // Score ring calculation (SVG arc)
-  const radius = 52;
-  const strokeWidth = 6;
-  const circumference = 2 * Math.PI * radius;
-  const progress = (score / 100) * circumference;
-  const dashOffset = circumference - progress;
-
-  // Dynamic glow color based on score tier
+  // Dynamic color based on score tier
   const getScoreColor = () => {
-    if (score >= 95) return '#F59E0B'; // Gold
-    if (score >= 80) return '#22C55E'; // Green  
-    if (score >= 60) return '#3B82F6'; // Blue
-    if (score >= 40) return '#94A3B8'; // Slate
-    return '#EF4444'; // Red
+    if (score >= 95) return '#F59E0B';
+    if (score >= 80) return '#22C55E';  
+    if (score >= 60) return '#3B82F6';
+    if (score >= 40) return '#94A3B8';
+    return '#EF4444';
   };
   
   const scoreColor = getScoreColor();
 
   return (
     <div style={{
-      background: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 100%)',
-      borderRadius: '24px',
-      padding: '28px 24px',
-      color: '#fff',
-      border: `1px solid ${lore.color}30`,
-      boxShadow: `0 0 60px -20px ${lore.color}40, inset 0 1px 0 rgba(255,255,255,0.05)`,
-      fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', monospace",
+      marginBottom: ds.space.lg,
+      borderRadius: ds.radius.xl,
+      border: '1px solid #e5e7eb',
+      background: '#ffffff',
+      padding: '32px 24px',
+      boxShadow: ds.shadow.lg,
       position: 'relative',
-      overflow: 'hidden',
-      marginBottom: '24px'
+      overflow: 'hidden'
     }}>
       
-      {/* Subtle grid background */}
-      <div style={{ 
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
-        backgroundImage: `
-          linear-gradient(${lore.color}05 1px, transparent 1px),
-          linear-gradient(90deg, ${lore.color}05 1px, transparent 1px)
-        `, 
-        backgroundSize: '32px 32px',
-        pointerEvents: 'none' 
-      }} />
-      
-      {/* Corner glow accent */}
+      {/* Subtle gradient overlay */}
       <div style={{
         position: 'absolute',
-        top: '-100px',
-        right: '-100px',
-        width: '300px',
-        height: '300px',
-        background: `radial-gradient(circle, ${lore.color}15 0%, transparent 70%)`,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '140px',
+        background: 'linear-gradient(180deg, rgba(17,24,39,0.02) 0%, rgba(255,255,255,0) 100%)',
         pointerEvents: 'none'
       }} />
-
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        
-        {/* Header: Avatar & Handle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
-          <div style={{ position: 'relative' }}>
-            <img 
-              src={user?.pfpUrl} 
-              alt=""
-              style={{ 
-                width: '52px', 
-                height: '52px', 
-                borderRadius: '50%', 
-                border: `2px solid ${lore.color}`,
-                boxShadow: `0 0 20px ${lore.color}40`
-              }} 
-            />
-            {/* Online indicator */}
-            <div style={{
-              position: 'absolute',
-              bottom: '2px',
-              right: '2px',
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#22C55E',
-              border: '2px solid #0a0a0f'
-            }} />
-          </div>
-          <div>
+      
+      <div style={{ position: 'relative' }}>
+        {/* Header with user info */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: ds.space.sm,
+          marginBottom: ds.space.xl,
+          paddingBottom: ds.space.md,
+          borderBottom: '1px solid #f3f4f6'
+        }}>
+          <img 
+            src={user?.pfpUrl} 
+            alt=""
+            style={{ 
+              width: '48px', 
+              height: '48px', 
+              borderRadius: ds.radius.full, 
+              border: '2px solid #e5e7eb'
+            }} 
+          />
+          <div style={{ flex: 1 }}>
             <div style={{ 
-              fontSize: '17px', 
+              fontSize: ds.text.md, 
               fontWeight: '700', 
-              letterSpacing: '-0.02em', 
-              fontFamily: 'system-ui, -apple-system, sans-serif' 
+              color: colors.ink,
+              letterSpacing: '-0.01em'
             }}>
               {user?.displayName}
             </div>
             <div style={{ 
-              fontSize: '13px', 
-              color: lore.color, 
-              opacity: 0.9,
-              fontFamily: 'monospace'
+              fontSize: ds.text.sm, 
+              color: colors.muted
             }}>
               @{user?.username}
             </div>
           </div>
+          <div style={{
+            fontSize: ds.text.xs,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            color: colors.muted,
+            fontWeight: '600'
+          }}>
+            Report Card
+          </div>
         </div>
 
-        {/* HERO: Score Ring + Archetype */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        {/* Score & Archetype */}
+        <div style={{ textAlign: 'center', marginBottom: ds.space.xl }}>
           
-          {/* Score Ring (SVG) */}
-          <div style={{ 
-            position: 'relative', 
-            width: '140px', 
-            height: '140px', 
-            margin: '0 auto 20px'
+          {/* Score Circle */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '120px',
+            height: '120px',
+            borderRadius: ds.radius.full,
+            background: `linear-gradient(135deg, ${scoreColor} 0%, ${scoreColor}dd 100%)`,
+            marginBottom: ds.space.md,
+            boxShadow: `0 8px 24px ${scoreColor}30`
           }}>
-            <svg 
-              width="140" 
-              height="140" 
-              style={{ transform: 'rotate(-90deg)' }}
-            >
-              {/* Background track */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                fill="none"
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth={strokeWidth}
-              />
-              {/* Progress arc */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                fill="none"
-                stroke={scoreColor}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
-                style={{
-                  filter: `drop-shadow(0 0 8px ${scoreColor}80)`,
-                  transition: 'stroke-dashoffset 0.8s ease-out'
-                }}
-              />
-            </svg>
-            
-            {/* Score number in center */}
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              textAlign: 'center'
-            }}>
-              <div style={{ 
-                fontSize: '36px', 
-                fontWeight: '800', 
-                color: '#fff',
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                fontSize: '48px',
+                fontWeight: '800',
+                color: '#ffffff',
                 lineHeight: '1',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                textShadow: `0 0 30px ${scoreColor}60`
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
               }}>
                 {score}
               </div>
-              <div style={{ 
-                fontSize: '12px', 
-                color: 'rgba(255,255,255,0.4)',
+              <div style={{
+                fontSize: ds.text.sm,
+                color: 'rgba(255,255,255,0.7)',
                 fontWeight: '500',
-                marginTop: '2px',
-                letterSpacing: '0.05em'
+                marginTop: '2px'
               }}>
                 /100
               </div>
             </div>
           </div>
           
-          {/* Percentile badge */}
+          {/* Top % Badge */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
             padding: '6px 14px',
-            borderRadius: '99px',
-            background: `${scoreColor}20`,
-            border: `1px solid ${scoreColor}40`,
-            marginBottom: '16px'
+            borderRadius: ds.radius.pill,
+            background: `${scoreColor}15`,
+            border: `1px solid ${scoreColor}30`,
+            marginBottom: ds.space.md
           }}>
-            <span style={{ fontSize: '11px', color: scoreColor, fontWeight: '600' }}>
+            <span style={{ fontSize: ds.text.sm, color: scoreColor, fontWeight: '600' }}>
               TOP {topPercent}%
             </span>
-            <span style={{ fontSize: '14px' }}>{rank.emoji}</span>
+            <span style={{ fontSize: ds.text.md }}>{rank.emoji}</span>
           </div>
           
-          {/* Archetype name */}
-          <div style={{ 
-            fontSize: '24px', 
-            fontWeight: '800', 
-            textTransform: 'uppercase', 
-            color: lore.color, 
-            textShadow: `0 0 30px ${lore.color}50`,
-            letterSpacing: '0.08em',
-            lineHeight: '1.1'
+          {/* Archetype */}
+          <div style={{
+            fontSize: ds.text.xl,
+            fontWeight: '700',
+            color: colors.ink,
+            marginBottom: ds.space.sm,
+            letterSpacing: '-0.02em'
           }}>
             {lore.archetype}
           </div>
           
           {/* Quote */}
-          <div style={{ 
-            fontSize: '12px', 
-            fontStyle: 'italic', 
-            marginTop: '10px', 
-            opacity: 0.7, 
-            maxWidth: '280px', 
-            margin: '10px auto 0',
-            lineHeight: '1.5'
+          <div style={{
+            fontSize: ds.text.base,
+            color: colors.muted,
+            fontStyle: 'italic',
+            lineHeight: '1.5',
+            maxWidth: '320px',
+            margin: '0 auto'
           }}>
             "{lore.quote}"
           </div>
         </div>
 
-        {/* Stats Grid - Cleaner version */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1px 1fr 1px 1fr', 
-          gap: '0',
-          marginBottom: '16px',
-          background: 'rgba(255,255,255,0.03)',
-          padding: '18px 12px',
-          borderRadius: '16px',
-          border: '1px solid rgba(255,255,255,0.06)'
+        {/* Stats Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: ds.space.sm,
+          marginBottom: ds.space.lg,
+          padding: ds.space.lg + ' 0',
+          borderTop: '1px solid #f3f4f6',
+          borderBottom: '1px solid #f3f4f6'
         }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '18px', 
-              fontWeight: '700', 
-              color: summary.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171',
-              fontFamily: 'system-ui'
+            <div style={{
+              fontSize: ds.text.lg,
+              fontWeight: '700',
+              color: summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
+              marginBottom: '4px'
             }}>
               {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
             </div>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
+            <div style={{
+              fontSize: ds.text.xs,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: colors.muted,
+              fontWeight: '500'
+            }}>
               Realized
             </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.08)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'system-ui' }}>
+            <div style={{
+              fontSize: ds.text.lg,
+              fontWeight: '700',
+              color: colors.ink,
+              marginBottom: '4px'
+            }}>
               {summary.winRate.toFixed(0)}%
             </div>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
+            <div style={{
+              fontSize: ds.text.xs,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: colors.muted,
+              fontWeight: '500'
+            }}>
               Win Rate
             </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.08)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'system-ui' }}>
+            <div style={{
+              fontSize: ds.text.lg,
+              fontWeight: '700',
+              color: colors.ink,
+              marginBottom: '4px'
+            }}>
               {summary.totalTokensTraded}
             </div>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
+            <div style={{
+              fontSize: ds.text.xs,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: colors.muted,
+              fontWeight: '500'
+            }}>
               Tokens
             </div>
           </div>
         </div>
 
         {/* Top Bags */}
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '9px', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.2em', 
-            marginBottom: '14px', 
-            opacity: 0.5 
+        <div style={{ marginBottom: ds.space.lg }}>
+          <div style={{
+            fontSize: ds.text.xs,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            marginBottom: ds.space.sm,
+            color: colors.muted,
+            fontWeight: '600'
           }}>
-            Top Bags
+            Top Holdings
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-            {lore.topBags.map((t, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                <div style={{ 
-                  width: '44px', 
-                  height: '44px', 
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-                  color: '#fff',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontWeight: '700', 
-                  fontSize: '10px',
-                  border: `1px solid ${lore.color}40`,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          <div style={{ display: 'flex', gap: ds.space.sm }}>
+            {lore.topBags.slice(0, 3).map((t, i) => (
+              <div key={i} style={{
+                flex: 1,
+                padding: ds.space.sm,
+                borderRadius: ds.radius.md,
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: ds.text.md,
+                  fontWeight: '700',
+                  color: colors.ink,
+                  marginBottom: '4px'
                 }}>
-                  {t.symbol.slice(0,4)}
+                  {t.symbol}
                 </div>
-                <div style={{ fontSize: '9px', fontWeight: '600', opacity: 0.7 }}>{t.symbol}</div>
+                <div style={{
+                  fontSize: ds.text.xs,
+                  color: t.profit >= 0 ? colors.success : colors.error,
+                  fontWeight: '600'
+                }}>
+                  {t.profit >= 0 ? '+' : ''}{formatCurrency(t.profit)}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Habits - More compact */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ 
-            fontSize: '9px', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.2em', 
-            textAlign: 'center', 
-            marginBottom: '10px', 
-            opacity: 0.5 
+        {/* Trading Habits */}
+        <div style={{ marginBottom: ds.space.lg }}>
+          <div style={{
+            fontSize: ds.text.xs,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            marginBottom: ds.space.sm,
+            color: colors.muted,
+            fontWeight: '600'
           }}>
-            Trading Style
+            Trading Habits
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: ds.space.xs }}>
             {lore.habits.slice(0, 3).map((habit, i) => (
-              <div key={i} style={{ 
-                padding: '10px 14px', 
-                borderRadius: '10px', 
-                border: '1px solid rgba(255,255,255,0.08)', 
-                background: 'rgba(255,255,255,0.02)',
-                fontSize: '11px', 
-                textAlign: 'center',
+              <div key={i} style={{
+                padding: '10px 14px',
+                borderRadius: ds.radius.sm,
+                border: '1px solid #e5e7eb',
+                background: '#fafafa',
+                fontSize: ds.text.sm,
+                color: colors.ink,
                 lineHeight: '1.4'
               }}>
                 {habit}
@@ -983,28 +954,26 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
           </div>
         </div>
 
-        {/* Share button - Premium feel */}
+        {/* Share Button */}
         <button 
           onClick={onShare} 
-          style={{ 
-            width: '100%', 
-            padding: '16px', 
-            borderRadius: '14px', 
-            border: 'none', 
-            background: `linear-gradient(135deg, ${lore.color} 0%, ${lore.color}cc 100%)`,
-            color: '#000',
-            fontSize: '12px', 
-            fontWeight: '800', 
-            cursor: 'pointer', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.12em',
-            boxShadow: `0 8px 24px ${lore.color}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+          style={{
+            width: '100%',
+            padding: ds.space.md,
+            borderRadius: ds.radius.md,
+            border: 'none',
+            background: colors.ink,
+            color: '#ffffff',
+            fontSize: ds.text.base,
+            fontWeight: '700',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            boxShadow: ds.shadow.md
           }}
         >
-          Share My Lore
+          Share My Report
         </button>
-
       </div>
     </div>
   );
@@ -2578,249 +2547,6 @@ const renderGatedOverlay = () => (
         
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <div>
-            {/* Premium Trading Report Card Preview */}
-            <div style={{
-              marginBottom: '16px',
-              borderRadius: '20px',
-              border: '1px solid #e5e7eb',
-              background: '#ffffff',
-              padding: '32px 24px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              
-              {/* Subtle gradient overlay */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '140px',
-                background: 'linear-gradient(180deg, rgba(17,24,39,0.02) 0%, rgba(255,255,255,0) 100%)',
-                pointerEvents: 'none'
-              }} />
-              
-              <div style={{ position: 'relative' }}>
-                {/* Header */}
-                <div style={{
-                  textAlign: 'center',
-                  marginBottom: '24px'
-                }}>
-                  <div style={{
-                    fontSize: '11px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.15em',
-                    color: '#9ca3af',
-                    fontWeight: '600',
-                    marginBottom: '12px'
-                  }}>
-                    Trading Report Card
-                  </div>
-                  
-                  {/* Score */}
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100px',
-                    height: '100px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-                    marginBottom: '16px',
-                    boxShadow: '0 8px 24px rgba(17, 24, 39, 0.15)'
-                  }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{
-                        fontSize: '36px',
-                        fontWeight: '800',
-                        color: '#ffffff',
-                        lineHeight: '1',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
-                      }}>
-                        99
-                      </div>
-                      <div style={{
-                        fontSize: '11px',
-                        color: 'rgba(255,255,255,0.6)',
-                        fontWeight: '500',
-                        marginTop: '2px'
-                      }}>
-                        /100
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Archetype */}
-                  <div style={{
-                    fontSize: '20px',
-                    fontWeight: '700',
-                    color: '#111827',
-                    marginBottom: '8px',
-                    letterSpacing: '-0.02em'
-                  }}>
-                    Elite Momentum Trader
-                  </div>
-                  
-                  {/* AI Quote */}
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#6b7280',
-                    fontStyle: 'italic',
-                    lineHeight: '1.5',
-                    maxWidth: '320px',
-                    margin: '0 auto'
-                  }}>
-                    "Consistently identifies high-conviction entries with disciplined exit timing"
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '12px',
-                  marginBottom: '20px',
-                  padding: '20px 0',
-                  borderTop: '1px solid #f3f4f6',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: '#10b981',
-                      marginBottom: '4px'
-                    }}>
-                      87%
-                    </div>
-                    <div style={{
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: '#9ca3af',
-                      fontWeight: '500'
-                    }}>
-                      Win Rate
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: '#111827',
-                      marginBottom: '4px'
-                    }}>
-                      2.4x
-                    </div>
-                    <div style={{
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: '#9ca3af',
-                      fontWeight: '500'
-                    }}>
-                      Avg Return
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: '#111827',
-                      marginBottom: '4px'
-                    }}>
-                      $24k
-                    </div>
-                    <div style={{
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: '#9ca3af',
-                      fontWeight: '500'
-                    }}>
-                      Volume
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Insights */}
-                <div style={{
-                  background: '#f9fafb',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{
-                    fontSize: '11px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: '#6b7280',
-                    fontWeight: '600',
-                    marginBottom: '10px'
-                  }}>
-                    AI Analysis
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#374151',
-                    lineHeight: '1.6',
-                    marginBottom: '8px'
-                  }}>
-                    • Strong pattern recognition in trending markets
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#374151',
-                    lineHeight: '1.6',
-                    marginBottom: '8px'
-                  }}>
-                    • Disciplined position sizing across portfolio
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#374151',
-                    lineHeight: '1.6'
-                  }}>
-                    • Quick to adapt strategy based on market conditions
-                  </div>
-                </div>
-
-                {/* Coming Soon Badge */}
-                <div style={{
-                  textAlign: 'center'
-                }}>
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 20px',
-                    borderRadius: '999px',
-                    background: '#111827',
-                    color: '#ffffff',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    letterSpacing: '0.02em'
-                  }}>
-                    <div style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      background: '#10b981',
-                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                    }} />
-                    AI Report Coming Soon
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <style>{`
-              @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-              }
-            `}</style>
 
             <AuditReportCard
               summary={auditData?.summary || pnlData.summary}
