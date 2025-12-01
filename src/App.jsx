@@ -2862,8 +2862,6 @@ const renderGatedOverlay = () => (
     ds={ds}
   />
 )
-
-          </div>
         )}
 
         {/* Gated content blur */}
