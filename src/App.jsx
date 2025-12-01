@@ -274,7 +274,7 @@ const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
     quote = "Sleep is for people who don't trade 24/7.";
     color = "#8b5cf6"; // Purple
   } else {
-    archetype = "The Grinder";
+    archetype = "Just existing";
     quote = "Slow and steady loses the race, but I'm still running.";
     color = "#94a3b8"; // Slate
   }
