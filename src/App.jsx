@@ -1,5 +1,77 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
+/* === GatedAccessPanel (mobile-first) === */
+const GatedAccessPanel = ({
+  tokenBalance,
+  REQUIRED_PNL_BALANCE,
+  handleSwapForAccess,
+  handleRetryGate,
+  colors,
+  ds,
+  upcomingTease = 'Trading Report'
+}) => {
+  const shortfall = Math.max(0, REQUIRED_PNL_BALANCE - (Number(tokenBalance) || 0));
+  const pct = Math.min(100, Math.round(((Number(tokenBalance) || 0) / REQUIRED_PNL_BALANCE) * 100));
+  const Row = ({ t, d }) => (
+    <div style={{border:`1px solid ${colors.border}`,borderRadius:ds.radius.md,padding:10,background:colors.card}}>
+      <div style={{fontSize:12,fontWeight:700}}>{t}</div>
+      <div style={{fontSize:11,color:colors.muted}}>{d}</div>
+    </div>
+  );
+  return (
+    <div style={{minHeight:'100vh',background:colors.bg,color:colors.ink,display:'flex',alignItems:'stretch',justifyContent:'center',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',padding:'20px'}}>
+      <div style={{width:'100%',maxWidth:540,margin:'auto',background:colors.panelBg,border:`1px solid ${colors.border}`,borderRadius:ds.radius.lg,boxShadow:ds.shadow.md,padding:'16px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+          <div style={{width:28,height:28,borderRadius:ds.radius.full,background:'#111827',color:'#fff',display:'grid',placeItems:'center',fontWeight:800,fontSize:12}}>$</div>
+          <div style={{fontWeight:800,fontSize:16}}>PNL Tracker</div>
+          <div style={{marginLeft:'auto',fontSize:11,padding:'4px 8px',borderRadius:ds.radius.pill,border:`1px solid ${colors.border}`,color:colors.muted}}>Gate: 10,000,000 $PNL</div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:22,fontWeight:900,lineHeight:1.15}}>Unlock your Farcaster trading profile</div>
+          <div style={{fontSize:13,color:colors.muted,marginTop:6}}>
+            Hold 10M $PNL in your Farcaster primary wallet to open the app. You will see your live PnL, biggest wins and losses, airdrops, and a combined view across your connected wallets. A ranked <strong>{upcomingTease}</strong> is landing soon, with a personal <strong>Trader Score</strong> that benchmarks you against Base traders.
+          </div>
+        </div>
+
+        <div style={{margin:'12px 0 10px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:colors.muted,marginBottom:6}}>
+            <span>Gate progress</span><span>{pct}%</span>
+          </div>
+          <div style={{height:10,background:'#f3f4f6',borderRadius:999,overflow:'hidden',border:`1px solid ${colors.border}`}}>
+            <div style={{width:`${pct}%`,height:'100%',background:'#111827'}}/>
+          </div>
+          <div style={{fontSize:11,color:colors.muted,marginTop:6}}>{shortfall>0? <>Need {Intl.NumberFormat().format(shortfall)} more $PNL</> : <>Gate met</>}</div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,margin:'12px 0'}}>
+          {[
+            { t: 'Live PnL', d: 'Realized and unrealized' },
+            { t: 'Biggest win/loss', d: 'Entry to exit' },
+            { t: 'Airdrops', d: 'Free money tracker' },
+            { t: 'Wallet switcher', d: 'Primary, others, combined' },
+            { t: 'Audit', d: 'Find habits and leaks' },
+            { t: 'Trader Score', d: 'Rank vs Base' }
+          ].map((it,i)=>(<Row key={i} t={it.t} d={it.d}/>))}
+        </div>
+
+        <button onClick={handleSwapForAccess} style={{width:'100%',padding:14,borderRadius:ds.radius.md,background:colors.pill,color:colors.pillText,fontSize:16,fontWeight:800,border:'none',cursor:'pointer',marginTop:6,marginBottom:8,boxShadow:'0 6px 16px rgba(0,0,0,0.18)',position:'relative'}}>
+          Swap 10M $PNL · Unlock
+          <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:14}}>→</span>
+        </button>
+
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={handleRetryGate} style={{flex:1,padding:10,borderRadius:ds.radius.sm,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer'}}>Refresh balance</button>
+          <a href="https://warpcast.com/~/compose?text=$PNL%20Tracker%20looks%20spicy" target="_blank" rel="noopener noreferrer" style={{flex:1,padding:10,borderRadius:ds.radius.sm,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,textDecoration:'none',textAlign:'center'}}>Tell a friend</a>
+        </div>
+
+        <div style={{marginTop:12,fontSize:11,color:colors.muted,textAlign:'center'}}>Gate checks your <strong>Farcaster primary</strong> wallet. If your $PNL is in a different wallet, move or switch your primary to unlock.</div>
+      </div>
+    </div>
+  );
+};
+/* === End GatedAccessPanel === */
+
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
@@ -2781,13 +2853,29 @@ const renderGatedOverlay = () => (
         {/* INFO */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
         {!isGated && (
-          <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '20px', opacity: 0.6 }}>
-             <div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
+  <GatedAccessPanel
+    tokenBalance={tokenBalance}
+    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+    handleSwapForAccess={handleSwapForAccess}
+    handleRetryGate={async ()=>{ await checkTokenGate(primaryWallet); }}
+    colors={colors}
+    ds={ds}
+  />
+) => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
           </div>
         )}
 
         {/* Gated content blur */}
-        {isGated && (biggestWin || biggestLoss || biggestFumble) && (
+        {isGated && (
+  <GatedAccessPanel
+    tokenBalance={tokenBalance}
+    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+    handleSwapForAccess={handleSwapForAccess}
+    handleRetryGate={async ()=>{ await checkTokenGate(primaryWallet); }}
+    colors={colors}
+    ds={ds}
+  />
+) && (
           <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
             <Panel title="Highlights" subtitle="From sold tokens">
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
