@@ -1667,6 +1667,7 @@ export default function PNLTrackerApp() {
   // Badge minting state
   const [claimingBadge, setClaimingBadge] = useState(null);
   const [claimedBadges, setClaimedBadges] = useState([]);
+  const [tokenListView, setTokenListView] = useState('wins'); // 'wins' or 'all'
   const [mintTxHash, setMintTxHash] = useState(null);
   const [mintError, setMintError] = useState(null);
   
@@ -2689,11 +2690,51 @@ const renderGatedOverlay = () => (
             
             {/* Token lists */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <button style={{ padding: '8px 14px', borderRadius: '999px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.muted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', cursor: 'pointer' }}>Top Wins</button>
+              <button 
+                onClick={() => setTokenListView('wins')}
+                style={{ 
+                  padding: '8px 14px', 
+                  borderRadius: '999px', 
+                  border: `1px solid ${tokenListView === 'wins' ? colors.accent : colors.border}`, 
+                  background: tokenListView === 'wins' ? colors.accent : colors.panelBg, 
+                  color: tokenListView === 'wins' ? '#fff' : colors.muted, 
+                  fontSize: '10px', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.12em', 
+                  cursor: 'pointer',
+                  fontWeight: tokenListView === 'wins' ? '600' : '500'
+                }}
+              >
+                Top Wins
+              </button>
+              <button 
+                onClick={() => setTokenListView('all')}
+                style={{ 
+                  padding: '8px 14px', 
+                  borderRadius: '999px', 
+                  border: `1px solid ${tokenListView === 'all' ? colors.accent : colors.border}`, 
+                  background: tokenListView === 'all' ? colors.accent : colors.panelBg, 
+                  color: tokenListView === 'all' ? '#fff' : colors.muted, 
+                  fontSize: '10px', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.12em', 
+                  cursor: 'pointer',
+                  fontWeight: tokenListView === 'all' ? '600' : '500'
+                }}
+              >
+                All Tokens
+              </button>
             </div>
-            {pnlData?.tokens && (
+            {pnlData?.tokens && tokenListView === 'wins' && (
               <Panel title="Best Performers" subtitle="Realized gains">
                 {pnlData.tokens.filter((t) => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 5).map((token, idx) => (
+                  <TokenRow key={idx} token={token} />
+                ))}
+              </Panel>
+            )}
+            {pnlData?.tokens && tokenListView === 'all' && (
+              <Panel title="All Tokens" subtitle={`${pnlData.tokens.length} tokens traded`}>
+                {pnlData.tokens.sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => (
                   <TokenRow key={idx} token={token} />
                 ))}
               </Panel>
