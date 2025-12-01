@@ -274,7 +274,7 @@ const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
     quote = "Sleep is for people who don't trade 24/7.";
     color = "#8b5cf6"; // Purple
   } else {
-    archetype = "Just existing";
+    archetype = "The Grinder";
     quote = "Slow and steady loses the race, but I'm still running.";
     color = "#94a3b8"; // Slate
   }
@@ -1227,7 +1227,394 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
 };
 
 // Main App Component
-export default function PNLTrackerApp() {
+export default 
+// --- AUDIT REPORT CARD (Paper-style Lore share) ---
+const AuditReportCard = ({ user, summary, lore, rank }) => {
+  if (!user || !summary || !lore || !rank) return null;
+
+  const score = rank.percentile ?? 0;
+  const auditDate = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const stampColor =
+    score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
+  const stampBorder =
+    score >= 80 ? '#86efac' : score >= 50 ? '#fcd34d' : '#fca5a5';
+  const stampRotate = score % 2 === 0 ? 'rotate(-10deg)' : 'rotate(8deg)';
+
+  return (
+    <div
+      style={{
+        background: '#ffffff',
+        backgroundImage:
+          'radial-gradient(#f3f4f6 1px, transparent 1px)',
+        backgroundSize: '18px 18px',
+        borderRadius: '2px',
+        padding: '24px',
+        color: '#1f2937',
+        border: '1px solid #e5e7eb',
+        boxShadow:
+          '0 10px 30px -12px rgba(15,23,42,0.3), 0 0 0 1px rgba(15,23,42,0.06)',
+        fontFamily: "'Courier Prime', 'Courier New', monospace",
+        position: 'relative',
+        overflow: 'hidden',
+        margin: '0 auto 24px',
+        maxWidth: '480px',
+      }}
+    >
+      {/* Watermark */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%) rotate(-45deg)',
+          fontSize: '70px',
+          fontWeight: 900,
+          color: '#f3f4f6',
+          pointerEvents: 'none',
+          zIndex: 0,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        AUDIT FILE
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '24px',
+            borderBottom: '2px solid #000',
+            paddingBottom: '16px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            {user.pfpUrl && (
+              <img
+                src={user.pfpUrl}
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '4px',
+                  border: '1px solid #000',
+                  filter: 'grayscale(100%)',
+                  objectFit: 'cover',
+                }}
+                alt="Subject avatar"
+              />
+            )}
+            <div>
+              <div
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '-0.05em',
+                }}
+              >
+                {user.displayName}
+              </div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                }}
+              >
+                @{user.username} • REF: #{user.fid}
+              </div>
+            </div>
+          </div>
+
+          {/* Score stamp */}
+          <div
+            style={{
+              border: `3px solid ${stampBorder}`,
+              padding: '8px 12px',
+              borderRadius: '8px',
+              textAlign: 'center',
+              transform: stampRotate,
+              background: `${stampColor}10`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: '28px',
+                fontWeight: 900,
+                lineHeight: 1,
+                color: stampColor,
+              }}
+            >
+              {score}
+            </div>
+            <div
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: stampColor,
+                textTransform: 'uppercase',
+              }}
+            >
+              / 100
+            </div>
+          </div>
+        </div>
+
+        {/* Archetype */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div
+            style={{
+              fontSize: '22px',
+              fontWeight: 900,
+              textTransform: 'uppercase',
+              color: '#111827',
+              letterSpacing: '0.08em',
+              marginBottom: '8px',
+            }}
+          >
+            {lore.archetype}
+          </div>
+          {lore.quote && (
+            <div
+              style={{
+                fontSize: '13px',
+                fontStyle: 'italic',
+                background: '#fef3c7',
+                display: 'inline-block',
+                padding: '4px 12px',
+                border: '1px solid #fcd34d',
+                transform: 'skew(-6deg)',
+              }}
+            >
+              "{lore.quote}"
+            </div>
+          )}
+        </div>
+
+        {/* Stats grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '12px',
+            background: '#111827',
+            color: '#ffffff',
+            padding: '16px',
+            borderRadius: '6px',
+            marginBottom: '24px',
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+              }}
+            >
+              {summary.totalTokensTraded || 0}
+            </div>
+            <div
+              style={{
+                fontSize: '9px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                opacity: 0.6,
+              }}
+            >
+              Tokens
+            </div>
+          </div>
+          <div
+            style={{
+              textAlign: 'center',
+              borderLeft: '1px solid #374151',
+              borderRight: '1px solid #374151',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+              }}
+            >
+              {(summary.winRate || 0).toFixed(0)}%
+            </div>
+            <div
+              style={{
+                fontSize: '9px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                opacity: 0.6,
+              }}
+            >
+              Win rate
+            </div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+              }}
+            >
+              {summary.totalRealizedProfit >= 0 ? '+' : ''}
+              {formatCurrency(summary.totalRealizedProfit)}
+            </div>
+            <div
+              style={{
+                fontSize: '9px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                opacity: 0.6,
+              }}
+            >
+              Realized
+            </div>
+          </div>
+        </div>
+
+        {/* Top bags */}
+        {Array.isArray(lore.topBags) && lore.topBags.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <div
+              style={{
+                fontSize: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2em',
+                textAlign: 'center',
+                marginBottom: '12px',
+                color: '#6b7280',
+              }}
+            >
+              Largest holdings
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}
+            >
+              {lore.topBags.slice(0, 4).map((t, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '999px',
+                      background: '#f9fafb',
+                      color: '#111827',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '10px',
+                      border: '1px solid #d1d5db',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    {t.symbol?.slice(0, 4) || '?'}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      color: '#4b5563',
+                    }}
+                  >
+                    {formatCurrency(t.totalUsdInvested || 0)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Audit findings */}
+        {Array.isArray(lore.habits) && lore.habits.length > 0 && (
+          <div>
+            <div
+              style={{
+                fontSize: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2em',
+                textAlign: 'center',
+                marginBottom: '12px',
+                color: '#6b7280',
+              }}
+            >
+              Audit findings
+            </div>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+            >
+              {lore.habits.slice(0, 3).map((habit, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #111827',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    textAlign: 'center',
+                    fontWeight: 500,
+                    background: i === 0 ? '#111827' : 'transparent',
+                    color: i === 0 ? '#ffffff' : '#111827',
+                  }}
+                >
+                  {habit}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div
+          style={{
+            marginTop: '24px',
+            paddingTop: '12px',
+            borderTop: '1px dashed #d1d5db',
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '9px',
+            color: '#9ca3af',
+          }}
+        >
+          <div>Auditor: The Auditor</div>
+          <div>Date: {auditDate}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
@@ -2061,14 +2448,36 @@ export default function PNLTrackerApp() {
 
         {/* --- MAIN CONTENT SWITCH --- */}
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
-          <LoreCard 
-            summary={pnlData.summary} 
-            tokens={tokens} 
-            user={user} 
-            biggestWin={biggestWin} 
-            biggestLoss={biggestLoss} 
-            onShare={handleShareLore} 
-          />
+          <div>
+            <AuditReportCard
+              summary={pnlData.summary}
+              lore={generateLore(pnlData.summary, tokens, biggestWin, biggestLoss)}
+              rank={calculatePercentile(pnlData.summary)}
+              user={user}
+            />
+            <button
+              onClick={handleShareLore}
+              style={{
+                width: '100%',
+                maxWidth: '480px',
+                display: 'block',
+                margin: '0 auto',
+                padding: '16px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#111827',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+              }}
+            >
+              Share Official Audit
+            </button>
+          </div>
         )}
 
         {/* Tabs: Stats / Airdrops / Badges / Lore */}
