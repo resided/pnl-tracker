@@ -1604,7 +1604,7 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
             color: '#9ca3af',
           }}
         >
-          <div>Auditor: The Auditor</div>
+          <div>Auditor: Tally, Trident LLC</div>
           <div>Date: {auditDate}</div>
         </div>
       </div>
