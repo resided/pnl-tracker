@@ -2852,17 +2852,6 @@ const renderGatedOverlay = () => (
 
         {/* INFO */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
-        {!isGated && (
-  <GatedAccessPanel
-    tokenBalance={tokenBalance}
-    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-    handleSwapForAccess={handleSwapForAccess}
-    handleRetryGate={async ()=>{ await checkTokenGate(primaryWallet); }}
-    colors={colors}
-    ds={ds}
-  />
-        )}
-
         {/* Gated content blur */}
         {isGated && (
           <>
