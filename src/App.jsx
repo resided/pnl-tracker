@@ -2459,7 +2459,7 @@ export default function PNLTrackerApp() {
               </button>
             ))}
           </div>
-        )
+        )}
 
 {/* RANK CARD FIRST - Share immediately visible */}
         {!isGated && activeTab !== 'lore' && pnlData?.summary && (
