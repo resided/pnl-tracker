@@ -2239,6 +2239,8 @@ export default function PNLTrackerApp() {
       let biggestFumbleToken = null;
       let totalFumbledAmount = 0;
 
+      console.log('Tokens with sold amounts:', tokenAddressesForFumble.size);
+
       if (tokenAddressesForFumble.size > 0) {
         try {
           const priceResponse = await fetch('https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=base', {
@@ -2247,6 +2249,7 @@ export default function PNLTrackerApp() {
             body: JSON.stringify({ tokens: Array.from(tokenAddressesForFumble).map((addr) => ({ token_address: addr })) })
           });
           const priceData = await priceResponse.json();
+          console.log('Price data received:', priceData);
           const priceArray = Array.isArray(priceData) ? priceData : priceData.result || priceData.tokens || [];
           const priceMap = new Map();
           priceArray.forEach((p) => {
@@ -2254,21 +2257,28 @@ export default function PNLTrackerApp() {
              const rawUsd = p.usdPrice ?? p.usd_price ?? p.usdPriceFormatted;
              if(addr && parseFloat(rawUsd) > 0) priceMap.set(addr, parseFloat(rawUsd));
           });
+          console.log('Price map size:', priceMap.size);
           allTokenData.forEach((t) => {
             if (!t.tokenAddress || !t.totalTokensSold) return;
             const priceUsd = priceMap.get(t.tokenAddress);
-            if (!priceUsd) return;
+            if (!priceUsd) {
+              console.log('No price for token:', t.symbol, t.tokenAddress);
+              return;
+            }
             const currentValueSoldTokens = t.totalTokensSold * priceUsd;
             const missedUpsideUsd = currentValueSoldTokens - t.totalSoldUsd;
+            console.log(`${t.symbol}: sold $${t.totalSoldUsd.toFixed(2)}, now worth $${currentValueSoldTokens.toFixed(2)}, missed: $${missedUpsideUsd.toFixed(2)}`);
             if (missedUpsideUsd > 0) {
                 totalFumbledAmount += missedUpsideUsd;
                 if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) {
                     biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens };
+                    console.log('New biggest fumble:', t.symbol, missedUpsideUsd);
                 }
             }
           });
         } catch (e) { console.log('error computing biggest fumble', e); }
       }
+      console.log('Final fumble:', biggestFumbleToken);
       summary.totalFumbled = totalFumbledAmount;
       const resultData = { summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble: biggestFumbleToken };
       setPnlData(resultData);
