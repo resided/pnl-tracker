@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full app
-// NOW WITH: Badge Claiming & Audit (free mint, gas only)
+// NOW WITH: Badge Claiming & Audits (free mint, gas only)
 
 // Auto-detect demo mode: true in development, false in production
 // Override with VITE_DEMO_MODE=true or VITE_DEMO_MODE=false
