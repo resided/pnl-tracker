@@ -2354,128 +2354,109 @@ export default function PNLTrackerApp() {
     } catch { return 0; }
   })();
 const renderGatedOverlay = () => (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', marginTop: '180px', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.lg, border: `1px solid ${colors.border}`, padding: '16px', maxWidth: '360px', width: '100%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
         
         {/* Header */}
-        <div style={{ fontSize: '48px', marginBottom: ds.space.sm, lineHeight: '1' }}>🔒</div>
-        <h2 style={{ fontSize: ds.text.xl, fontWeight: '700', color: colors.ink, margin: `0 0 ${ds.space.xs}`, letterSpacing: '-0.01em' }}>Premium Access Required</h2>
-        <p style={{ fontSize: ds.text.base, color: colors.muted, margin: `0 0 ${ds.space.lg}`, lineHeight: '1.5' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock your complete trading profile</p>
+        <div style={{ fontSize: '28px', marginBottom: '6px', lineHeight: '1' }}>🔒</div>
+        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Premium Access</h2>
+        <p style={{ fontSize: '11px', color: colors.muted, margin: '0 0 12px', lineHeight: '1.4' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong></p>
         
-        {/* Win Rate Teaser */}
-        {pnlData?.summary && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)', 
-            borderRadius: ds.radius.md, 
-            padding: ds.space.md, 
-            marginBottom: ds.space.md,
-            color: '#fff',
-            border: '1px solid #166534'
-          }}>
-            <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Your Win Rate</div>
-            <div style={{ fontSize: ds.text.xxl, fontWeight: '700' }}>{pnlData.summary.winRate.toFixed(1)}%</div>
-            <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>Unlock to see your full stats</div>
-          </div>
-        )}
-
-        {/* Fumbled Gains - Emotional Hook */}
+        {/* Fumbled Gains */}
         {pnlData?.summary?.totalFumbled > 0 && (
           <div style={{ 
             background: 'linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)', 
-            borderRadius: ds.radius.md, 
-            padding: ds.space.md, 
-            marginBottom: ds.space.md,
+            borderRadius: ds.radius.sm, 
+            padding: '10px', 
+            marginBottom: '12px',
             color: '#fff',
             border: '1px solid #991b1b'
           }}>
-            <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>You Left on the Table</div>
-            <div style={{ fontSize: ds.text.xxl, fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
-            <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>
-              See exactly which tokens you sold too early
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>You Fumbled</div>
+            <div style={{ fontSize: '24px', fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+              See which tokens you sold too early
             </div>
           </div>
         )}
-        
-        {/* Trident LLC Audit Banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-          borderRadius: ds.radius.md,
-          padding: ds.space.md,
-          marginBottom: ds.space.lg,
-          border: '1px solid #374151'
-        }}>
-          <div style={{ fontSize: ds.text.sm, fontWeight: '700', color: '#ffffff', marginBottom: '4px' }}>
-            🎯 Trident LLC Audit
-          </div>
-          <div style={{ fontSize: ds.text.xs, color: 'rgba(255,255,255,0.7)', lineHeight: '1.4' }}>
-            Official trading audits launching soon for premium holders
-          </div>
-        </div>
-        
-        {/* Feature List */}
-        <div style={{ textAlign: 'left', marginBottom: ds.space.lg }}>
-          <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: ds.space.sm, textAlign: 'center', fontWeight: '600' }}>Premium Features</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: ds.space.xs }}>
-            {[
-              { icon: '💸', text: 'See exactly how much $ you fumbled' },
-              { icon: '📊', text: 'Complete P&L breakdown & ROI analysis' },
-              { icon: '🏆', text: 'Trading score & Base leaderboard rank' },
-              { icon: '📜', text: 'Official Trident LLC audit (launching soon)' },
-            ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: ds.space.xs, fontSize: ds.text.sm, color: colors.ink, padding: ds.space.xs, borderRadius: ds.radius.sm, background: i === 0 ? '#fef2f2' : '#f9fafb', border: i === 0 ? '1px solid #fecaca' : 'none' }}>
-                <span style={{ fontSize: ds.text.lg }}>{item.icon}</span>
-                <span style={{ fontWeight: i === 0 ? '600' : '400' }}>{item.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Balance Status */}
-        <div style={{ background: '#f9fafb', padding: ds.space.sm, borderRadius: ds.radius.md, marginBottom: ds.space.md, border: `1px solid ${colors.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: ds.text.sm, marginBottom: '4px' }}>
-            <span style={{ color: colors.metricLabel }}>Your Balance</span>
-            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: ds.text.sm }}>
-            <span style={{ color: colors.metricLabel }}>Required</span>
-            <span style={{ fontWeight: '600' }}>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</span>
-          </div>
-          {tokenBalance > 0 && tokenBalance < REQUIRED_PNL_BALANCE && (
-            <div style={{ marginTop: ds.space.xs, paddingTop: ds.space.xs, borderTop: `1px solid ${colors.border}` }}>
-              <div style={{ fontSize: ds.text.xs, color: colors.muted }}>
-                Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* CTA Buttons */}
-        <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.sm }}>
-          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: colors.pill, color: colors.pillText, fontSize: ds.text.sm, fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
-          <button onClick={handleRetryGate} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: ds.text.sm, fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
-        </div>
 
-        {/* Follow Button */}
-        <a 
-          href="https://farcaster.xyz/ireside.eth"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'block',
-            padding: ds.space.sm,
-            borderRadius: ds.radius.pill,
-            background: 'transparent',
-            color: colors.muted,
-            border: `1px solid ${colors.border}`,
-            fontSize: ds.text.sm,
-            fontWeight: '600',
+        {/* Quick features */}
+        <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px', lineHeight: '1.6' }}>
+          💸 Fumbles tracker • 📊 Full P&L • 📜 Trident audit
+        </div>
+        
+        {/* Balance */}
+        {tokenBalance > 0 && (
+          <div style={{ background: '#f9fafb', padding: '8px', borderRadius: ds.radius.sm, marginBottom: '12px', fontSize: '10px' }}>
+            <span style={{ color: colors.muted }}>Balance: </span>
+            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
+            {tokenBalance < REQUIRED_PNL_BALANCE && (
+              <span style={{ color: colors.muted }}> • Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more</span>
+            )}
+          </div>
+        )}
+        
+        {/* CTA - Primary */}
+        <button 
+          onClick={handleSwapForAccess} 
+          style={{ 
+            width: '100%',
+            padding: '14px', 
+            borderRadius: ds.radius.md, 
+            background: colors.pill, 
+            color: colors.pillText, 
+            fontSize: '14px', 
+            fontWeight: '700', 
+            border: 'none', 
             cursor: 'pointer',
-            textDecoration: 'none',
-            textAlign: 'center'
+            marginBottom: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}
         >
-          Follow @ireside.eth
-        </a>
+          Get $PNL to Unlock
+        </button>
+
+        {/* Secondary */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button 
+            onClick={handleRetryGate} 
+            style={{ 
+              flex: 1, 
+              padding: '8px', 
+              borderRadius: ds.radius.sm, 
+              background: 'transparent', 
+              color: colors.muted, 
+              border: `1px solid ${colors.border}`, 
+              fontSize: '10px', 
+              fontWeight: '600', 
+              cursor: 'pointer' 
+            }}
+          >
+            Refresh
+          </button>
+          <a 
+            href="https://farcaster.xyz/ireside.eth"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              padding: '8px',
+              borderRadius: ds.radius.sm,
+              background: 'transparent',
+              color: colors.muted,
+              border: `1px solid ${colors.border}`,
+              fontSize: '10px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Follow
+          </a>
+        </div>
       </div>
     </div>
   );
