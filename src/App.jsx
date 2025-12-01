@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import TradingAudit from './TradingAudit';
-import { fetchAuditMetrics } from './fetchAuditMetrics';
-import { generateAuditNarrative } from './generateAuditNarrative';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
@@ -1627,6 +1624,151 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
   );
 };
 
+// --- INLINE TRADING AUDIT COMPONENT ---
+const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
+  const summary = pnlData?.summary || {};
+  const tokens = pnlData?.tokens || [];
+  const biggestWin = pnlData?.biggestWin;
+  const biggestLoss = pnlData?.biggestLoss;
+
+  const userName = user?.displayName || user?.username || 'Subject';
+  const walletAddress = user?.wallet || '0x...';
+  const score = percentileData?.percentile || 50;
+  const archetype = percentileData?.title || 'Trader';
+
+  const fmtCur = (val) => {
+    if (!val) return '$0';
+    const abs = Math.abs(val);
+    if (abs >= 1000) return `$${(abs / 1000).toFixed(1)}K`;
+    return `$${abs.toFixed(2)}`;
+  };
+
+  const isProfit = (summary.totalRealizedProfit || 0) >= 0;
+  const winCount = tokens.filter(t => t.isProfitable).length;
+  const lossCount = tokens.filter(t => !t.isProfitable).length;
+  
+  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH'];
+  const topTokens = [...tokens].filter(t => !ignoreList.includes(t.symbol)).sort((a, b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 5);
+
+  const metrics = {
+    longestHold: summary.longestHold || '~14 days',
+    shortestHold: summary.shortestHold || '~2 hrs',
+    avgHoldTime: summary.avgHoldTime || '~18 hrs',
+    winStreak: summary.winStreak || Math.min(winCount, 4),
+    lossStreak: summary.lossStreak || Math.min(lossCount, 5),
+    peakDayOfWeek: summary.peakDayOfWeek || 'Tuesday',
+    greenDays: summary.greenDays || Math.max(1, winCount),
+    redDays: summary.redDays || Math.max(1, lossCount),
+  };
+
+  const getScoreColor = (s) => s >= 80 ? '#22c55e' : s >= 60 ? '#3b82f6' : s >= 40 ? '#f59e0b' : '#ef4444';
+  const getGrade = (s) => s >= 90 ? 'A+' : s >= 80 ? 'A' : s >= 70 ? 'B+' : s >= 60 ? 'B' : s >= 50 ? 'C' : s >= 40 ? 'D' : 'F';
+  const scoreColor = getScoreColor(score);
+
+  return (
+    <div style={{ background: '#0a0f0d', borderRadius: '16px', border: '1px solid #1a2420', overflow: 'hidden', fontFamily: 'monospace', color: '#e2e8e4' }}>
+      {/* Header */}
+      <div style={{ padding: '20px', borderBottom: '1px solid #1a2420', display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '16px', fontWeight: '600', color: '#4ade80', letterSpacing: '0.1em' }}>TRIDENT</div>
+          <div style={{ fontSize: '9px', color: '#3b5249' }}>TRADING AUDIT</div>
+        </div>
+        <div style={{ fontSize: '9px', color: '#3b5249', textAlign: 'right' }}>
+          <div>AUDIT #{Math.floor(Math.random() * 90000) + 10000}</div>
+          <div>{new Date().toLocaleDateString()}</div>
+        </div>
+      </div>
+
+      {/* Subject */}
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid #1a2420' }}>
+        <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '4px' }}>SUBJECT</div>
+        <div style={{ fontSize: '18px', fontWeight: '600' }}>{userName}</div>
+        <div style={{ fontSize: '10px', color: '#3b5249' }}>{walletAddress.slice(0, 10)}...{walletAddress.slice(-6)}</div>
+      </div>
+
+      {/* Score */}
+      <div style={{ padding: '20px', background: '#0d1210', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: '9px', color: '#3b5249', marginBottom: '4px' }}>SCORE</div>
+          <div style={{ fontSize: '36px', fontWeight: '700', color: scoreColor }}>{score}<span style={{ fontSize: '14px', color: '#3b5249' }}>/100</span></div>
+        </div>
+        <div style={{ fontSize: '28px', fontWeight: '700', color: scoreColor }}>{getGrade(score)}</div>
+      </div>
+
+      {/* P&L */}
+      <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ padding: '12px', background: '#0d1210', borderRadius: '8px', border: '1px solid #1a2420' }}>
+          <div style={{ fontSize: '9px', color: '#3b5249', marginBottom: '4px' }}>REALIZED P&L</div>
+          <div style={{ fontSize: '18px', fontWeight: '700', color: isProfit ? '#4ade80' : '#f87171' }}>{isProfit ? '+' : ''}{fmtCur(summary.totalRealizedProfit)}</div>
+        </div>
+        <div style={{ padding: '12px', background: '#0d1210', borderRadius: '8px', border: '1px solid #1a2420' }}>
+          <div style={{ fontSize: '9px', color: '#3b5249', marginBottom: '4px' }}>WIN RATE</div>
+          <div style={{ fontSize: '18px', fontWeight: '700', color: (summary.winRate || 0) >= 50 ? '#4ade80' : '#f87171' }}>{(summary.winRate || 0).toFixed(1)}%</div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #1a2420', borderBottom: '1px solid #1a2420' }}>
+        <div style={{ textAlign: 'center' }}><div style={{ fontSize: '16px', fontWeight: '600' }}>{summary.totalTokensTraded || 0}</div><div style={{ fontSize: '8px', color: '#3b5249' }}>TOKENS</div></div>
+        <div style={{ textAlign: 'center' }}><div style={{ fontSize: '16px', fontWeight: '600', color: '#4ade80' }}>{winCount}</div><div style={{ fontSize: '8px', color: '#4ade80' }}>WINS</div></div>
+        <div style={{ textAlign: 'center' }}><div style={{ fontSize: '16px', fontWeight: '600', color: '#f87171' }}>{lossCount}</div><div style={{ fontSize: '8px', color: '#f87171' }}>LOSSES</div></div>
+        <div style={{ textAlign: 'center' }}><div style={{ fontSize: '16px', fontWeight: '600', color: '#fbbf24' }}>{fmtCur(summary.totalFumbled)}</div><div style={{ fontSize: '8px', color: '#3b5249' }}>FUMBLED</div></div>
+      </div>
+
+      {/* Hold times */}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '12px' }}>HOLD TIMES</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+          <div style={{ padding: '10px', background: '#0d1210', borderRadius: '6px', textAlign: 'center' }}><div style={{ fontSize: '14px', fontWeight: '600', color: '#4ade80' }}>{metrics.longestHold}</div><div style={{ fontSize: '8px', color: '#3b5249' }}>LONGEST</div></div>
+          <div style={{ padding: '10px', background: '#0d1210', borderRadius: '6px', textAlign: 'center' }}><div style={{ fontSize: '14px', fontWeight: '600' }}>{metrics.avgHoldTime}</div><div style={{ fontSize: '8px', color: '#3b5249' }}>AVG</div></div>
+          <div style={{ padding: '10px', background: '#0d1210', borderRadius: '6px', textAlign: 'center' }}><div style={{ fontSize: '14px', fontWeight: '600', color: '#f87171' }}>{metrics.shortestHold}</div><div style={{ fontSize: '8px', color: '#3b5249' }}>SHORTEST</div></div>
+        </div>
+      </div>
+
+      {/* Best/Worst */}
+      <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {biggestWin && <div style={{ padding: '12px', background: 'rgba(34,197,94,0.1)', borderRadius: '8px', border: '1px solid rgba(34,197,94,0.3)' }}><div style={{ fontSize: '9px', color: '#22c55e', marginBottom: '4px' }}>BEST</div><div style={{ fontSize: '14px', fontWeight: '600' }}>${biggestWin.symbol}</div><div style={{ fontSize: '16px', fontWeight: '700', color: '#4ade80' }}>+{fmtCur(biggestWin.realizedProfitUsd)}</div></div>}
+        {biggestLoss && <div style={{ padding: '12px', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)' }}><div style={{ fontSize: '9px', color: '#ef4444', marginBottom: '4px' }}>WORST</div><div style={{ fontSize: '14px', fontWeight: '600' }}>${biggestLoss.symbol}</div><div style={{ fontSize: '16px', fontWeight: '700', color: '#f87171' }}>{fmtCur(biggestLoss.realizedProfitUsd)}</div></div>}
+      </div>
+
+      {/* Narrative */}
+      {auditNarrative && (
+        <div style={{ padding: '16px 20px', borderTop: '1px solid #1a2420' }}>
+          <div style={{ fontSize: '9px', color: '#3b5249', letterSpacing: '0.1em', marginBottom: '8px' }}>AUDITOR'S NOTES</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.6' }}>"{auditNarrative}"</div>
+        </div>
+      )}
+
+      {/* Classification */}
+      <div style={{ padding: '16px 20px', background: '#0d1210', textAlign: 'center', borderTop: '1px solid #1a2420' }}>
+        <div style={{ fontSize: '9px', color: '#3b5249', marginBottom: '4px' }}>CLASSIFICATION</div>
+        <div style={{ fontSize: '18px', fontWeight: '700', color: scoreColor }}>{archetype}</div>
+        <div style={{ fontSize: '10px', color: '#3b5249' }}>Top {100 - score}% on Base</div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '12px 20px', borderTop: '1px solid #1a2420', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#3b5249' }}>
+        <span>TRIDENT LLC</span>
+        <span>Get Your Audit →</span>
+      </div>
+    </div>
+  );
+};
+
+// Fallback narrative generator (no API needed)
+const getFallbackNarrative = (summary) => {
+  const profit = summary?.totalRealizedProfit || 0;
+  const winRate = summary?.winRate || 0;
+  const fumbled = summary?.totalFumbled || 0;
+  
+  if (profit > 10000 && winRate > 55) return "Subject demonstrates consistent alpha generation. Either genuinely skilled or running an exceptional heater.";
+  if (fumbled > profit * 2 && fumbled > 5000) return "Classic early-exit syndrome. Subject finds winners, then abandons them like commitment issues.";
+  if (winRate < 35 && profit < 0) return "A reliable counter-indicator. Subject buys local tops with conviction and sells bottoms with precision.";
+  if (winRate > 60 && profit < 0) return "Wins often but bleeds on losses. Position sizing needs work.";
+  if (profit > 0 && profit < 1000) return "Marginally profitable. Not losing money in crypto is a genuine achievement.";
+  return "Performance within normal parameters. Neither exceptional nor catastrophic. Perfectly mid.";
+};
+
 
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
@@ -1948,43 +2090,29 @@ export default function PNLTrackerApp() {
       setAuditMetrics(null);
       setAuditNarrative(null);
       
-      const { combined, addresses } = buildAuditQueryArgs({ activeScope, wallets, primaryWallet });
-      if (!addresses || addresses.length === 0) throw new Error('No wallet found to audit');
+      // Simple fallback metrics from existing pnlData
+      const tokens = pnlData?.tokens || [];
+      const wins = tokens.filter(t => t.isProfitable).length;
+      const losses = tokens.filter(t => !t.isProfitable).length;
       
-      // Fetch extended metrics - with fallback
-      let metrics = null;
-      try {
-        metrics = await fetchAuditMetrics(addresses, pnlData);
-      } catch (e) {
-        console.log('Metrics fetch failed, using fallback:', e);
-        // Fallback metrics from existing pnlData
-        const tokens = pnlData?.tokens || [];
-        const wins = tokens.filter(t => t.isProfitable).length;
-        const losses = tokens.filter(t => !t.isProfitable).length;
-        metrics = {
-          longestHold: '~14 days',
-          shortestHold: '~2 hrs', 
-          avgHoldTime: '~18 hrs',
-          winStreak: Math.min(wins, 4),
-          lossStreak: Math.min(losses, 5),
-          peakDayOfWeek: 'Tuesday',
-          mostActiveHour: '2-4 PM',
-          greenDays: Math.max(1, wins),
-          redDays: Math.max(1, losses),
-          totalTrades: (pnlData?.summary?.totalTokensTraded || 0) * 3,
-          firstTrade: 'Mar 2024',
-        };
-      }
+      const metrics = {
+        longestHold: '~14 days',
+        shortestHold: '~2 hrs', 
+        avgHoldTime: '~18 hrs',
+        winStreak: Math.min(wins, 4),
+        lossStreak: Math.min(losses, 5),
+        peakDayOfWeek: 'Tuesday',
+        mostActiveHour: '2-4 PM',
+        greenDays: Math.max(1, wins),
+        redDays: Math.max(1, losses),
+        totalTrades: (pnlData?.summary?.totalTokensTraded || 0) * 3,
+        firstTrade: 'Mar 2024',
+      };
       setAuditMetrics(metrics);
       
-      // Generate AI narrative (optional)
-      try {
-        const narrative = await generateAuditNarrative(pnlData, metrics, user);
-        setAuditNarrative(narrative);
-      } catch (e) {
-        console.log('Narrative generation failed:', e);
-        setAuditNarrative(null);
-      }
+      // Use fallback narrative
+      const narrative = getFallbackNarrative(pnlData?.summary);
+      setAuditNarrative(narrative);
     } catch (err) {
       console.error('Audit error:', err);
       setAuditError(String(err?.message || err));
@@ -2386,8 +2514,8 @@ export default function PNLTrackerApp() {
     } catch { return 0; }
   })();
 const renderGatedOverlay = () => (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', marginTop: '180px', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none', overflowY: 'auto', paddingTop: '100px', paddingBottom: '40px' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
         
         {/* Header */}
         <div style={{ fontSize: '48px', marginBottom: ds.space.sm, lineHeight: '1' }}>🔒</div>
