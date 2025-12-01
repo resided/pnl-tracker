@@ -2209,9 +2209,22 @@ export default function PNLTrackerApp() {
       };
       summary.profitPercentage = summary.totalTradingVolume > 0 ? (summary.totalRealizedProfit / summary.totalTradingVolume) * 100 : 0;
       
-      let biggestWin = null;
+      
+      // Exclude infrastructure assets and dust when choosing extremes
+      const INFRA_SYMBOLS = new Set([
+        'ETH','WETH','WRETH','RETH','CBETH','STETH','WSTETH','WSETH',
+        'USDC','USDBC','USDT','DAI','CBBTC','WBTC','BTC'
+      ]);
+      const isInfra = (sym) => INFRA_SYMBOLS.has((sym || '').toUpperCase());
+      const tradeUniverse = allTokenData.filter(t => 
+        !isInfra(t.symbol) &&
+        !(t.isAirdrop) &&
+        (((t.totalUsdInvested || 0) >= 50) || ((t.totalSoldUsd || 0) >= 50))
+      );
+      const pool = tradeUniverse.length > 0 ? tradeUniverse : allTokenData;
+let biggestWin = null;
       let biggestLoss = null;
-      allTokenData.forEach(token => {
+      pool.forEach(token => {
         if(token.realizedProfitUsd > 0) { if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token; }
         if(token.realizedProfitUsd < 0) { if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token; }
       });
@@ -2235,6 +2248,7 @@ export default function PNLTrackerApp() {
              if(addr && parseFloat(rawUsd) > 0) priceMap.set(addr, parseFloat(rawUsd));
           });
           allTokenData.forEach((t) => {
+            if (isInfra(t.symbol)) { return; }
             if (!t.tokenAddress || !t.totalTokensSold) return;
             const priceUsd = priceMap.get(t.tokenAddress);
             if (!priceUsd) return;
