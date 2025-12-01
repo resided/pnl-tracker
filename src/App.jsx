@@ -1,5 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
+/* === Error Boundary to avoid blank screen === */
+class ErrorBoundary extends React.Component {
+  constructor(props){ super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error){ return { hasError: true, error }; }
+  componentDidCatch(error, info){ console.error('App crashed:', error, info); }
+  render(){
+    if(this.state.hasError){
+      return (
+    <ErrorBoundary>
+      <div style={{ padding: 16, fontFamily: 'system-ui', color: '#0b0b0b' }}>
+          <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#fff' }}>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>Something went wrong</div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>The UI crashed. Try refreshing. If this keeps happening, share your wallet and steps.</div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
@@ -2342,7 +2363,9 @@ export default function PNLTrackerApp() {
   const scoreBonusTotal = (() => {
     try {
       const defs = getAllBadges(pnlData?.summary || {});
-      const counts = mintCounts || {};
+      const counts = mintCounts || {
+    </ErrorBoundary>
+  );
       return defs.reduce((acc, d) => acc + (d.scoreBonus || 0) * (counts[d.type] || 0), 0);
     } catch { return 0; }
   })();
