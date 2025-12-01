@@ -315,7 +315,7 @@ const Metric = ({ label, value, isPositive, isWarning }) => (
   </div>
 );
 
-const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current }) => {
+const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClaim, qualified, requirement, current , scoreBonus = 5}) => {
   const isLocked = !qualified;
   
   const ctaLabel = isClaimed ? 'Mint again' : `Mint NFT • +${scoreBonus}`;
