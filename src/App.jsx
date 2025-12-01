@@ -1226,8 +1226,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   );
 };
 
-// Main App Component
-export default 
+
 // --- AUDIT REPORT CARD (Paper-style Lore share) ---
 const AuditReportCard = ({ user, summary, lore, rank }) => {
   if (!user || !summary || !lore || !rank) return null;
@@ -1614,7 +1613,7 @@ const AuditReportCard = ({ user, summary, lore, rank }) => {
 };
 
 
-function PNLTrackerApp() {
+export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
