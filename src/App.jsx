@@ -2544,6 +2544,60 @@ const renderGatedOverlay = () => (
         
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <div>
+            {/* Coming Soon Banner */}
+            <div style={{
+              marginBottom: ds.space.md,
+              padding: ds.space.md,
+              borderRadius: ds.radius.md,
+              background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+              border: '1px solid #374151',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: ds.space.sm
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontSize: ds.text.md,
+                  fontWeight: '700',
+                  color: '#ffffff',
+                  marginBottom: '4px'
+                }}>
+                  Trident LLC Audit Coming Soon
+                </div>
+                <div style={{
+                  fontSize: ds.text.sm,
+                  color: 'rgba(255,255,255,0.7)'
+                }}>
+                  Preview your trading report below. Official audit launching soon.
+                </div>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: `6px ${ds.space.sm}`,
+                borderRadius: ds.radius.pill,
+                background: 'rgba(34, 197, 94, 0.2)',
+                border: '1px solid rgba(34, 197, 94, 0.3)'
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: ds.radius.full,
+                  background: '#22c55e'
+                }} />
+                <span style={{
+                  fontSize: ds.text.xs,
+                  color: '#22c55e',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Preview
+                </span>
+              </div>
+            </div>
 
             <AuditReportCard
               summary={auditData?.summary || pnlData.summary}
