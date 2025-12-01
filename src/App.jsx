@@ -1,120 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// nothing
-/* === GatedAccessPanel (mobile-first) === */
-const GatedAccessPanel = ({
-  tokenBalance,
-  REQUIRED_PNL_BALANCE,
-  handleSwapForAccess,
-  handleRetryGate,
-  colors,
-  ds,
-  upcomingTease = 'Trading Report'
-}) => {
-  const shortfall = Math.max(0, REQUIRED_PNL_BALANCE - (Number(tokenBalance) || 0));
-  const pct = Math.min(100, Math.round(((Number(tokenBalance) || 0) / REQUIRED_PNL_BALANCE) * 100));
-  const Row = ({ t, d }) => (
-    <div style={{border:`1px solid ${colors.border}`,borderRadius:12,padding:10,background:colors.card}}>
-      <div style={{fontSize:12,fontWeight:700}}>{t}</div>
-      <div style={{fontSize:11,color:colors.muted}}>{d}</div>
-    </div>
-  );
-  return (
-    <div style={{minHeight:'100vh',background:colors.bg,color:colors.ink,display:'flex',alignItems:'stretch',justifyContent:'center',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',padding:'20px'}}>
-      <div style={{width:'100%',maxWidth:540,margin:'auto',background:colors.panelBg,border:`1px solid ${colors.border}`,borderRadius:16,boxShadow:'0 10px 24px rgba(0,0,0,0.12)',padding:'16px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-          <div style={{width:28,height:28,borderRadius:999,background:'#111827',color:'#fff',display:'grid',placeItems:'center',fontWeight:900,fontSize:16}}>Ψ</div>
-          <div style={{fontWeight:800,fontSize:16}}>PNL Tracker</div>
-          <div style={{marginLeft:'auto',fontSize:11,padding:'4px 8px',borderRadius:999,border:`1px solid ${colors.border}`,color:colors.muted}}>Gate: 10,000,000 $PNL</div>
-        </div>
-
-        <div style={{marginBottom:14}}>
-          <div style={{fontSize:22,fontWeight:900,lineHeight:1.15}}>Unlock your Farcaster trading profile</div>
-          <div style={{fontSize:13,color:colors.muted,marginTop:6}}>
-            Hold 10M $PNL in your Farcaster primary wallet to open the app. You will see your live PnL, biggest wins and losses, airdrops, and a combined view across your connected wallets. A ranked <strong>{upcomingTease}</strong> is landing soon, with a personal <strong>Trader Score</strong> that benchmarks you against Base traders.
-          </div>
-        </div>
-
-        <div style={{margin:'12px 0 10px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:colors.muted,marginBottom:6}}>
-            <span>Gate progress</span><span>{pct}%</span>
-          </div>
-          <div style={{height:10,background:'#f3f4f6',borderRadius:999,overflow:'hidden',border:`1px solid ${colors.border}`}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'#111827'}}/>
-          </div>
-          <div style={{fontSize:11,color:colors.muted,marginTop:6}}>{shortfall>0? <>Need {Intl.NumberFormat().format(shortfall)} more $PNL</> : <>Gate met</>}</div>
-        </div>
-
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,margin:'12px 0'}}>
-          {[
-            { t: 'Live PnL', d: 'Realized and unrealized' },
-            { t: 'Biggest win/loss', d: 'Entry to exit' },
-            { t: 'Airdrops', d: 'Free money tracker' },
-            { t: 'Wallet switcher', d: 'Primary, others, combined' },
-            { t: 'Audit', d: 'Find habits and leaks' },
-            { t: 'Trader Score', d: 'Rank vs Base' }
-          ].map((it,i)=>(<Row key={i} t={it.t} d={it.d}/>))}
-        </div>
-
-        <button onClick={handleSwapForAccess} style={{width:'100%',padding:14,borderRadius:12,background:'#111827',color:'#fff',fontSize:16,fontWeight:800,border:'none',cursor:'pointer',marginTop:6,marginBottom:8,boxShadow:'0 6px 16px rgba(0,0,0,0.18)',position:'relative'}}>
-          Swap 10M $PNL · Unlock
-          <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:14}}>→</span>
-        </button>
-
-        <div style={{display:'flex',gap:8}}>
-          <button onClick={handleRetryGate} style={{flex:1,padding:10,borderRadius:10,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer'}}>Refresh balance</button>
-          <button
-  onClick={async () => {
-    const variants = [
-      "Unlock your Trading Report + Trader Score in $PNL Ψ — live PnL, biggest win/loss, onchain audit. Hold 10M PNL to enter.",
-      "I’m checking my $PNL Trading Report Ψ: live PnL, ranked Trader Score, readable audit. Gate is 10M PNL. Come try it.",
-      "Want a clean onchain trading report? $PNL Ψ gives you live PnL, biggest win/loss, and a Trader Score. Gate: 10M PNL."
-    ];
-    const text = variants[Math.floor(Math.random() * variants.length)];
-    const embed = typeof window !== "undefined" ? window.location.href : "https://pnl.example";
-
-    // Prefer the native deep link to avoid the download splash
-    const deepLink = `farcaster://casts/new?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
-    const webCompose = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
-
-    try {
-      if (sdk?.actions?.openUrl) {
-        // If we're inside Warpcast, this keeps us in-app
-        await sdk.actions.openUrl(webCompose, { openExternal: false });
-        return;
-      }
-    } catch {}
-
-    // Outside Warpcast: try to open the native app, then fall back to web
-    const t = setTimeout(() => {
-      window.open(webCompose, '_blank');
-    }, 600);
-    window.location.href = deepLink;
-    // If the app opens, the page will background and timer won't fire
-    // If it doesn't, user gets the web composer after 600ms
-  }}
-  style={{
-    flex: 1,
-    padding: 10,
-    borderRadius: 10,
-    background: 'transparent',
-    color: colors.muted,
-    border: `1px solid ${colors.border}`,
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: 'pointer',
-    textAlign: 'center'
-  }}
->
-  Tell a friend
-</button>
-        </div>
-
-        <div style={{marginTop:12,fontSize:11,color:colors.muted,textAlign:'center'}}>Gate checks your <strong>Farcaster primary</strong> wallet. If your $PNL is in a different wallet, move or switch your primary to unlock.</div>
-      </div>
-    </div>
-  );
-};
-/* === End GatedAccessPanel === */
+import TradingAudit from './TradingAudit';
+import { fetchAuditMetrics } from './fetchAuditMetrics';
+import { generateAuditNarrative } from './generateAuditNarrative';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
@@ -495,8 +382,11 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
       </div>
       
       <div style={{ fontSize: ds.text.xs, color: colors.muted, fontWeight: '400' }}>
-        {isLocked && <span>Need: {requirement}</span>}
-        {!isLocked && <span>You: {current}</span>}
+        {isLocked ? (
+          <span>Need: {requirement}</span>
+        ) : (
+          <span>You: {current}</span>
+        )}
       </div>
       
       {canClaim && !isLocked && !isClaimed && (
@@ -1739,7 +1629,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
 
 
 export default function PNLTrackerApp() {
-const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
   const [activeScope, setActiveScope] = useState('primary');
@@ -1764,6 +1654,8 @@ const [user, setUser] = useState(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState(null);
   const [auditData, setAuditData] = useState(null);
+  const [auditMetrics, setAuditMetrics] = useState(null);
+  const [auditNarrative, setAuditNarrative] = useState(null);
 
 
   // Check which badges have already been minted by this user
@@ -2054,19 +1946,40 @@ const [user, setUser] = useState(null);
       setAuditLoading(true);
       setAuditError(null);
       setAuditData(null);
+      setAuditMetrics(null);
+      setAuditNarrative(null);
+      
       const { combined, addresses } = buildAuditQueryArgs({ activeScope, wallets, primaryWallet });
       if (!addresses || addresses.length === 0) throw new Error('No wallet found to audit');
-      const year = new Date().getFullYear();
-      const url = new URL(`${WORKER_BASE}/audit`);
-      url.searchParams.set('address', addresses.join(','));
-      url.searchParams.set('chain', 'base');
-      url.searchParams.set('combine', combined ? 'true' : 'false');
-      url.searchParams.set('year', String(year));
-      const res = await fetch(url.toString(), { headers: { 'accept': 'application/json' } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.detail || data?.error || 'audit fetch failed');
-      if (!data?.summary) throw new Error('audit response malformed');
-      setAuditData(data);
+      
+      // Fetch extended metrics from Moralis transaction history
+      const metrics = await fetchAuditMetrics(addresses, pnlData);
+      setAuditMetrics(metrics);
+      
+      // Generate AI narrative
+      try {
+        const narrative = await generateAuditNarrative(pnlData, metrics, user);
+        setAuditNarrative(narrative);
+      } catch (e) {
+        console.log('Narrative generation failed:', e);
+      }
+      
+      // Also fetch from worker if available
+      try {
+        const year = new Date().getFullYear();
+        const url = new URL(`${WORKER_BASE}/audit`);
+        url.searchParams.set('address', addresses.join(','));
+        url.searchParams.set('chain', 'base');
+        url.searchParams.set('combine', combined ? 'true' : 'false');
+        url.searchParams.set('year', String(year));
+        const res = await fetch(url.toString(), { headers: { 'accept': 'application/json' } });
+        const data = await res.json();
+        if (res.ok && data?.summary) {
+          setAuditData(data);
+        }
+      } catch (e) {
+        console.log('Worker audit fetch failed:', e);
+      }
     } catch (err) {
       setAuditError(String(err?.message || err));
     } finally {
@@ -2467,109 +2380,128 @@ const [user, setUser] = useState(null);
     } catch { return 0; }
   })();
 const renderGatedOverlay = () => (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: ds.radius.lg, border: `1px solid ${colors.border}`, padding: '16px', maxWidth: '360px', width: '100%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', marginTop: '180px', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
         
         {/* Header */}
-        <div style={{ fontSize: '28px', marginBottom: '6px', lineHeight: '1' }}>🔒</div>
-        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>PNL Access</h2>
-        <p style={{ fontSize: '11px', color: colors.muted, margin: '0 0 12px', lineHeight: '1.4' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong></p>
+        <div style={{ fontSize: '48px', marginBottom: ds.space.sm, lineHeight: '1' }}>🔒</div>
+        <h2 style={{ fontSize: ds.text.xl, fontWeight: '700', color: colors.ink, margin: `0 0 ${ds.space.xs}`, letterSpacing: '-0.01em' }}>Premium Access Required</h2>
+        <p style={{ fontSize: ds.text.base, color: colors.muted, margin: `0 0 ${ds.space.lg}`, lineHeight: '1.5' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock your complete trading profile</p>
         
-        {/* Fumbled Gains */}
+        {/* Win Rate Teaser */}
+        {pnlData?.summary && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)', 
+            borderRadius: ds.radius.md, 
+            padding: ds.space.md, 
+            marginBottom: ds.space.md,
+            color: '#fff',
+            border: '1px solid #166534'
+          }}>
+            <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Your Win Rate</div>
+            <div style={{ fontSize: ds.text.xxl, fontWeight: '700' }}>{pnlData.summary.winRate.toFixed(1)}%</div>
+            <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>Unlock to see your full stats</div>
+          </div>
+        )}
+
+        {/* Fumbled Gains - Emotional Hook */}
         {pnlData?.summary?.totalFumbled > 0 && (
           <div style={{ 
             background: 'linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)', 
-            borderRadius: ds.radius.sm, 
-            padding: '10px', 
-            marginBottom: '12px',
+            borderRadius: ds.radius.md, 
+            padding: ds.space.md, 
+            marginBottom: ds.space.md,
             color: '#fff',
             border: '1px solid #991b1b'
           }}>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>You Fumbled</div>
-            <div style={{ fontSize: '24px', fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
-              See which tokens you sold too early
+            <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>You Left on the Table</div>
+            <div style={{ fontSize: ds.text.xxl, fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
+            <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>
+              See exactly which tokens you sold too early
             </div>
           </div>
         )}
-
-        {/* Quick features */}
-        <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px', lineHeight: '1.6' }}>
-          💸 Fumbles tracker • 📊 Full P&L • 📜 Trident audit
+        
+        {/* Trident LLC Audit Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+          borderRadius: ds.radius.md,
+          padding: ds.space.md,
+          marginBottom: ds.space.lg,
+          border: '1px solid #374151'
+        }}>
+          <div style={{ fontSize: ds.text.sm, fontWeight: '700', color: '#ffffff', marginBottom: '4px' }}>
+            🎯 Trident LLC Audit
+          </div>
+          <div style={{ fontSize: ds.text.xs, color: 'rgba(255,255,255,0.7)', lineHeight: '1.4' }}>
+            Official trading audits launching soon for premium holders
+          </div>
         </div>
         
-        {/* Balance */}
-        {tokenBalance > 0 && (
-          <div style={{ background: '#f9fafb', padding: '8px', borderRadius: ds.radius.sm, marginBottom: '12px', fontSize: '10px' }}>
-            <span style={{ color: colors.muted }}>Balance: </span>
-            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
-            {tokenBalance < REQUIRED_PNL_BALANCE && (
-              <span style={{ color: colors.muted }}> • Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more</span>
-            )}
+        {/* Feature List */}
+        <div style={{ textAlign: 'left', marginBottom: ds.space.lg }}>
+          <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: ds.space.sm, textAlign: 'center', fontWeight: '600' }}>Premium Features</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: ds.space.xs }}>
+            {[
+              { icon: '💸', text: 'See exactly how much $ you fumbled' },
+              { icon: '📊', text: 'Complete P&L breakdown & ROI analysis' },
+              { icon: '🏆', text: 'Trading score & Base leaderboard rank' },
+              { icon: '📜', text: 'Official Trident LLC audit (launching soon)' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: ds.space.xs, fontSize: ds.text.sm, color: colors.ink, padding: ds.space.xs, borderRadius: ds.radius.sm, background: i === 0 ? '#fef2f2' : '#f9fafb', border: i === 0 ? '1px solid #fecaca' : 'none' }}>
+                <span style={{ fontSize: ds.text.lg }}>{item.icon}</span>
+                <span style={{ fontWeight: i === 0 ? '600' : '400' }}>{item.text}</span>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
         
-        {/* CTA - Primary */}
-        <button 
-          onClick={handleSwapForAccess} 
-          style={{ 
-            width: '100%',
-            padding: '14px', 
-            borderRadius: ds.radius.md, 
-            background: colors.pill, 
-            color: colors.pillText, 
-            fontSize: '14px', 
-            fontWeight: '700', 
-            border: 'none', 
+        {/* Balance Status */}
+        <div style={{ background: '#f9fafb', padding: ds.space.sm, borderRadius: ds.radius.md, marginBottom: ds.space.md, border: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: ds.text.sm, marginBottom: '4px' }}>
+            <span style={{ color: colors.metricLabel }}>Your Balance</span>
+            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: ds.text.sm }}>
+            <span style={{ color: colors.metricLabel }}>Required</span>
+            <span style={{ fontWeight: '600' }}>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</span>
+          </div>
+          {tokenBalance > 0 && tokenBalance < REQUIRED_PNL_BALANCE && (
+            <div style={{ marginTop: ds.space.xs, paddingTop: ds.space.xs, borderTop: `1px solid ${colors.border}` }}>
+              <div style={{ fontSize: ds.text.xs, color: colors.muted }}>
+                Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* CTA Buttons */}
+        <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.sm }}>
+          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: colors.pill, color: colors.pillText, fontSize: ds.text.sm, fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
+          <button onClick={handleRetryGate} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: ds.text.sm, fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
+        </div>
+
+        {/* Follow Button */}
+        <a 
+          href="https://farcaster.xyz/ireside.eth"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            padding: ds.space.sm,
+            borderRadius: ds.radius.pill,
+            background: 'transparent',
+            color: colors.muted,
+            border: `1px solid ${colors.border}`,
+            fontSize: ds.text.sm,
+            fontWeight: '600',
             cursor: 'pointer',
-            marginBottom: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            textDecoration: 'none',
+            textAlign: 'center'
           }}
         >
-          Get $PNL to Unlock
-        </button>
-
-        {/* Secondary */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button 
-            onClick={handleRetryGate} 
-            style={{ 
-              flex: 1, 
-              padding: '8px', 
-              borderRadius: ds.radius.sm, 
-              background: 'transparent', 
-              color: colors.muted, 
-              border: `1px solid ${colors.border}`, 
-              fontSize: '10px', 
-              fontWeight: '600', 
-              cursor: 'pointer' 
-            }}
-          >
-            Refresh
-          </button>
-          <a 
-            href="https://farcaster.xyz/ireside.eth"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1,
-              padding: '8px',
-              borderRadius: ds.radius.sm,
-              background: 'transparent',
-              color: colors.muted,
-              border: `1px solid ${colors.border}`,
-              fontSize: '10px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            Follow
-          </a>
-        </div>
+          Follow @ireside.eth
+        </a>
       </div>
     </div>
   );
@@ -2585,17 +2517,7 @@ const renderGatedOverlay = () => (
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      {typeof isGated === 'boolean' && isGated && (
-  <GatedAccessPanel
-    tokenBalance={tokenBalance}
-    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-    handleSwapForAccess={handleSwapForAccess}
-    handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
-    colors={colors}
-    ds={ds}
-    upcomingTease="Trading Report"
-  />
-)}
+      {isGated && renderGatedOverlay()}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
         
         {/* Compact Header */}
@@ -2705,69 +2627,90 @@ const renderGatedOverlay = () => (
         
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <div>
-            {/* Coming Soon Banner */}
-            <div style={{
-              marginBottom: ds.space.md,
-              padding: ds.space.md,
-              borderRadius: ds.radius.md,
-              background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-              border: '1px solid #374151',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: ds.space.sm
-            }}>
-              <div style={{ flex: 1 }}>
-                <div style={{
+            {/* Generate Audit Button */}
+            {!auditMetrics && !auditLoading && (
+              <button
+                onClick={handleRequestAudit}
+                style={{
+                  width: '100%',
+                  padding: ds.space.md,
+                  borderRadius: ds.radius.md,
+                  background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+                  border: 'none',
+                  color: '#fff',
                   fontSize: ds.text.md,
-                  fontWeight: '700',
-                  color: '#ffffff',
-                  marginBottom: '4px'
-                }}>
-                  Trident LLC Audit Coming Soon
-                </div>
-                <div style={{
-                  fontSize: ds.text.sm,
-                  color: 'rgba(255,255,255,0.7)'
-                }}>
-                  Preview your trading report below. Official audit launching soon.
-                </div>
-              </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: `6px ${ds.space.sm}`,
-                borderRadius: ds.radius.pill,
-                background: 'rgba(34, 197, 94, 0.2)',
-                border: '1px solid rgba(34, 197, 94, 0.3)'
-              }}>
-                <div style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: ds.radius.full,
-                  background: '#22c55e'
-                }} />
-                <span style={{
-                  fontSize: ds.text.xs,
-                  color: '#22c55e',
                   fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  Preview
-                </span>
+                  cursor: 'pointer',
+                  marginBottom: ds.space.md
+                }}
+              >
+                🔍 Generate My Audit
+              </button>
+            )}
+            
+            {/* Loading State */}
+            {auditLoading && (
+              <div style={{
+                padding: ds.space.xl,
+                textAlign: 'center',
+                background: colors.panelBg,
+                borderRadius: ds.radius.lg,
+                border: `1px solid ${colors.border}`
+              }}>
+                <div style={{ 
+                  width: '24px', 
+                  height: '24px', 
+                  border: `2px solid ${colors.border}`, 
+                  borderTopColor: colors.ink, 
+                  borderRadius: '50%', 
+                  margin: '0 auto 16px', 
+                  animation: 'spin 0.8s linear infinite' 
+                }} />
+                <div style={{ fontSize: ds.text.sm, color: colors.muted }}>Generating your audit...</div>
+                <div style={{ fontSize: ds.text.xs, color: colors.metricLabel, marginTop: '8px' }}>Analyzing transactions & behaviors</div>
               </div>
-            </div>
-
-            <AuditReportCard
-              summary={auditData?.summary || pnlData.summary}
-              lore={auditData ? mapWorkerAuditToLore(auditData) : generateLore(pnlData.summary, tokens, biggestWin, biggestLoss)}
-              rank={auditData?.rank || calculatePercentile(pnlData.summary)}
-              user={user}
-              biggestWin={auditData?.biggestWin || biggestWin}
-              biggestLoss={auditData?.biggestLoss || biggestLoss}
-            />
+            )}
+            
+            {/* Error State */}
+            {auditError && (
+              <div style={{
+                padding: ds.space.md,
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: ds.radius.md,
+                marginBottom: ds.space.md
+              }}>
+                <div style={{ fontSize: ds.text.sm, color: '#991b1b' }}>{auditError}</div>
+                <button
+                  onClick={handleRequestAudit}
+                  style={{
+                    marginTop: ds.space.sm,
+                    padding: `${ds.space.xs} ${ds.space.sm}`,
+                    borderRadius: ds.radius.sm,
+                    background: colors.accent,
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: ds.text.xs,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            
+            {/* Audit Card */}
+            {auditMetrics && !auditLoading && (
+              <TradingAudit
+                pnlData={{
+                  ...pnlData,
+                  summary: { ...pnlData.summary, ...auditMetrics }
+                }}
+                user={{ ...user, wallet: primaryWallet || wallets[0] }}
+                percentileData={calculatePercentile(pnlData.summary)}
+                auditNarrative={auditNarrative}
+              />
+            )}
           </div>
         )}
 
