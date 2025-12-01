@@ -2501,7 +2501,7 @@ export default function PNLTrackerApp() {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? '✨ Lore' : 'Badges'}
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Trading Lore' : 'Badges'}
               </button>
             ))}
           </div>
