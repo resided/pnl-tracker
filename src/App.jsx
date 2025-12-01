@@ -2868,23 +2868,24 @@ const renderGatedOverlay = () => (
 
         {/* Gated content blur */}
         {isGated && (
-  <GatedAccessPanel
-    tokenBalance={tokenBalance}
-    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-    handleSwapForAccess={handleSwapForAccess}
-    handleRetryGate={async ()=>{ await checkTokenGate(primaryWallet); }}
-    colors={colors}
-    ds={ds}
-  />
-) && (
-          <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
-            <Panel title="Highlights" subtitle="From sold tokens">
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
-                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
-              </div>
-            </Panel>
-          </div>
+          <>
+            <GatedAccessPanel
+              tokenBalance={tokenBalance}
+              REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+              handleSwapForAccess={handleSwapForAccess}
+              handleRetryGate={async ()=>{ await checkTokenGate(primaryWallet); }}
+              colors={colors}
+              ds={ds}
+            />
+            <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
+              <Panel title="Highlights" subtitle="From sold tokens">
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                  {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                  {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+                </div>
+              </Panel>
+            </div>
+          </>
         )}
       </div>
     </div>
