@@ -1471,6 +1471,68 @@ export default function PNLTrackerApp() {
     } catch (err) { console.error('share pnl failed', err); }
   };
 
+  const handleShareLore = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const summary = pnlData?.summary;
+      if (!summary) return;
+
+      const tokensArr = pnlData?.tokens || [];
+      const biggestWin = pnlData?.biggestWin || null;
+      const biggestLoss = pnlData?.biggestLoss || null;
+
+      const lore = generateLore(summary, tokensArr, biggestWin, biggestLoss);
+      const rank = calculatePercentile(summary);
+      if (!lore || !rank) return;
+
+      const score = rank.percentile;
+      const topPercent = 100 - score;
+
+      const pnlValue = summary.totalRealizedProfit || 0;
+      const pnlDisplay = `${pnlValue >= 0 ? '+' : '-'}${formatCurrency(Math.abs(pnlValue))}`;
+
+      const handle = user?.username ? `@${user.username}` : 'this trader';
+      const winRate = typeof summary.winRate === 'number'
+        ? summary.winRate.toFixed(1)
+        : summary.winRate;
+      const tokenCount = summary.totalTokensTraded || 0;
+      const topBagSymbols = (lore.topBags || [])
+        .map((t) => t.symbol)
+        .slice(0, 3)
+        .join(', ');
+
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+
+      const storyLines = [
+        '📜 From The Auditor',
+        '',
+        `Dear ${handle},`,
+        `Your trading score is ${score}/100 (Top ${topPercent}% on Base).`,
+        `Realized PnL: ${pnlDisplay} · Win rate: ${winRate}% across ${tokenCount} tokens.`,
+        `Archetype: ${lore.archetype} - "${lore.quote}"`,
+      ];
+
+      if (topBagSymbols) {
+        storyLines.push(`Key bags on record: ${topBagSymbols}.`);
+      }
+
+      storyLines.push('Signed,');
+      storyLines.push('The Auditor');
+      storyLines.push('');
+      storyLines.push('Get your own audit:');
+
+      const castText = storyLines.join('\n');
+
+      await sdk.actions.composeCast({
+        text: castText,
+        embeds: [appLink],
+      });
+    } catch (err) {
+      console.error('share lore failed', err);
+    }
+  };
+
+
   const handleShareFumble = async () => {
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
@@ -2005,7 +2067,7 @@ export default function PNLTrackerApp() {
             user={user} 
             biggestWin={biggestWin} 
             biggestLoss={biggestLoss} 
-            onShare={handleSharePnL} 
+            onShare={handleShareLore} 
           />
         )}
 
