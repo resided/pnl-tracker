@@ -288,7 +288,12 @@ if (totalRealizedProfit > 50000) {
   ];
 
   // Top Bags (Most volume)
-  const topBags = [...tokens].sort((a,b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 4);
+  // Exclude common quote/infrastructure tokens from "Key Bags" to show actual trades
+  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'WrETH'];
+  const topBags = [...tokens]
+    .filter(t => !ignoreList.includes(t.symbol))
+    .sort((a,b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0))
+    .slice(0, 4);
 
   return { archetype, quote, color, habits, topBags };
 };
