@@ -122,13 +122,10 @@ const TradingAudit = ({
 
   return (
     <div style={{
-      minHeight: '100vh',
       background: '#0a0f0d',
       color: '#e2e8e4',
-      padding: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      borderRadius: '16px',
+      overflow: 'hidden',
       fontFamily: "'JetBrains Mono', monospace"
     }}>
       <style>{`
@@ -228,7 +225,13 @@ const TradingAudit = ({
         }
       `}</style>
       
-      <div className="audit-card" style={{ position: 'relative' }}>
+      <div style={{ 
+        background: 'linear-gradient(180deg, #0f1512 0%, #0a0f0d 100%)',
+        border: '1px solid #1a2420',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
         <div className="watermark mono">TRIDENT</div>
         
         {/* Letterhead */}
