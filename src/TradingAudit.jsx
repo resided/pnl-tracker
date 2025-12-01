@@ -1,14 +1,28 @@
 import React from 'react';
 
 /**
- * Viral, Wingman-style trading scorecard for screenshots and casts.
+ * 
  *
  * Props:
  *  - pnlData: {
- *      summary: { totalRealizedProfit, totalUnrealizedProfit, totalTradingVolume, winRate,
- *                 totalTokensTraded, totalFumbled, wins, losses,
- *                 longestHold, avgHoldTime, shortestHold,
- *                 peakDayOfWeek, mostActiveHour, firstTrade, lastTrade, totalTrades },
+ *      summary: {
+ *        totalRealizedProfit,
+ *        totalUnrealizedProfit,
+ *        totalTradingVolume,
+ *        winRate,
+ *        totalTokensTraded,
+ *        totalFumbled,
+ *        wins,
+ *        losses,
+ *        longestHold,
+ *        avgHoldTime,
+ *        shortestHold,
+ *        peakDayOfWeek,
+ *        mostActiveHour,
+ *        firstTrade,
+ *        lastTrade,
+ *        totalTrades
+ *      },
  *      tokens,
  *      biggestWin,
  *      biggestLoss,
@@ -395,7 +409,7 @@ function getFallbackNarrative({ realized, winRate, fumbled, volume, totalTrades 
   return 'Performance is within normal Farcaster degen bounds. Not catastrophic, not legendary. The story is still being written.';
 }
 
-// Self contained CSS for exportable card
+// CSS as string for exportable card
 const scorecardCSS = `
 .scorecard {
   max-width: 420px;
@@ -416,7 +430,7 @@ const scorecardCSS = `
   overflow: hidden;
 }
 
-/* grid */
+/* grid overlay */
 .scorecard::before {
   content: "";
   position: absolute;
