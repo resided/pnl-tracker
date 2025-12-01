@@ -1,3 +1,7 @@
+// The previous gate overlay prevented interaction and was misaligned:
+// - Removed `pointerEvents: 'none'` from the scroll container to re-enable scrolling.
+// Changed alignment to center and eliminated excessive top padding to ensure content is centered on any screen size.
+// Set position: fixed for overlay to achieve proper centering regardless of viewport.
 import React, { useState, useEffect, useCallback } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
@@ -1769,8 +1773,7 @@ const getFallbackNarrative = (summary) => {
   return "Performance within normal parameters. Neither exceptional nor catastrophic. Perfectly mid.";
 };
 
-
-export default function PNLTrackerApp() {
+function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [primaryWallet, setPrimaryWallet] = useState(null);
@@ -2514,8 +2517,8 @@ export default function PNLTrackerApp() {
     } catch { return 0; }
   })();
 const renderGatedOverlay = () => (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none', overflowY: 'auto', paddingTop: '100px', paddingBottom: '40px' }}>
-      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(5px)', overflowY: 'auto', padding: '20px' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '100%', boxShadow: ds.shadow.lg, textAlign: 'center', margin: 'auto' }}>
         
         {/* Header */}
         <div style={{ fontSize: '48px', marginBottom: ds.space.sm, lineHeight: '1' }}>🔒</div>
@@ -3000,4 +3003,6 @@ const renderGatedOverlay = () => (
       </div>
     </div>
   );
-}
+};
+
+export default App;
