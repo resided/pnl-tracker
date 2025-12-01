@@ -2377,6 +2377,24 @@ const renderGatedOverlay = () => (
             <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>Unlock to see your full stats</div>
           </div>
         )}
+
+        {/* Fumbled Gains - Emotional Hook */}
+        {pnlData?.summary?.totalFumbled > 0 && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)', 
+            borderRadius: ds.radius.md, 
+            padding: ds.space.md, 
+            marginBottom: ds.space.md,
+            color: '#fff',
+            border: '1px solid #991b1b'
+          }}>
+            <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>You Left on the Table</div>
+            <div style={{ fontSize: ds.text.xxl, fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
+            <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>
+              See exactly which tokens you sold too early
+            </div>
+          </div>
+        )}
         
         {/* Trident LLC Audit Banner */}
         <div style={{
@@ -2399,14 +2417,14 @@ const renderGatedOverlay = () => (
           <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: ds.space.sm, textAlign: 'center', fontWeight: '600' }}>Premium Features</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: ds.space.xs }}>
             {[
+              { icon: '💸', text: 'See exactly how much $ you fumbled' },
               { icon: '📊', text: 'Complete P&L breakdown & ROI analysis' },
               { icon: '🏆', text: 'Trading score & Base leaderboard rank' },
-              { icon: '💎', text: 'Mint achievement badges as NFTs' },
               { icon: '📜', text: 'Official Trident LLC audit (launching soon)' },
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: ds.space.xs, fontSize: ds.text.sm, color: colors.ink, padding: ds.space.xs, borderRadius: ds.radius.sm, background: '#f9fafb' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: ds.space.xs, fontSize: ds.text.sm, color: colors.ink, padding: ds.space.xs, borderRadius: ds.radius.sm, background: i === 0 ? '#fef2f2' : '#f9fafb', border: i === 0 ? '1px solid #fecaca' : 'none' }}>
                 <span style={{ fontSize: ds.text.lg }}>{item.icon}</span>
-                <span>{item.text}</span>
+                <span style={{ fontWeight: i === 0 ? '600' : '400' }}>{item.text}</span>
               </div>
             ))}
           </div>
