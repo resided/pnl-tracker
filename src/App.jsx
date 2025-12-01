@@ -1247,7 +1247,6 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   );
 };
 
-
 // --- AUDIT REPORT CARD (Paper-style Lore share) ---
 const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss }) => {
   if (!user || !summary || !lore || !rank) return null;
@@ -1621,7 +1620,6 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
   );
 };
 
-
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
@@ -1648,7 +1646,6 @@ export default function PNLTrackerApp() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState(null);
   const [auditData, setAuditData] = useState(null);
-
 
   // Check which badges have already been minted by this user
   const checkMintedBadges = useCallback(async (userAddress) => {
@@ -1957,7 +1954,6 @@ export default function PNLTrackerApp() {
       setAuditLoading(false);
     }
   };
-
 
   const handleShareFumble = async () => {
     try {
@@ -2350,115 +2346,7 @@ export default function PNLTrackerApp() {
       return defs.reduce((acc, d) => acc + (d.scoreBonus || 0) * (counts[d.type] || 0), 0);
     } catch { return 0; }
   })();
-const renderGatedOverlay = () => (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: ds.radius.lg, border: `1px solid ${colors.border}`, padding: '16px', maxWidth: '360px', width: '100%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
-        
-        {/* Header */}
-        <div style={{ fontSize: '28px', marginBottom: '6px', lineHeight: '1' }}>🔒</div>
-        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Premium Access</h2>
-        <p style={{ fontSize: '11px', color: colors.muted, margin: '0 0 12px', lineHeight: '1.4' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong></p>
-        
-        {/* Fumbled Gains */}
-        {pnlData?.summary?.totalFumbled > 0 && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)', 
-            borderRadius: ds.radius.sm, 
-            padding: '10px', 
-            marginBottom: '12px',
-            color: '#fff',
-            border: '1px solid #991b1b'
-          }}>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>You Fumbled</div>
-            <div style={{ fontSize: '24px', fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
-              See which tokens you sold too early
-            </div>
-          </div>
-        )}
-
-        {/* Quick features */}
-        <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px', lineHeight: '1.6' }}>
-          💸 Fumbles tracker • 📊 Full P&L • 📜 Trident audit
-        </div>
-        
-        {/* Balance */}
-        {tokenBalance > 0 && (
-          <div style={{ background: '#f9fafb', padding: '8px', borderRadius: ds.radius.sm, marginBottom: '12px', fontSize: '10px' }}>
-            <span style={{ color: colors.muted }}>Balance: </span>
-            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
-            {tokenBalance < REQUIRED_PNL_BALANCE && (
-              <span style={{ color: colors.muted }}> • Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more</span>
-            )}
-          </div>
-        )}
-        
-        {/* CTA - Primary */}
-        <button 
-          onClick={handleSwapForAccess} 
-          style={{ 
-            width: '100%',
-            padding: '14px', 
-            borderRadius: ds.radius.md, 
-            background: colors.pill, 
-            color: colors.pillText, 
-            fontSize: '14px', 
-            fontWeight: '700', 
-            border: 'none', 
-            cursor: 'pointer',
-            marginBottom: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}
-        >
-          Get $PNL to Unlock
-        </button>
-
-        {/* Secondary */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button 
-            onClick={handleRetryGate} 
-            style={{ 
-              flex: 1, 
-              padding: '8px', 
-              borderRadius: ds.radius.sm, 
-              background: 'transparent', 
-              color: colors.muted, 
-              border: `1px solid ${colors.border}`, 
-              fontSize: '10px', 
-              fontWeight: '600', 
-              cursor: 'pointer' 
-            }}
-          >
-            Refresh
-          </button>
-          <a 
-            href="https://farcaster.xyz/ireside.eth"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1,
-              padding: '8px',
-              borderRadius: ds.radius.sm,
-              background: 'transparent',
-              color: colors.muted,
-              border: `1px solid ${colors.border}`,
-              fontSize: '10px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            Follow
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
+if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
   if (envError) return <ErrorScreen title="Access Locked" message={envError} />;
 
   const tokens = pnlData?.tokens || [];
@@ -2469,7 +2357,17 @@ const renderGatedOverlay = () => (
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      {isGated && renderGatedOverlay()}
+      {isGated && (
+  <GatedAccessPanel
+    tokenBalance={tokenBalance}
+    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
+    handleSwapForAccess={handleSwapForAccess}
+    handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
+    colors={colors}
+    ds={ds}
+    upcomingTease="Trading Report"
+  />
+)}
       <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
         
         {/* Compact Header */}
