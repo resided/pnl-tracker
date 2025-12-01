@@ -2669,11 +2669,15 @@ const renderGatedOverlay = () => (
                   </div>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
-                <Metric label="Total Bought" value={formatCurrency(pnlData.summary.totalTradingVolume)} />
+                <div style={{ flex: '1 1 auto' }}>
+                  <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.metricLabel, marginBottom: '6px' }}>Total Invested</div>
+                  <div style={{ fontSize: '20px', fontWeight: '600', color: colors.ink }}>{formatCurrency(pnlData.summary.totalTradingVolume)}</div>
+                  <div style={{ fontSize: '10px', color: colors.muted, marginTop: '2px' }}>Across {pnlData.summary.totalTokensTraded} tokens</div>
+                </div>
                 <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
                 {!isGated && pnlData.summary.totalFumbled > 0 
                    ? <Metric label="Fumbled Gains" value={formatCurrency(pnlData.summary.totalFumbled)} isWarning />
-                   : <Metric label="Tokens Sold" value={pnlData.summary.totalTokensTraded} />
+                   : <Metric label="Tokens Traded" value={pnlData.summary.totalTokensTraded} />
                 }
               </div>
             </Panel>
