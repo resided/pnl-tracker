@@ -248,36 +248,36 @@ const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
   let quote = "I trade, therefore I am.";
   let color = "#64748b"; // Default slate
   
-  // Logic to determine Archetype
-  if (totalRealizedProfit > 50000) {
-    archetype = "The Based God";
-    quote = "I don't chase pumps, I create them.";
-    color = "#EAB308"; // Gold
-  } else if (totalRealizedProfit > 10000) {
-    archetype = "The Alpha Hunter";
-    quote = "Up only. Everything else is noise.";
-    color = "#22c55e"; // Green
-  } else if (winRate > 70) {
-    archetype = "The Sniper";
-    quote = "One shot, one kill. No wasted gas.";
-    color = "#06b6d4"; // Cyan
-  } else if (totalFumbled > 20000) {
-    archetype = "The Paper Handed King";
-    quote = "I sell the bottom so you can buy.";
-    color = "#f97316"; // Orange
-  } else if (totalRealizedProfit < -5000) {
-    archetype = "The Exit Liquidity";
-    quote = "I'm doing it for the culture (and the tax loss).";
-    color = "#ef4444"; // Red
-  } else if (totalTradingVolume > 100000) {
-    archetype = "The Volume Farmer";
-    quote = "Sleep is for people who don't trade 24/7.";
-    color = "#8b5cf6"; // Purple
-  } else {
-    archetype = "The Grinder";
-    quote = "Slow and steady loses the race, but I'm still running.";
-    color = "#94a3b8"; // Slate
-  }
+// Logic to determine Archetype
+if (totalRealizedProfit > 50000) {
+  archetype = "Based";
+  quote = "You leave each cycle with more than you brought in.";
+  color = "#EAB308"; // Gold
+} else if (totalRealizedProfit > 10000) {
+  archetype = "Edge Carrier";
+  quote = "You have a repeatable edge and you use it.";
+  color = "#22c55e"; // Green
+} else if (winRate > 70) {
+  archetype = "High Hit Rate";
+  quote = "You are selective, and most swings connect.";
+  color = "#06b6d4"; // Cyan
+} else if (totalFumbled > 20000) {
+  archetype = "Early Exiter";
+  quote = "You read the narrative, then hand off the final leg.";
+  color = "#f97316"; // Orange
+} else if (totalRealizedProfit < -5000) {
+  archetype = "Liquidity Donor";
+  quote = "You are currently financing other people's screenshots.";
+  color = "#ef4444"; // Red
+} else if (totalTradingVolume > 100000) {
+  archetype = "Flow Trader";
+  quote = "You live in the order flow rather than on the sidelines.";
+  color = "#8b5cf6"; // Purple
+} else {
+  archetype = "Working File";
+  quote = "The story is still being written. The curve can bend either way.";
+  color = "#94a3b8"; // Slate
+}
 
   // Generate Habits based on data
   const habits = [
