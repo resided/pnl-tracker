@@ -1,7 +1,6 @@
 import React from 'react';
 
 /**
- * Wingman-style viral trading scorecard.
  * Uses existing pnlData + percentileData + auditNarrative props.
  */
 
