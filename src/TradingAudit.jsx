@@ -1,40 +1,12 @@
 import React from 'react';
 
 /**
- * 
- *
- * Props:
- *  - pnlData: {
- *      summary: {
- *        totalRealizedProfit,
- *        totalUnrealizedProfit,
- *        totalTradingVolume,
- *        winRate,
- *        totalTokensTraded,
- *        totalFumbled,
- *        wins,
- *        losses,
- *        longestHold,
- *        avgHoldTime,
- *        shortestHold,
- *        peakDayOfWeek,
- *        mostActiveHour,
- *        firstTrade,
- *        lastTrade,
- *        totalTrades
- *      },
- *      tokens,
- *      biggestWin,
- *      biggestLoss,
- *      biggestFumble
- *    }
- *  - user: { displayName, username, wallet, pfpUrl }
- *  - percentileData: { percentile, title, emoji, vibe, callout }
- *  - auditNarrative: string (LLM generated)
+ * Wingman-style viral trading scorecard.
+ * Uses existing pnlData + percentileData + auditNarrative props.
  */
 
 const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
-  if (!pnlData || !pnlData.summary) return null;
+  if (!pnlData || !pnlData.summary || !user) return null;
 
   const summary = pnlData.summary || {};
   const tokens = pnlData.tokens || [];
@@ -42,9 +14,10 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
   const biggestLoss = pnlData.biggestLoss;
   const biggestFumble = pnlData.biggestFumble;
 
-  const score = typeof percentileData?.percentile === 'number'
-    ? Math.round(percentileData.percentile)
-    : 50;
+  const score =
+    typeof percentileData?.percentile === 'number'
+      ? Math.round(percentileData.percentile)
+      : 50;
 
   const archetypeTitle = percentileData?.title || 'Onchain Trader';
   const archetypeEmoji = percentileData?.emoji || '📊';
@@ -78,9 +51,9 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
   const avgHold = summary.avgHoldTime || '~18 hrs';
   const shortestHold = summary.shortestHold || '~2 hrs';
 
-  const handle = user?.username ? `@${user.username}` : '';
-  const displayName = user?.displayName || user?.username || 'Unnamed trader';
-  const shortWallet = user?.wallet ? truncateAddress(user.wallet) : '';
+  const handle = user.username ? `@${user.username}` : '';
+  const displayName = user.displayName || user.username || 'Unnamed trader';
+  const shortWallet = user.wallet ? truncateAddress(user.wallet) : '';
 
   const topics = buildTopics({
     summary,
@@ -117,7 +90,7 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
         <header className="scorecard-header">
           <div className="scorecard-header-left">
             <div className="scorecard-avatar-ring">
-              {user?.pfpUrl ? (
+              {user.pfpUrl ? (
                 <img
                   src={user.pfpUrl}
                   alt={displayName}
@@ -358,7 +331,7 @@ function buildTopics({ summary, tokens, biggestWin, biggestLoss, biggestFumble }
       : summary.winRate
       ? parseFloat(String(summary.winRate).replace('%', '')) || 0
       : 0;
-  const fumbled = Number(summary.totalFumbled || 0);
+  const fumbledVal = Number(summary.totalFumbled || 0);
   const trades = Number(summary.totalTrades || 0);
   const longestHold = String(summary.longestHold || '');
   const avgHold = String(summary.avgHoldTime || '');
@@ -370,7 +343,7 @@ function buildTopics({ summary, tokens, biggestWin, biggestLoss, biggestFumble }
   if (wr > 65) topics.push('High hit rate entries');
   else if (wr < 35 && trades > 15) topics.push('Buys tops, panic exits bottoms');
 
-  if (fumbled > 5000) topics.push('Lets winners run without them');
+  if (fumbledVal > 5000) topics.push('Lets winners run without them');
   if (trades > 80) topics.push('Lives in the trade history tab');
   if (trades > 0 && trades < 15) topics.push('Selective sniper, low sample size');
 
@@ -398,7 +371,7 @@ function getFallbackNarrative({ realized, winRate, fumbled, volume, totalTrades 
     return 'A dependable counter indicator. Buys local tops with conviction, sells bottoms with precision. Time to slow down and size smaller.';
   }
   if (realized > 0 && realized < 1000) {
-    return 'Slightly green. In memecoins, not losing money already puts you ahead of a lot of the timeline.';
+    return 'Slightly profitable. In memecoins, not losing money already puts you ahead of most of the timeline.';
   }
   if (volume > 100000 && Math.abs(realized) < 500) {
     return 'Huge spin of the wheel for surprisingly little net outcome. High activity, low extraction. Review which trades actually mattered.';
