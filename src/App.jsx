@@ -248,36 +248,36 @@ const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
   let quote = "I trade, therefore I am.";
   let color = "#64748b"; // Default slate
   
-// Logic to determine Archetype
-if (totalRealizedProfit > 50000) {
-  archetype = "Based";
-  quote = "You leave each cycle with more than you brought in.";
-  color = "#EAB308"; // Gold
-} else if (totalRealizedProfit > 10000) {
-  archetype = "Edge Carrier";
-  quote = "You have a repeatable edge and you use it.";
-  color = "#22c55e"; // Green
-} else if (winRate > 70) {
-  archetype = "High Hit Rate";
-  quote = "You are selective, and most swings connect.";
-  color = "#06b6d4"; // Cyan
-} else if (totalFumbled > 20000) {
-  archetype = "Early Exiter";
-  quote = "You read the narrative, then hand off the final leg.";
-  color = "#f97316"; // Orange
-} else if (totalRealizedProfit < -5000) {
-  archetype = "Liquidity Donor";
-  quote = "You are currently financing other people's screenshots.";
-  color = "#ef4444"; // Red
-} else if (totalTradingVolume > 100000) {
-  archetype = "Flow Trader";
-  quote = "You live in the order flow rather than on the sidelines.";
-  color = "#8b5cf6"; // Purple
-} else {
-  archetype = "Working File";
-  quote = "The story is still being written. The curve can bend either way.";
-  color = "#94a3b8"; // Slate
-}
+  // Logic to determine Archetype
+  if (totalRealizedProfit > 50000) {
+    archetype = "The Based God";
+    quote = "I don't chase pumps, I create them.";
+    color = "#EAB308"; // Gold
+  } else if (totalRealizedProfit > 10000) {
+    archetype = "The Alpha Hunter";
+    quote = "Up only. Everything else is noise.";
+    color = "#22c55e"; // Green
+  } else if (winRate > 70) {
+    archetype = "The Sniper";
+    quote = "One shot, one kill. No wasted gas.";
+    color = "#06b6d4"; // Cyan
+  } else if (totalFumbled > 20000) {
+    archetype = "The Paper Handed King";
+    quote = "I sell the bottom so you can buy.";
+    color = "#f97316"; // Orange
+  } else if (totalRealizedProfit < -5000) {
+    archetype = "The Exit Liquidity";
+    quote = "I'm doing it for the culture (and the tax loss).";
+    color = "#ef4444"; // Red
+  } else if (totalTradingVolume > 100000) {
+    archetype = "The Volume Farmer";
+    quote = "Sleep is for people who don't trade 24/7.";
+    color = "#8b5cf6"; // Purple
+  } else {
+    archetype = "The Grinder";
+    quote = "Slow and steady loses the race, but I'm still running.";
+    color = "#94a3b8"; // Slate
+  }
 
   // Generate Habits based on data
   const habits = [
@@ -589,362 +589,154 @@ const RankCard = ({ summary, onShare }) => {
   );
 };
 
-// --- IMPROVED LORE COMPONENT WITH SCORE RING ---
+// --- NEW LORE COMPONENT (WINGMAN STYLE) ---
 const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) => {
   const lore = generateLore(summary, tokens, biggestWin, biggestLoss);
-  const rank = calculatePercentile(summary); // USE the score system!
-  
-  if (!lore || !rank) return null;
+  if (!lore) return null;
 
-  const score = rank.percentile;
-  const topPercent = 100 - score;
-  
-  // Score ring calculation (SVG arc)
-  const radius = 52;
-  const strokeWidth = 6;
-  const circumference = 2 * Math.PI * radius;
-  const progress = (score / 100) * circumference;
-  const dashOffset = circumference - progress;
-
-  // Dynamic glow color based on score tier
-  const getScoreColor = () => {
-    if (score >= 95) return '#F59E0B'; // Gold
-    if (score >= 80) return '#22C55E'; // Green  
-    if (score >= 60) return '#3B82F6'; // Blue
-    if (score >= 40) return '#94A3B8'; // Slate
-    return '#EF4444'; // Red
-  };
-  
-  const scoreColor = getScoreColor();
+  const keyTrades = [
+    biggestWin && {
+      label: 'Biggest win',
+      symbol: biggestWin.symbol,
+      pnl: biggestWin.realizedProfitUsd ?? 0,
+      isWin: true,
+    },
+    biggestLoss && {
+      label: 'Biggest loss',
+      symbol: biggestLoss.symbol,
+      pnl: biggestLoss.realizedProfitUsd ?? 0,
+      isWin: false,
+    },
+  ].filter(Boolean);
 
   return (
     <div style={{
-      background: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 100%)',
+      background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)', // Dark "Matrix" vibes
       borderRadius: '24px',
-      padding: '28px 24px',
+      padding: '24px',
       color: '#fff',
-      border: `1px solid ${lore.color}30`,
-      boxShadow: `0 0 60px -20px ${lore.color}40, inset 0 1px 0 rgba(255,255,255,0.05)`,
-      fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', monospace",
+      border: `1px solid ${lore.color}`, // Dynamic border based on rank
+      boxShadow: `0 0 20px -5px ${lore.color}40`, // Colored glow
+      fontFamily: 'monospace', // Tech/Hacker font vibe
       position: 'relative',
       overflow: 'hidden',
       marginBottom: '24px'
     }}>
-      
-      {/* Subtle grid background */}
+      {/* Decorative Grid Background */}
       <div style={{ 
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
-        backgroundImage: `
-          linear-gradient(${lore.color}05 1px, transparent 1px),
-          linear-gradient(90deg, ${lore.color}05 1px, transparent 1px)
-        `, 
-        backgroundSize: '32px 32px',
-        pointerEvents: 'none' 
-      }} />
-      
-      {/* Corner glow accent */}
-      <div style={{
-        position: 'absolute',
-        top: '-100px',
-        right: '-100px',
-        width: '300px',
-        height: '300px',
-        background: `radial-gradient(circle, ${lore.color}15 0%, transparent 70%)`,
-        pointerEvents: 'none'
-      }} />
+        backgroundImage: 'radial-gradient(#ffffff10 1px, transparent 1px)', 
+        backgroundSize: '20px 20px', opacity: 0.3, pointerEvents: 'none' 
+      }}></div>
 
       <div style={{ position: 'relative', zIndex: 2 }}>
         
         {/* Header: Avatar & Handle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
-          <div style={{ position: 'relative' }}>
-            <img 
-              src={user?.pfpUrl} 
-              alt=""
-              style={{ 
-                width: '52px', 
-                height: '52px', 
-                borderRadius: '50%', 
-                border: `2px solid ${lore.color}`,
-                boxShadow: `0 0 20px ${lore.color}40`
-              }} 
-            />
-            {/* Online indicator */}
-            <div style={{
-              position: 'absolute',
-              bottom: '2px',
-              right: '2px',
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#22C55E',
-              border: '2px solid #0a0a0f'
-            }} />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <img src={user?.pfpUrl} style={{ width: '48px', height: '48px', borderRadius: '50%', border: `2px solid ${lore.color}` }} />
           <div>
-            <div style={{ 
-              fontSize: '17px', 
-              fontWeight: '700', 
-              letterSpacing: '-0.02em', 
-              fontFamily: 'system-ui, -apple-system, sans-serif' 
-            }}>
-              {user?.displayName}
-            </div>
-            <div style={{ 
-              fontSize: '13px', 
-              color: lore.color, 
-              opacity: 0.9,
-              fontFamily: 'monospace'
-            }}>
-              @{user?.username}
-            </div>
+            <div style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '-0.02em', fontFamily: 'system-ui' }}>{user?.displayName}</div>
+            <div style={{ fontSize: '12px', color: lore.color, opacity: 0.8 }}>@{user?.username}</div>
           </div>
         </div>
 
-        {/* HERO: Score Ring + Archetype */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          
-          {/* Score Ring (SVG) */}
+        {/* Hero: Rank Icon & Archetype */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{ 
-            position: 'relative', 
-            width: '140px', 
-            height: '140px', 
-            margin: '0 auto 20px'
+            width: '80px', height: '80px', margin: '0 auto 16px', 
+            background: `${lore.color}20`, borderRadius: '16px', 
+            border: `1px solid ${lore.color}`, display: 'flex', 
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: '40px', boxShadow: `0 0 15px ${lore.color}60`
           }}>
-            <svg 
-              width="140" 
-              height="140" 
-              style={{ transform: 'rotate(-90deg)' }}
-            >
-              {/* Background track */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                fill="none"
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth={strokeWidth}
-              />
-              {/* Progress arc */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                fill="none"
-                stroke={scoreColor}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
-                style={{
-                  filter: `drop-shadow(0 0 8px ${scoreColor}80)`,
-                  transition: 'stroke-dashoffset 0.8s ease-out'
-                }}
-              />
-            </svg>
-            
-            {/* Score number in center */}
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              textAlign: 'center'
-            }}>
-              <div style={{ 
-                fontSize: '36px', 
-                fontWeight: '800', 
-                color: '#fff',
-                lineHeight: '1',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                textShadow: `0 0 30px ${scoreColor}60`
-              }}>
-                {score}
-              </div>
-              <div style={{ 
-                fontSize: '12px', 
-                color: 'rgba(255,255,255,0.4)',
-                fontWeight: '500',
-                marginTop: '2px',
-                letterSpacing: '0.05em'
-              }}>
-                /100
-              </div>
-            </div>
+            {summary.winRate > 60 ? '🏆' : summary.totalRealizedProfit > 0 ? '📈' : '💀'}
           </div>
-          
-          {/* Percentile badge */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '99px',
-            background: `${scoreColor}20`,
-            border: `1px solid ${scoreColor}40`,
-            marginBottom: '16px'
-          }}>
-            <span style={{ fontSize: '11px', color: scoreColor, fontWeight: '600' }}>
-              TOP {topPercent}%
-            </span>
-            <span style={{ fontSize: '14px' }}>{rank.emoji}</span>
-          </div>
-          
-          {/* Archetype name */}
           <div style={{ 
-            fontSize: '24px', 
-            fontWeight: '800', 
-            textTransform: 'uppercase', 
-            color: lore.color, 
-            textShadow: `0 0 30px ${lore.color}50`,
-            letterSpacing: '0.08em',
-            lineHeight: '1.1'
+            fontSize: '22px', fontWeight: '800', textTransform: 'uppercase', 
+            color: lore.color, textShadow: `0 0 10px ${lore.color}40`,
+            letterSpacing: '0.05em', lineHeight: '1.1'
           }}>
             {lore.archetype}
           </div>
-          
-          {/* Quote */}
-          <div style={{ 
-            fontSize: '12px', 
-            fontStyle: 'italic', 
-            marginTop: '10px', 
-            opacity: 0.7, 
-            maxWidth: '280px', 
-            margin: '10px auto 0',
-            lineHeight: '1.5'
-          }}>
+          <div style={{ fontSize: '11px', fontStyle: 'italic', marginTop: '8px', opacity: 0.8, maxWidth: '260px', margin: '8px auto 0' }}>
             "{lore.quote}"
           </div>
         </div>
 
-        {/* Stats Grid - Cleaner version */}
+        {/* Stats Grid */}
         <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1px 1fr 1px 1fr', 
-          gap: '0',
-          marginBottom: '16px',
-          background: 'rgba(255,255,255,0.03)',
-          padding: '18px 12px',
-          borderRadius: '16px',
-          border: '1px solid rgba(255,255,255,0.06)'
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '24px',
+          background: '#ffffff05', padding: '16px', borderRadius: '16px', border: '1px solid #ffffff10'
         }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '18px', 
-              fontWeight: '700', 
-              color: summary.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171',
-              fontFamily: 'system-ui'
-            }}>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: summary.totalRealizedProfit >= 0 ? '#4ade80' : '#f87171' }}>
               {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
             </div>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
-              Realized
-            </div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em' }}>Realized</div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ textAlign: 'center', borderLeft: '1px solid #ffffff10', borderRight: '1px solid #ffffff10' }}>
+            <div style={{ fontSize: '16px', fontWeight: '700' }}>{summary.winRate.toFixed(0)}%</div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em' }}>Win Rate</div>
+          </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'system-ui' }}>
-              {summary.winRate.toFixed(0)}%
-            </div>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
-              Win Rate
-            </div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.08)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'system-ui' }}>
-              {summary.totalTokensTraded}
-            </div>
-            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.4, letterSpacing: '0.12em', marginTop: '4px' }}>
-              Tokens
-            </div>
-          </div>
-        </div>
-
-        {/* Top Bags */}
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '9px', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.2em', 
-            marginBottom: '14px', 
-            opacity: 0.5 
-          }}>
-            Top Bags
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-            {lore.topBags.map((t, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                <div style={{ 
-                  width: '44px', 
-                  height: '44px', 
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-                  color: '#fff',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontWeight: '700', 
-                  fontSize: '10px',
-                  border: `1px solid ${lore.color}40`,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                }}>
-                  {t.symbol.slice(0,4)}
+            <div style={{ fontSize: '16px', fontWeight: '700' }}>{summary.totalTokensTraded}</div>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em' }}>Tokens</d
+        {/* Key trades (wins / losses) */}
+        {keyTrades.length > 0 && (
+          <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '12px', opacity: 0.6 }}>Key trades</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              {keyTrades.map((t, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: '#fff',
+                    color: t.isWin ? '#166534' : '#991b1b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '700',
+                    fontSize: '10px',
+                    border: `2px solid ${lore.color}`,
+                  }}>
+                    {t.symbol.slice(0, 4)}
+                  </div>
+                  <div style={{ fontSize: '10px', fontWeight: '600' }}>{t.label}</div>
+                  <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                    {t.isWin ? '+' : '-'}
+                    {formatCurrency(Math.abs(t.pnl))}
+                  </div>
                 </div>
-                <div style={{ fontSize: '9px', fontWeight: '600', opacity: 0.7 }}>{t.symbol}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Habits */}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.2em', textAlign: 'center', marginBottom: '4px', opacity: 0.6 }}>Trading Style</div>
+          {lore.habits.map((habit, i) => (
+            <div key={i} style={{ 
+              padding: '8px 12px', borderRadius: '8px', 
+              border: `1px solid ${lore.color}40`, 
+              background: `${lore.color}10`,
+              fontSize: '11px', textAlign: 'center'
+            }}>
+              {habit}
+            </div>
+          ))}
         </div>
 
-        {/* Habits - More compact */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ 
-            fontSize: '9px', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.2em', 
-            textAlign: 'center', 
-            marginBottom: '10px', 
-            opacity: 0.5 
-          }}>
-            Trading Style
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {lore.habits.slice(0, 3).map((habit, i) => (
-              <div key={i} style={{ 
-                padding: '10px 14px', 
-                borderRadius: '10px', 
-                border: '1px solid rgba(255,255,255,0.08)', 
-                background: 'rgba(255,255,255,0.02)',
-                fontSize: '11px', 
-                textAlign: 'center',
-                lineHeight: '1.4'
-              }}>
-                {habit}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Share button - Premium feel */}
-        <button 
-          onClick={onShare} 
-          style={{ 
-            width: '100%', 
-            padding: '16px', 
-            borderRadius: '14px', 
-            border: 'none', 
-            background: `linear-gradient(135deg, ${lore.color} 0%, ${lore.color}cc 100%)`,
-            color: '#000',
-            fontSize: '12px', 
-            fontWeight: '800', 
-            cursor: 'pointer', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.12em',
-            boxShadow: `0 8px 24px ${lore.color}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-          }}
-        >
+        <button onClick={onShare} style={{ 
+          marginTop: '24px', width: '100%', padding: '14px', borderRadius: '12px', 
+          border: 'none', background: lore.color, color: '#000',
+          fontSize: '12px', fontWeight: '800', cursor: 'pointer', 
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          boxShadow: `0 4px 15px ${lore.color}60`
+        }}>
           Share My Lore
         </button>
 
@@ -1226,381 +1018,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   );
 };
 
-
-// --- AUDIT REPORT CARD (Paper-style Lore share) ---
-const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss }) => {
-  if (!user || !summary || !lore || !rank) return null;
-
-  const score = rank.percentile ?? 0;
-  const auditDate = new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const stampColor =
-    score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
-  const stampBorder =
-    score >= 80 ? '#86efac' : score >= 50 ? '#fcd34d' : '#fca5a5';
-  const stampRotate = score % 2 === 0 ? 'rotate(-10deg)' : 'rotate(8deg)';
-
-  return (
-    <div
-      style={{
-        background: '#f2f0e9',
-        backgroundImage:
-          'radial-gradient(#e5e4dc 1px, transparent 1px)',
-        backgroundSize: '18px 18px',
-        borderRadius: '2px',
-        padding: '20px',
-        color: '#1f2937',
-        border: '2px solid #1f2937',
-        boxShadow:
-          '0 20px 40px -10px rgba(0,0,0,0.2)',
-        fontFamily: "'Courier Prime', 'Courier New', monospace",
-        position: 'relative',
-        overflow: 'hidden',
-        margin: '0 auto 24px',
-        maxWidth: '480px',
-      }}
-    >
-      {/* Watermark */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%) rotate(-45deg)',
-          fontSize: '70px',
-          fontWeight: 900,
-          color: '#f3f4f6',
-          pointerEvents: 'none',
-          zIndex: 0,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        AUDIT FILE
-      </div>
-
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '16px',
-            borderBottom: '2px solid #000',
-            paddingBottom: '16px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            {user.pfpUrl && (
-              <img
-                src={user.pfpUrl}
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '4px',
-                  border: '1px solid #000',
-                  filter: 'grayscale(100%)',
-                  objectFit: 'cover',
-                }}
-                alt="Subject avatar"
-              />
-            )}
-            <div>
-              <div
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '-0.05em',
-                }}
-              >
-                {user.displayName}
-              </div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                }}
-              >
-                @{user.username} • REF: #{user.fid}
-              </div>
-            </div>
-          </div>
-
-          {/* Score stamp */}
-          <div
-            style={{
-              border: `3px solid ${stampBorder}`,
-              padding: '8px 12px',
-              borderRadius: '8px',
-              textAlign: 'center',
-              transform: stampRotate,
-              background: `${stampColor}10`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: '28px',
-                fontWeight: 900,
-                lineHeight: 1,
-                color: stampColor,
-              }}
-            >
-              {score}
-            </div>
-            <div
-              style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                color: stampColor,
-                textTransform: 'uppercase',
-              }}
-            >
-              / 100
-            </div>
-          </div>
-        </div>
-
-        {/* Archetype */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div
-            style={{
-              fontSize: '22px',
-              fontWeight: 900,
-              textTransform: 'uppercase',
-              color: '#111827',
-              letterSpacing: '0.08em',
-              marginBottom: '8px',
-            }}
-          >
-            {lore.archetype}
-          </div>
-          {lore.quote && (
-            <div
-              style={{
-                fontSize: '13px',
-                fontStyle: 'italic',
-                background: '#fef3c7',
-                display: 'inline-block',
-                padding: '4px 12px',
-                border: '1px solid #fcd34d',
-                transform: 'skew(-6deg)',
-              }}
-            >
-              "{lore.quote}"
-            </div>
-          )}
-        </div>
-
-        {/* Stats grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: '12px',
-            background: '#111827',
-            color: '#ffffff',
-            padding: '16px',
-            borderRadius: '6px',
-            marginBottom: '16px',
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
-            >
-              {summary.totalTokensTraded || 0}
-            </div>
-            <div
-              style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                opacity: 0.6,
-              }}
-            >
-              Tokens
-            </div>
-          </div>
-          <div
-            style={{
-              textAlign: 'center',
-              borderLeft: '1px solid #374151',
-              borderRight: '1px solid #374151',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
-            >
-              {(summary.winRate || 0).toFixed(0)}%
-            </div>
-            <div
-              style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                opacity: 0.6,
-              }}
-            >
-              Win rate
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
-            >
-              {summary.totalRealizedProfit >= 0 ? '+' : ''}
-              {formatCurrency(summary.totalRealizedProfit)}
-            </div>
-            <div
-              style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                opacity: 0.6,
-              }}
-            >
-              Realized
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Extremes */}
-        {(biggestWin || biggestLoss) && (
-          <div style={{ marginBottom: '24px' }}>
-            <div
-              style={{
-                fontSize: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2em',
-                textAlign: 'center',
-                marginBottom: '12px',
-                color: '#4b5563',
-              }}
-            >
-              Performance Extremes
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {biggestWin && (
-                <div style={{ 
-                  flex: 1, 
-                  padding: '12px', 
-                  border: '1px solid #86efac', 
-                  background: '#dcfce7', 
-                  borderRadius: '6px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#166534', fontWeight: '700' }}>Biggest Win</div>
-                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#14532d' }}>+{formatCurrency(biggestWin.realizedProfitUsd)}</div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#15803d' }}>{biggestWin.symbol}</div>
-                </div>
-              )}
-              {biggestLoss && (
-                <div style={{ 
-                  flex: 1, 
-                  padding: '12px', 
-                  border: '1px solid #fca5a5', 
-                  background: '#fee2e2', 
-                  borderRadius: '6px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#991b1b', fontWeight: '700' }}>Biggest Loss</div>
-                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#7f1d1d' }}>{formatCurrency(biggestLoss.realizedProfitUsd)}</div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#991b1b' }}>{biggestLoss.symbol}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Audit findings */}
-        {Array.isArray(lore.habits) && lore.habits.length > 0 && (
-          <div>
-            <div
-              style={{
-                fontSize: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2em',
-                textAlign: 'center',
-                marginBottom: '12px',
-                color: '#6b7280',
-              }}
-            >
-              Audit findings
-            </div>
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
-            >
-              {lore.habits.slice(0, 3).map((habit, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: '10px',
-                    border: '1px solid #111827',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    textAlign: 'center',
-                    fontWeight: 500,
-                    background: i === 0 ? '#111827' : 'transparent',
-                    color: i === 0 ? '#ffffff' : '#111827',
-                  }}
-                >
-                  {habit}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div
-          style={{
-            marginTop: '24px',
-            paddingTop: '12px',
-            borderTop: '1px dashed #d1d5db',
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '9px',
-            color: '#9ca3af',
-          }}
-        >
-          <div>Auditor: The Auditor</div>
-          <div>Date: {auditDate}</div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
+// Main App Component
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
   const [wallets, setWallets] = useState([]);
@@ -1844,68 +1262,6 @@ export default function PNLTrackerApp() {
       });
     } catch (err) { console.error('share pnl failed', err); }
   };
-
-  const handleShareLore = async () => {
-    try {
-      const { sdk } = await import('@farcaster/miniapp-sdk');
-      const summary = pnlData?.summary;
-      if (!summary) return;
-
-      const tokensArr = pnlData?.tokens || [];
-      const biggestWin = pnlData?.biggestWin || null;
-      const biggestLoss = pnlData?.biggestLoss || null;
-
-      const lore = generateLore(summary, tokensArr, biggestWin, biggestLoss);
-      const rank = calculatePercentile(summary);
-      if (!lore || !rank) return;
-
-      const score = rank.percentile;
-      const topPercent = 100 - score;
-
-      const pnlValue = summary.totalRealizedProfit || 0;
-      const pnlDisplay = `${pnlValue >= 0 ? '+' : '-'}${formatCurrency(Math.abs(pnlValue))}`;
-
-      const handle = user?.username ? `@${user.username}` : 'this trader';
-      const winRate = typeof summary.winRate === 'number'
-        ? summary.winRate.toFixed(1)
-        : summary.winRate;
-      const tokenCount = summary.totalTokensTraded || 0;
-      const topBagSymbols = (lore.topBags || [])
-        .map((t) => t.symbol)
-        .slice(0, 3)
-        .join(', ');
-
-      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
-
-      const storyLines = [
-        '📜 From The Auditor',
-        '',
-        `Dear ${handle},`,
-        `Your trading score is ${score}/100 (Top ${topPercent}% on Base).`,
-        `Realized PnL: ${pnlDisplay} · Win rate: ${winRate}% across ${tokenCount} tokens.`,
-        `Archetype: ${lore.archetype} - "${lore.quote}"`,
-      ];
-
-      if (topBagSymbols) {
-        storyLines.push(`Key bags on record: ${topBagSymbols}.`);
-      }
-
-      storyLines.push('Signed,');
-      storyLines.push('The Auditor');
-      storyLines.push('');
-      storyLines.push('Get your own audit:');
-
-      const castText = storyLines.join('\n');
-
-      await sdk.actions.composeCast({
-        text: castText,
-        embeds: [appLink],
-      });
-    } catch (err) {
-      console.error('share lore failed', err);
-    }
-  };
-
 
   const handleShareFumble = async () => {
     try {
@@ -2428,14 +1784,26 @@ export default function PNLTrackerApp() {
           </div>
         )}
 
-        <style>{`
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-`}</style>
+        {/* RANK CARD FIRST - Share immediately visible */}
+        {!isGated && activeTab !== 'lore' && pnlData?.summary && (
+          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
+        )}
 
-{/* Tabs: Stats / Airdrops / Badges / Lore */}
+        {/* --- MAIN CONTENT SWITCH --- */}
+        {!isGated && activeTab === 'lore' && pnlData?.summary && (
+          <LoreCard 
+            summary={pnlData.summary} 
+            tokens={tokens} 
+            user={user} 
+            biggestWin={biggestWin} 
+            biggestLoss={biggestLoss} 
+            onShare={handleSharePnL} 
+          />
+        )}
+
+        {/* Tabs: Stats / Airdrops / Badges / Lore */}
         {!isGated && pnlData?.summary && (
-          <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
             {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
               <button 
                 key={tab} 
@@ -2455,54 +1823,11 @@ export default function PNLTrackerApp() {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Trading' : 'Badges'}
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? '✨ Lore' : 'Badges'}
               </button>
             ))}
           </div>
         )}
-
-{/* RANK CARD FIRST - Share immediately visible */}
-        {!isGated && activeTab !== 'lore' && pnlData?.summary && (
-          <RankCard summary={pnlData.summary} onShare={handleSharePnL} />
-        )}
-
-        {/* --- MAIN CONTENT SWITCH --- */}
-        {!isGated && activeTab === 'lore' && pnlData?.summary && (
-          <div>
-            <AuditReportCard
-              summary={pnlData.summary}
-              lore={generateLore(pnlData.summary, tokens, biggestWin, biggestLoss)}
-              rank={calculatePercentile(pnlData.summary)}
-              user={user}
-              biggestWin={biggestWin}
-              biggestLoss={biggestLoss}
-            />
-            <button
-              onClick={handleShareLore}
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                display: 'block',
-                margin: '0 auto',
-                padding: '16px',
-                borderRadius: '12px',
-                border: 'none',
-                background: '#111827',
-                color: '#ffffff',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-              }}
-            >
-              Share Official Audit
-            </button>
-          </div>
-        )}
-
-        }
 
         {/* --- TAB CONTENT --- */}
         
@@ -2570,7 +1895,7 @@ export default function PNLTrackerApp() {
                     <div style={{ textAlign: 'right' }}><div style={{ fontSize: '14px', fontWeight: '600', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>{token.realizedProfitUsd >= 0 ? '+' : ''}{formatCurrency(token.realizedProfitUsd)}</div><div style={{ fontSize: '10px', color: colors.muted }}>Sold for {formatCurrency(token.totalSoldUsd)}</div></div>
                   </div>
                 ))
-              ) : (<div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}><div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div><div style={{ fontSize: '13px' }}>No airdrops found</div><div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div></div>)}
+              ) : (<div style={{ textAlign: 'center', padding: '24px', color: colors.muted }}><div style={{ fontSize: '24px', marginBottom: '8px' }}>🪂</div><div style={{ fontSize: '13px' }}>No airdrops found</div><div style={{ fontSize: '11px', marginTop: '4px' }}>Tokens with $0 cost basis will appear here</div></div>)}
             </Panel>
           </>
         )}
