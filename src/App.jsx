@@ -2570,53 +2570,138 @@ const renderGatedOverlay = () => (
         
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <div>
-            {/* Request witty audit via Worker */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <button
-                onClick={handleRequestAudit}
-                disabled={auditLoading}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1px solid #111827',
-                  background: auditLoading ? '#f3f4f6' : '#111827',
-                  color: auditLoading ? '#111827' : '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: auditLoading ? 'default' : 'pointer'
-                }}
-              >
-                {auditLoading ? 'Running audit...' : 'Request Audit'}
-              </button>
-              {auditData?.meta?.addresses?.length > 0 && (
-                <div style={{
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  background: '#f9fafb',
-                  fontSize: '11px',
-                  color: '#6b7280',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {auditData.meta.combined ? 'Combined' : 'Single'} · {auditData.meta.addresses.length} wallet{auditData.meta.addresses.length > 1 ? 's' : ''}
-                </div>
-              )}
-            </div>
-
-            {auditError && (
+            {/* Mock Audit Preview */}
+            <div style={{
+              marginBottom: '16px',
+              borderRadius: '16px',
+              border: '1px solid #e5e7eb',
+              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+              padding: '20px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background pattern */}
               <div style={{
-                marginBottom: '12px',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                border: '1px solid #fecaca',
-                background: '#fef2f2',
-                fontSize: '12px',
-                color: '#7f1d1d'
-              }}>
-                {auditError}
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '200px',
+                height: '200px',
+                background: 'radial-gradient(circle, rgba(17,24,39,0.03) 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
+                pointerEvents: 'none'
+              }} />
+              
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px'
+                  }}>
+                    📊
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      color: '#111827',
+                      marginBottom: '2px'
+                    }}>
+                      Professional Audit
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6b7280'
+                    }}>
+                      Deep wallet analysis powered by AI
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mock analysis cards */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{
+                      fontSize: '9px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: '#9ca3af',
+                      marginBottom: '6px'
+                    }}>
+                      Trading Pattern
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      Momentum Trader
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{
+                      fontSize: '9px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: '#9ca3af',
+                      marginBottom: '6px'
+                    }}>
+                      Risk Profile
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      Moderate
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coming Soon badge */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '999px',
+                  background: '#111827',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase'
+                }}>
+                  <span>✨</span> Coming Soon
+                </div>
               </div>
-            )}
+            </div>
 
             <AuditReportCard
               summary={auditData?.summary || pnlData.summary}
@@ -2626,29 +2711,6 @@ const renderGatedOverlay = () => (
               biggestWin={auditData?.biggestWin || biggestWin}
               biggestLoss={auditData?.biggestLoss || biggestLoss}
             />
-
-            <button
-              onClick={handleShareLore}
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                display: 'block',
-                margin: '0 auto',
-                padding: '16px',
-                borderRadius: '12px',
-                border: 'none',
-                background: '#111827',
-                color: '#ffffff',
-                fontSize: '13px',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                marginTop: '12px'
-              }}
-            >
-              Share Official Audit
-            </button>
           </div>
         )}
 
