@@ -2436,32 +2436,35 @@ export default function PNLTrackerApp() {
         
 
 {/* Tabs: Stats / Airdrops / Badges / Lore */}
-        {!isGated && pnlData?.summary && (
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', width: '100%' }}>
-            {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
-              <button 
-                key={tab} 
-                onClick={() => setActiveTab(tab)} 
-                style={{ 
-                  flex: 1, minWidth: 0,
-                  padding: '12px 2px', 
-                  borderRadius: '10px', 
-                  border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, 
-                  background: activeTab === tab ? colors.accent : colors.panelBg, 
-                  color: activeTab === tab ? colors.pillText : colors.muted, 
-                  fontSize: '11px', 
-                  fontWeight: '600',
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.08em', 
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? `Airdrops${pnlData.summary.airdropCount > 0 ? ` (${pnlData.summary.airdropCount})` : ''}` : tab === 'lore' ? 'Audit' : 'Badges'}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Tabs: Stats / Airdrops / Badges / Lore */}
+{!isGated && pnlData?.summary && (
+  <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', width: '100%' }}>
+    {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
+      <button
+        key={tab}
+        onClick={() => setActiveTab(tab)}
+        style={{
+          flex: 1, minWidth: 0,
+          padding: '12px 2px',
+          borderRadius: '10px',
+          border: activeTab === tab ? 'none' : `1px solid ${colors.border}`,
+          background: activeTab === tab ? colors.accent : colors.panelBg,
+          color: activeTab === tab ? colors.pillText : colors.muted,
+          fontSize: '11px',
+          fontWeight: '600',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? 'Airdrops' : tab === 'lore' ? 'Audit' : 'Badges'}
+      </button>
+    ))}
+  </div>
+)}
+
+    
 
 {/* RANK CARD FIRST - Share immediately visible */}
         {!isGated && activeTab !== 'lore' && pnlData?.summary && (
