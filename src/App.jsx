@@ -63,29 +63,50 @@ const GatedAccessPanel = ({
         <div style={{display:'flex',gap:8}}>
           <button onClick={handleRetryGate} style={{flex:1,padding:10,borderRadius:10,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer'}}>Refresh balance</button>
           <button
-            onClick={async () => {
-              const variants = [
-                "Unlock your Trading Report + Trader Score in $PNL Ψ — live PnL, biggest win/loss, onchain audit. Hold 10M PNL to enter.",
-                "I’m checking my $PNL Trading Report Ψ: live PnL, ranked Trader Score, readable audit. Gate is 10M PNL. Come try it.",
-                "Want a clean onchain trading report? $PNL Ψ gives you live PnL, biggest win/loss, and a Trader Score. Gate: 10M PNL."
-              ];
-              const text = variants[Math.floor(Math.random() * variants.length)];
-              const embed = typeof window !== "undefined" ? window.location.href : "https://pnl.example";
-              const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
-              try {
-                if (sdk?.actions?.openUrl) {
-                  await sdk.actions.openUrl(composeUrl, { openExternal: false });
-                } else {
-                  window.open(composeUrl, '_blank');
-                }
-              } catch {
-                window.open(composeUrl, '_blank');
-              }
-            }}
-            style={{flex:1,padding:10,borderRadius:10,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer',textAlign:'center'}}
-          >
-            Tell a friend
-          </button>
+  onClick={async () => {
+    const variants = [
+      "Unlock your Trading Report + Trader Score in $PNL Ψ — live PnL, biggest win/loss, onchain audit. Hold 10M PNL to enter.",
+      "I’m checking my $PNL Trading Report Ψ: live PnL, ranked Trader Score, readable audit. Gate is 10M PNL. Come try it.",
+      "Want a clean onchain trading report? $PNL Ψ gives you live PnL, biggest win/loss, and a Trader Score. Gate: 10M PNL."
+    ];
+    const text = variants[Math.floor(Math.random() * variants.length)];
+    const embed = typeof window !== "undefined" ? window.location.href : "https://pnl.example";
+
+    // Prefer the native deep link to avoid the download splash
+    const deepLink = `farcaster://casts/new?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+    const webCompose = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+
+    try {
+      if (sdk?.actions?.openUrl) {
+        // If we're inside Warpcast, this keeps us in-app
+        await sdk.actions.openUrl(webCompose, { openExternal: false });
+        return;
+      }
+    } catch {}
+
+    // Outside Warpcast: try to open the native app, then fall back to web
+    const t = setTimeout(() => {
+      window.open(webCompose, '_blank');
+    }, 600);
+    window.location.href = deepLink;
+    // If the app opens, the page will background and timer won't fire
+    // If it doesn't, user gets the web composer after 600ms
+  }}
+  style={{
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    background: 'transparent',
+    color: colors.muted,
+    border: `1px solid ${colors.border}`,
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: 'pointer',
+    textAlign: 'center'
+  }}
+>
+  Tell a friend
+</button>
         </div>
 
         <div style={{marginTop:12,fontSize:11,color:colors.muted,textAlign:'center'}}>Gate checks your <strong>Farcaster primary</strong> wallet. If your $PNL is in a different wallet, move or switch your primary to unlock.</div>
