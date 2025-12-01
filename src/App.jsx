@@ -2570,138 +2570,249 @@ const renderGatedOverlay = () => (
         
         {!isGated && activeTab === 'lore' && pnlData?.summary && (
           <div>
-            {/* Mock Audit Preview */}
+            {/* Premium Trading Report Card Preview */}
             <div style={{
               marginBottom: '16px',
-              borderRadius: '16px',
+              borderRadius: '20px',
               border: '1px solid #e5e7eb',
-              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-              padding: '20px',
+              background: '#ffffff',
+              padding: '32px 24px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
               position: 'relative',
               overflow: 'hidden'
             }}>
-              {/* Background pattern */}
+              
+              {/* Subtle gradient overlay */}
               <div style={{
                 position: 'absolute',
                 top: 0,
+                left: 0,
                 right: 0,
-                width: '200px',
-                height: '200px',
-                background: 'radial-gradient(circle, rgba(17,24,39,0.03) 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
+                height: '140px',
+                background: 'linear-gradient(180deg, rgba(17,24,39,0.02) 0%, rgba(255,255,255,0) 100%)',
                 pointerEvents: 'none'
               }} />
               
               <div style={{ position: 'relative' }}>
+                {/* Header */}
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '16px'
+                  textAlign: 'center',
+                  marginBottom: '24px'
                 }}>
                   <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-                    display: 'flex',
+                    fontSize: '11px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.15em',
+                    color: '#9ca3af',
+                    fontWeight: '600',
+                    marginBottom: '12px'
+                  }}>
+                    Trading Report Card
+                  </div>
+                  
+                  {/* Score */}
+                  <div style={{
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '18px'
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+                    marginBottom: '16px',
+                    boxShadow: '0 8px 24px rgba(17, 24, 39, 0.15)'
                   }}>
-                    📊
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: '36px',
+                        fontWeight: '800',
+                        color: '#ffffff',
+                        lineHeight: '1',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                      }}>
+                        99
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: 'rgba(255,255,255,0.6)',
+                        fontWeight: '500',
+                        marginTop: '2px'
+                      }}>
+                        /100
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{
-                      fontSize: '14px',
-                      fontWeight: '700',
-                      color: '#111827',
-                      marginBottom: '2px'
-                    }}>
-                      Professional Audit
-                    </div>
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#6b7280'
-                    }}>
-                      Deep wallet analysis powered by AI
-                    </div>
+                  
+                  {/* Archetype */}
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    marginBottom: '8px',
+                    letterSpacing: '-0.02em'
+                  }}>
+                    Elite Momentum Trader
+                  </div>
+                  
+                  {/* AI Quote */}
+                  <div style={{
+                    fontSize: '13px',
+                    color: '#6b7280',
+                    fontStyle: 'italic',
+                    lineHeight: '1.5',
+                    maxWidth: '320px',
+                    margin: '0 auto'
+                  }}>
+                    "Consistently identifies high-conviction entries with disciplined exit timing"
                   </div>
                 </div>
 
-                {/* Mock analysis cards */}
+                {/* Stats Grid */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '10px',
-                  marginBottom: '16px'
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: '12px',
+                  marginBottom: '20px',
+                  padding: '20px 0',
+                  borderTop: '1px solid #f3f4f6',
+                  borderBottom: '1px solid #f3f4f6'
                 }}>
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    background: '#ffffff',
-                    border: '1px solid #e5e7eb'
-                  }}>
+                  <div style={{ textAlign: 'center' }}>
                     <div style={{
-                      fontSize: '9px',
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: '#10b981',
+                      marginBottom: '4px'
+                    }}>
+                      87%
+                    </div>
+                    <div style={{
+                      fontSize: '10px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       color: '#9ca3af',
-                      marginBottom: '6px'
+                      fontWeight: '500'
                     }}>
-                      Trading Pattern
-                    </div>
-                    <div style={{
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      Momentum Trader
+                      Win Rate
                     </div>
                   </div>
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    background: '#ffffff',
-                    border: '1px solid #e5e7eb'
-                  }}>
+                  <div style={{ textAlign: 'center' }}>
                     <div style={{
-                      fontSize: '9px',
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: '#111827',
+                      marginBottom: '4px'
+                    }}>
+                      2.4x
+                    </div>
+                    <div style={{
+                      fontSize: '10px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       color: '#9ca3af',
-                      marginBottom: '6px'
+                      fontWeight: '500'
                     }}>
-                      Risk Profile
+                      Avg Return
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: '#111827',
+                      marginBottom: '4px'
+                    }}>
+                      $24k
                     </div>
                     <div style={{
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      color: '#111827'
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: '#9ca3af',
+                      fontWeight: '500'
                     }}>
-                      Moderate
+                      Volume
                     </div>
                   </div>
                 </div>
 
-                {/* Coming Soon badge */}
+                {/* AI Insights */}
                 <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  borderRadius: '999px',
-                  background: '#111827',
-                  color: '#ffffff',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase'
+                  background: '#f9fafb',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginBottom: '20px'
                 }}>
-                  <span>✨</span> Coming Soon
+                  <div style={{
+                    fontSize: '11px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: '#6b7280',
+                    fontWeight: '600',
+                    marginBottom: '10px'
+                  }}>
+                    AI Analysis
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#374151',
+                    lineHeight: '1.6',
+                    marginBottom: '8px'
+                  }}>
+                    • Strong pattern recognition in trending markets
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#374151',
+                    lineHeight: '1.6',
+                    marginBottom: '8px'
+                  }}>
+                    • Disciplined position sizing across portfolio
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#374151',
+                    lineHeight: '1.6'
+                  }}>
+                    • Quick to adapt strategy based on market conditions
+                  </div>
+                </div>
+
+                {/* Coming Soon Badge */}
+                <div style={{
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    borderRadius: '999px',
+                    background: '#111827',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    letterSpacing: '0.02em'
+                  }}>
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }} />
+                    AI Report Coming Soon
+                  </div>
                 </div>
               </div>
             </div>
+
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+              }
+            `}</style>
 
             <AuditReportCard
               summary={auditData?.summary || pnlData.summary}
