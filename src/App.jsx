@@ -2355,40 +2355,57 @@ export default function PNLTrackerApp() {
   })();
 const renderGatedOverlay = () => (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '0', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
-      <div style={{ background: colors.panelBg, borderRadius: '24px', border: `1px solid ${colors.border}`, padding: '28px 24px', maxWidth: '360px', width: '90%', marginTop: '180px', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2)', textAlign: 'center', pointerEvents: 'auto' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', marginTop: '180px', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
         
         {/* Header */}
-        <div style={{ fontSize: '32px', marginBottom: '8px' }}>Ψ</div>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', color: colors.ink, margin: '0 0 6px' }}>Unlock Full Access</h2>
-        <p style={{ fontSize: '12px', color: colors.muted, margin: '0 0 20px' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock</p>
+        <div style={{ fontSize: '48px', marginBottom: ds.space.sm, lineHeight: '1' }}>🔒</div>
+        <h2 style={{ fontSize: ds.text.xl, fontWeight: '700', color: colors.ink, margin: `0 0 ${ds.space.xs}`, letterSpacing: '-0.01em' }}>Premium Access Required</h2>
+        <p style={{ fontSize: ds.text.base, color: colors.muted, margin: `0 0 ${ds.space.lg}`, lineHeight: '1.5' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock your complete trading profile</p>
         
-        {/* Win Rate Teaser - if we have data */}
+        {/* Win Rate Teaser */}
         {pnlData?.summary && (
           <div style={{ 
             background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)', 
-            borderRadius: '12px', 
-            padding: '16px', 
-            marginBottom: '16px',
-            color: '#fff'
+            borderRadius: ds.radius.md, 
+            padding: ds.space.md, 
+            marginBottom: ds.space.md,
+            color: '#fff',
+            border: '1px solid #166534'
           }}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Your Win Rate</div>
-            <div style={{ fontSize: '28px', fontWeight: '700' }}>{pnlData.summary.winRate.toFixed(1)}%</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>across {pnlData.summary.totalTokensTraded} tokens on Base</div>
+            <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Your Win Rate</div>
+            <div style={{ fontSize: ds.text.xxl, fontWeight: '700' }}>{pnlData.summary.winRate.toFixed(1)}%</div>
+            <div style={{ fontSize: ds.text.sm, color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>Unlock to see your full stats</div>
           </div>
         )}
         
-        {/* Feature Preview */}
-        <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: '12px', textAlign: 'center' }}>What You'll Unlock</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Trident LLC Audit Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+          borderRadius: ds.radius.md,
+          padding: ds.space.md,
+          marginBottom: ds.space.lg,
+          border: '1px solid #374151'
+        }}>
+          <div style={{ fontSize: ds.text.sm, fontWeight: '700', color: '#ffffff', marginBottom: '4px' }}>
+            🎯 Trident LLC Audit
+          </div>
+          <div style={{ fontSize: ds.text.xs, color: 'rgba(255,255,255,0.7)', lineHeight: '1.4' }}>
+            Official trading audits launching soon for premium holders
+          </div>
+        </div>
+        
+        {/* Feature List */}
+        <div style={{ textAlign: 'left', marginBottom: ds.space.lg }}>
+          <div style={{ fontSize: ds.text.xs, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.metricLabel, marginBottom: ds.space.sm, textAlign: 'center', fontWeight: '600' }}>Premium Features</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: ds.space.xs }}>
             {[
-              { icon: '📊', text: 'Realized P&L & ROI breakdown' },
-              { icon: '🏆', text: 'Your rank among Base traders' },
-              { icon: '🤦', text: 'Fumbled gains (what you left on the table)' },
-              { icon: '🎖️', text: 'Mint achievement badges as NFTs' },
+              { icon: '📊', text: 'Complete P&L breakdown & ROI analysis' },
+              { icon: '🏆', text: 'Trading score & Base leaderboard rank' },
+              { icon: '💎', text: 'Mint achievement badges as NFTs' },
+              { icon: '📜', text: 'Official Trident LLC audit (launching soon)' },
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: colors.ink }}>
-                <span style={{ fontSize: '14px' }}>{item.icon}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: ds.space.xs, fontSize: ds.text.sm, color: colors.ink, padding: ds.space.xs, borderRadius: ds.radius.sm, background: '#f9fafb' }}>
+                <span style={{ fontSize: ds.text.lg }}>{item.icon}</span>
                 <span>{item.text}</span>
               </div>
             ))}
@@ -2396,18 +2413,18 @@ const renderGatedOverlay = () => (
         </div>
         
         {/* Balance Status */}
-        <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px', marginBottom: '16px', border: `1px solid ${colors.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+        <div style={{ background: '#f9fafb', padding: ds.space.sm, borderRadius: ds.radius.md, marginBottom: ds.space.md, border: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: ds.text.sm, marginBottom: '4px' }}>
             <span style={{ color: colors.metricLabel }}>Your Balance</span>
             <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: ds.text.sm }}>
             <span style={{ color: colors.metricLabel }}>Required</span>
             <span style={{ fontWeight: '600' }}>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</span>
           </div>
           {tokenBalance > 0 && tokenBalance < REQUIRED_PNL_BALANCE && (
-            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${colors.border}` }}>
-              <div style={{ fontSize: '10px', color: colors.muted }}>
+            <div style={{ marginTop: ds.space.xs, paddingTop: ds.space.xs, borderTop: `1px solid ${colors.border}` }}>
+              <div style={{ fontSize: ds.text.xs, color: colors.muted }}>
                 Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more
               </div>
             </div>
@@ -2415,10 +2432,32 @@ const renderGatedOverlay = () => (
         </div>
         
         {/* CTA Buttons */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: '12px', borderRadius: '99px', background: colors.pill, color: colors.pillText, fontSize: '12px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
-          <button onClick={handleRetryGate} style={{ flex: 1, padding: '12px', borderRadius: '99px', background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
+        <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.sm }}>
+          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: colors.pill, color: colors.pillText, fontSize: ds.text.sm, fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
+          <button onClick={handleRetryGate} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: ds.text.sm, fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
         </div>
+
+        {/* Follow Button */}
+        <a 
+          href="https://farcaster.xyz/ireside.eth"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            padding: ds.space.sm,
+            borderRadius: ds.radius.pill,
+            background: 'transparent',
+            color: colors.muted,
+            border: `1px solid ${colors.border}`,
+            fontSize: ds.text.sm,
+            fontWeight: '600',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            textAlign: 'center'
+          }}
+        >
+          Follow @ireside.eth
+        </a>
       </div>
     </div>
   );
