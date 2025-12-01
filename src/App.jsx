@@ -379,12 +379,9 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
       </div>
       
       <div style={{ fontSize: ds.text.xs, color: colors.muted, fontWeight: '400' }}>
-        {isLocked ? (
-          <span>Need: {requirement}</span>
-        ) : (
-          <span>You: {current}</span>
-        </div>
-      )}
+        {isLocked && <span>Need: {requirement}</span>}
+        {!isLocked && <span>You: {current}</span>}
+      </div>
       
       {canClaim && !isLocked && !isClaimed && (
         <button 
@@ -423,8 +420,8 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
         }}>
           Collected
         </div>
-      </div>
-    )}
+      )}
+    </div>
   );
 };
 
@@ -460,8 +457,8 @@ const InfoPanel = ({ isVisible, onClose }) => {
               <div style={{ fontSize: '12px', fontWeight: '600', color: colors.ink, marginBottom: '3px' }}>{item.title}</div>
               <div style={{ fontSize: '11px', color: colors.muted, lineHeight: '1.5' }}>{item.desc}</div>
             </div>
-          )</div>
-        )}
+          ))}
+        </div>
         <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: `1px solid ${colors.border}`, fontSize: '10px', color: colors.metricLabel, textAlign: 'center' }}>
           Data from the API. Excludes unrealized gains, bridged tokens, and LP positions.
         </div>
@@ -828,8 +825,8 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
               color: summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
               marginBottom: '4px'
             }}>
-              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit</div>
-            )}
+              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
+            </div>
             <div style={{
               fontSize: ds.text.xs,
               textTransform: 'uppercase',
@@ -915,12 +912,12 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
                   color: t.profit >= 0 ? colors.success : colors.error,
                   fontWeight: '600'
                 }}>
-                  {t.profit >= 0 ? '+' : ''}{formatCurrency(t.profit</div>
                   {t.profit >= 0 ? '+' : ''}{formatCurrency(t.profit)}
+                </div>
               </div>
-            )</div>
-            )
-        )}
+            ))}
+          </div>
+        </div>
 
         {/* Trading Habits */}
         <div style={{ marginBottom: ds.space.lg }}>
@@ -947,9 +944,9 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
               }}>
                 {habit}
               </div>
-            )</div>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Share Button */}
         <button 
@@ -987,8 +984,8 @@ const TokenRow = ({ token }) => (
     </div>
     <div style={{ textAlign: 'right' }}>
       <div style={{ fontSize: ds.text.md, fontWeight: '500', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>
-        {token.realizedProfitUsd >= 0 ? '+' : '-'}{formatCurrency(token.realizedProfitUsd</div>
-      )}
+        {token.realizedProfitUsd >= 0 ? '+' : '-'}{formatCurrency(token.realizedProfitUsd)}
+      </div>
       <div style={{ fontSize: ds.text.sm, color: colors.muted }}>Realized P&L</div>
     </div>
   </div>
@@ -1036,8 +1033,8 @@ const BigMoveCard = ({ label, token, isWin, onShare }) => {
         >
           {isWin ? 'Share Win' : 'Share L'}
         </button>
-      </div>
-    )}
+      )}
+    </div>
   );
 };
 
@@ -1084,8 +1081,8 @@ const BigFumbleCard = ({ token, onShare }) => {
         >
           Share Fumble
         </button>
-      </div>
-    )}
+      )}
+    </div>
   );
 };
 
@@ -1174,8 +1171,8 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
     <Panel title="Your Badges" subtitle={`${claimedBadges.length} of ${allBadges.length} unlocked`} style={{ marginTop: '20px' }}>
       {currentWallet && (
         <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px' }}>
-          Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4</div>
-        )}
+          Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4)}
+        </div>
       )}
       <div style={{ 
         display: 'grid', 
@@ -1198,8 +1195,8 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
             current={b.current}
             scoreBonus={b.scoreBonus}
           />
-        )</div>
-      )}
+        ))}
+      </div>
       
       {mintTxHash && (
         <div style={{ 
@@ -1423,8 +1420,8 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
             >
               "{lore.quote}"
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Stats grid */}
         <div
@@ -1496,8 +1493,8 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
               }}
             >
               {summary.totalRealizedProfit >= 0 ? '+' : ''}
-              {formatCurrency(summary.totalRealizedProfit</div>
-            )}
+              {formatCurrency(summary.totalRealizedProfit)}
+            </div>
             <div
               style={{
                 fontSize: '9px',
@@ -1560,9 +1557,9 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
                   <div style={{ fontSize: '16px', fontWeight: '800', color: '#7f1d1d' }}>{formatCurrency(biggestLoss.realizedProfitUsd)}</div>
                   <div style={{ fontSize: '11px', fontWeight: '600', color: '#991b1b' }}>{biggestLoss.symbol}</div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         )}
 
         {/* Audit findings */}
@@ -1599,9 +1596,9 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
                 >
                   {habit}
                 </div>
-              )</div>
+              ))}
             </div>
-          )}
+          </div>
         )}
 
         {/* Footer */}
@@ -2392,8 +2389,8 @@ const renderGatedOverlay = () => (
             <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
             {tokenBalance < REQUIRED_PNL_BALANCE && (
               <span style={{ color: colors.muted }}> • Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more</span>
-            </div>
-          )}
+            )}
+          </div>
         )}
         
         {/* CTA - Primary */}
@@ -2567,8 +2564,8 @@ const renderGatedOverlay = () => (
       >
         {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? 'Airdrops' : tab === 'lore' ? 'Audit' : 'Badges'}
       </button>
-    )</div>
-  )}
+    ))}
+  </div>
 )}
 
     
@@ -2661,8 +2658,8 @@ const renderGatedOverlay = () => (
               </div>
               {!isGated && badges.length > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                      {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div></div>
-                  )}
+                      {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
+                  </div>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
                 <div style={{ flex: '1 1 auto' }}>
@@ -2796,8 +2793,8 @@ const renderGatedOverlay = () => (
               </div>
             </Panel>
           </div>
-        </div>
+        )}
       </div>
-    )}
+    </div>
   );
 }
