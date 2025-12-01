@@ -1,77 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-/* === GatedAccessPanel (mobile-first) === */
-const GatedAccessPanel = ({
-  tokenBalance,
-  REQUIRED_PNL_BALANCE,
-  handleSwapForAccess,
-  handleRetryGate,
-  colors,
-  ds,
-  upcomingTease = 'Trading Report'
-}) => {
-  const shortfall = Math.max(0, REQUIRED_PNL_BALANCE - (Number(tokenBalance) || 0));
-  const pct = Math.min(100, Math.round(((Number(tokenBalance) || 0) / REQUIRED_PNL_BALANCE) * 100));
-  const Row = ({ t, d }) => (
-    <div style={{border:`1px solid ${colors.border}`,borderRadius:ds.radius.md,padding:10,background:colors.card}}>
-      <div style={{fontSize:12,fontWeight:700}}>{t}</div>
-      <div style={{fontSize:11,color:colors.muted}}>{d}</div>
-    </div>
-  );
-  return (
-    <div style={{minHeight:'100vh',background:colors.bg,color:colors.ink,display:'flex',alignItems:'stretch',justifyContent:'center',fontFamily:'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',padding:'20px'}}>
-      <div style={{width:'100%',maxWidth:540,margin:'auto',background:colors.panelBg,border:`1px solid ${colors.border}`,borderRadius:ds.radius.lg,boxShadow:ds.shadow.md,padding:'16px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-          <div style={{width:28,height:28,borderRadius:ds.radius.full,background:'#111827',color:'#fff',display:'grid',placeItems:'center',fontWeight:800,fontSize:12}}>$</div>
-          <div style={{fontWeight:800,fontSize:16}}>PNL Tracker</div>
-          <div style={{marginLeft:'auto',fontSize:11,padding:'4px 8px',borderRadius:ds.radius.pill,border:`1px solid ${colors.border}`,color:colors.muted}}>Gate: 10,000,000 $PNL</div>
-        </div>
-
-        <div style={{marginBottom:14}}>
-          <div style={{fontSize:22,fontWeight:900,lineHeight:1.15}}>Unlock your Farcaster trading profile</div>
-          <div style={{fontSize:13,color:colors.muted,marginTop:6}}>
-            Hold 10M $PNL in your Farcaster primary wallet to open the app. You will see your live PnL, biggest wins and losses, airdrops, and a combined view across your connected wallets. A ranked <strong>{upcomingTease}</strong> is landing soon, with a personal <strong>Trader Score</strong> that benchmarks you against Base traders.
-          </div>
-        </div>
-
-        <div style={{margin:'12px 0 10px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:colors.muted,marginBottom:6}}>
-            <span>Gate progress</span><span>{pct}%</span>
-          </div>
-          <div style={{height:10,background:'#f3f4f6',borderRadius:999,overflow:'hidden',border:`1px solid ${colors.border}`}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'#111827'}}/>
-          </div>
-          <div style={{fontSize:11,color:colors.muted,marginTop:6}}>{shortfall>0? <>Need {Intl.NumberFormat().format(shortfall)} more $PNL</> : <>Gate met</>}</div>
-        </div>
-
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,margin:'12px 0'}}>
-          {[
-            { t: 'Live PnL', d: 'Realized and unrealized' },
-            { t: 'Biggest win/loss', d: 'Entry to exit' },
-            { t: 'Airdrops', d: 'Free money tracker' },
-            { t: 'Wallet switcher', d: 'Primary, others, combined' },
-            { t: 'Audit', d: 'Find habits and leaks' },
-            { t: 'Trader Score', d: 'Rank vs Base' }
-          ].map((it,i)=>(<Row key={i} t={it.t} d={it.d}/>))}
-        </div>
-
-        <button onClick={handleSwapForAccess} style={{width:'100%',padding:14,borderRadius:ds.radius.md,background:colors.pill,color:colors.pillText,fontSize:16,fontWeight:800,border:'none',cursor:'pointer',marginTop:6,marginBottom:8,boxShadow:'0 6px 16px rgba(0,0,0,0.18)',position:'relative'}}>
-          Swap 10M $PNL · Unlock
-          <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:14}}>→</span>
-        </button>
-
-        <div style={{display:'flex',gap:8}}>
-          <button onClick={handleRetryGate} style={{flex:1,padding:10,borderRadius:ds.radius.sm,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,cursor:'pointer'}}>Refresh balance</button>
-          <a href="https://warpcast.com/~/compose?text=$PNL%20Tracker%20looks%20spicy" target="_blank" rel="noopener noreferrer" style={{flex:1,padding:10,borderRadius:ds.radius.sm,background:'transparent',color:colors.muted,border:`1px solid ${colors.border}`,fontSize:12,fontWeight:700,textDecoration:'none',textAlign:'center'}}>Tell a friend</a>
-        </div>
-
-        <div style={{marginTop:12,fontSize:11,color:colors.muted,textAlign:'center'}}>Gate checks your <strong>Farcaster primary</strong> wallet. If your $PNL is in a different wallet, move or switch your primary to unlock.</div>
-      </div>
-    </div>
-  );
-};
-/* === End GatedAccessPanel === */
-
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
 // Token gated: requires 10M PNL tokens to access full view
@@ -455,8 +383,8 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
           <span>Need: {requirement}</span>
         ) : (
           <span>You: {current}</span>
-        )}
-      </div>
+        </div>
+      )}
       
       {canClaim && !isLocked && !isClaimed && (
         <button 
@@ -495,8 +423,8 @@ const Badge = ({ icon, label, badgeType, onClaim, isClaiming, isClaimed, canClai
         }}>
           Collected
         </div>
-      )}
-    </div>
+      </div>
+    )}
   );
 };
 
@@ -532,8 +460,8 @@ const InfoPanel = ({ isVisible, onClose }) => {
               <div style={{ fontSize: '12px', fontWeight: '600', color: colors.ink, marginBottom: '3px' }}>{item.title}</div>
               <div style={{ fontSize: '11px', color: colors.muted, lineHeight: '1.5' }}>{item.desc}</div>
             </div>
-          ))}
-        </div>
+          )</div>
+        )}
         <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: `1px solid ${colors.border}`, fontSize: '10px', color: colors.metricLabel, textAlign: 'center' }}>
           Data from the API. Excludes unrealized gains, bridged tokens, and LP positions.
         </div>
@@ -900,8 +828,8 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
               color: summary.totalRealizedProfit >= 0 ? colors.success : colors.error,
               marginBottom: '4px'
             }}>
-              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit)}
-            </div>
+              {summary.totalRealizedProfit >= 0 ? '+' : ''}{formatNumber(summary.totalRealizedProfit</div>
+            )}
             <div style={{
               fontSize: ds.text.xs,
               textTransform: 'uppercase',
@@ -987,12 +915,12 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
                   color: t.profit >= 0 ? colors.success : colors.error,
                   fontWeight: '600'
                 }}>
+                  {t.profit >= 0 ? '+' : ''}{formatCurrency(t.profit</div>
                   {t.profit >= 0 ? '+' : ''}{formatCurrency(t.profit)}
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )</div>
+            )
+        )}
 
         {/* Trading Habits */}
         <div style={{ marginBottom: ds.space.lg }}>
@@ -1019,9 +947,9 @@ const LoreCard = ({ summary, tokens, user, biggestWin, biggestLoss, onShare }) =
               }}>
                 {habit}
               </div>
-            ))}
+            )</div>
           </div>
-        </div>
+        )}
 
         {/* Share Button */}
         <button 
@@ -1059,8 +987,8 @@ const TokenRow = ({ token }) => (
     </div>
     <div style={{ textAlign: 'right' }}>
       <div style={{ fontSize: ds.text.md, fontWeight: '500', color: token.realizedProfitUsd >= 0 ? colors.success : colors.error }}>
-        {token.realizedProfitUsd >= 0 ? '+' : '-'}{formatCurrency(token.realizedProfitUsd)}
-      </div>
+        {token.realizedProfitUsd >= 0 ? '+' : '-'}{formatCurrency(token.realizedProfitUsd</div>
+      )}
       <div style={{ fontSize: ds.text.sm, color: colors.muted }}>Realized P&L</div>
     </div>
   </div>
@@ -1108,8 +1036,8 @@ const BigMoveCard = ({ label, token, isWin, onShare }) => {
         >
           {isWin ? 'Share Win' : 'Share L'}
         </button>
-      )}
-    </div>
+      </div>
+    )}
   );
 };
 
@@ -1156,8 +1084,8 @@ const BigFumbleCard = ({ token, onShare }) => {
         >
           Share Fumble
         </button>
-      )}
-    </div>
+      </div>
+    )}
   );
 };
 
@@ -1246,8 +1174,8 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
     <Panel title="Your Badges" subtitle={`${claimedBadges.length} of ${allBadges.length} unlocked`} style={{ marginTop: '20px' }}>
       {currentWallet && (
         <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px' }}>
-          Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4)}
-        </div>
+          Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4</div>
+        )}
       )}
       <div style={{ 
         display: 'grid', 
@@ -1270,8 +1198,8 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
             current={b.current}
             scoreBonus={b.scoreBonus}
           />
-        ))}
-      </div>
+        )</div>
+      )}
       
       {mintTxHash && (
         <div style={{ 
@@ -1321,6 +1249,7 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
     </Panel>
   );
 };
+
 
 // --- AUDIT REPORT CARD (Paper-style Lore share) ---
 const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss }) => {
@@ -1494,8 +1423,8 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
             >
               "{lore.quote}"
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Stats grid */}
         <div
@@ -1567,8 +1496,8 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
               }}
             >
               {summary.totalRealizedProfit >= 0 ? '+' : ''}
-              {formatCurrency(summary.totalRealizedProfit)}
-            </div>
+              {formatCurrency(summary.totalRealizedProfit</div>
+            )}
             <div
               style={{
                 fontSize: '9px',
@@ -1631,9 +1560,9 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
                   <div style={{ fontSize: '16px', fontWeight: '800', color: '#7f1d1d' }}>{formatCurrency(biggestLoss.realizedProfitUsd)}</div>
                   <div style={{ fontSize: '11px', fontWeight: '600', color: '#991b1b' }}>{biggestLoss.symbol}</div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         )}
 
         {/* Audit findings */}
@@ -1670,9 +1599,9 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
                 >
                   {habit}
                 </div>
-              ))}
+              )</div>
             </div>
-          </div>
+          )}
         )}
 
         {/* Footer */}
@@ -1694,6 +1623,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
     </div>
   );
 };
+
 
 export default function PNLTrackerApp() {
   const [user, setUser] = useState(null);
@@ -1721,6 +1651,7 @@ export default function PNLTrackerApp() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState(null);
   const [auditData, setAuditData] = useState(null);
+
 
   // Check which badges have already been minted by this user
   const checkMintedBadges = useCallback(async (userAddress) => {
@@ -2029,6 +1960,7 @@ export default function PNLTrackerApp() {
       setAuditLoading(false);
     }
   };
+
 
   const handleShareFumble = async () => {
     try {
@@ -2421,7 +2353,115 @@ export default function PNLTrackerApp() {
       return defs.reduce((acc, d) => acc + (d.scoreBonus || 0) * (counts[d.type] || 0), 0);
     } catch { return 0; }
   })();
-if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
+const renderGatedOverlay = () => (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'none' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.lg, border: `1px solid ${colors.border}`, padding: '16px', maxWidth: '360px', width: '100%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+        
+        {/* Header */}
+        <div style={{ fontSize: '28px', marginBottom: '6px', lineHeight: '1' }}>🔒</div>
+        <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.ink, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Premium Access</h2>
+        <p style={{ fontSize: '11px', color: colors.muted, margin: '0 0 12px', lineHeight: '1.4' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong></p>
+        
+        {/* Fumbled Gains */}
+        {pnlData?.summary?.totalFumbled > 0 && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)', 
+            borderRadius: ds.radius.sm, 
+            padding: '10px', 
+            marginBottom: '12px',
+            color: '#fff',
+            border: '1px solid #991b1b'
+          }}>
+            <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>You Fumbled</div>
+            <div style={{ fontSize: '24px', fontWeight: '700' }}>{formatCurrency(pnlData.summary.totalFumbled)}</div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+              See which tokens you sold too early
+            </div>
+          </div>
+        )}
+
+        {/* Quick features */}
+        <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px', lineHeight: '1.6' }}>
+          💸 Fumbles tracker • 📊 Full P&L • 📜 Trident audit
+        </div>
+        
+        {/* Balance */}
+        {tokenBalance > 0 && (
+          <div style={{ background: '#f9fafb', padding: '8px', borderRadius: ds.radius.sm, marginBottom: '12px', fontSize: '10px' }}>
+            <span style={{ color: colors.muted }}>Balance: </span>
+            <span style={{ fontWeight: '600', color: tokenBalance < REQUIRED_PNL_BALANCE ? colors.error : colors.success }}>{formatNumber(tokenBalance)} $PNL</span>
+            {tokenBalance < REQUIRED_PNL_BALANCE && (
+              <span style={{ color: colors.muted }}> • Need {formatNumber(REQUIRED_PNL_BALANCE - tokenBalance)} more</span>
+            </div>
+          )}
+        )}
+        
+        {/* CTA - Primary */}
+        <button 
+          onClick={handleSwapForAccess} 
+          style={{ 
+            width: '100%',
+            padding: '14px', 
+            borderRadius: ds.radius.md, 
+            background: colors.pill, 
+            color: colors.pillText, 
+            fontSize: '14px', 
+            fontWeight: '700', 
+            border: 'none', 
+            cursor: 'pointer',
+            marginBottom: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
+          Get $PNL to Unlock
+        </button>
+
+        {/* Secondary */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button 
+            onClick={handleRetryGate} 
+            style={{ 
+              flex: 1, 
+              padding: '8px', 
+              borderRadius: ds.radius.sm, 
+              background: 'transparent', 
+              color: colors.muted, 
+              border: `1px solid ${colors.border}`, 
+              fontSize: '10px', 
+              fontWeight: '600', 
+              cursor: 'pointer' 
+            }}
+          >
+            Refresh
+          </button>
+          <a 
+            href="https://farcaster.xyz/ireside.eth"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              padding: '8px',
+              borderRadius: ds.radius.sm,
+              background: 'transparent',
+              color: colors.muted,
+              border: `1px solid ${colors.border}`,
+              fontSize: '10px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Follow
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}><div style={{ textAlign: 'center' }}><div style={{ width: '24px', height: '24px', border: `2px solid ${colors.border}`, borderTopColor: colors.ink, borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} /><div style={{ fontSize: '11px', color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading</div></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
   if (envError) return <ErrorScreen title="Access Locked" message={envError} />;
 
   const tokens = pnlData?.tokens || [];
@@ -2432,16 +2472,73 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
-      {isGated && (
-  <GatedAccessPanel
-    tokenBalance={tokenBalance}
-    REQUIRED_PNL_BALANCE={REQUIRED_PNL_BALANCE}
-    handleSwapForAccess={handleSwapForAccess}
-    handleRetryGate={async () => { await checkTokenGate(primaryWallet); }}
-    colors={colors}
-    ds={ds}
-  />
-)}
+      {isGated && renderGatedOverlay()}
+      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
+        
+        {/* Compact Header */}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1.5px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '600' }}>Ψ</div>
+            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '600' }}>PNL Tracker</span>
+            {DEMO_MODE && <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase' }}>Demo</span>}
+          </div>
+          {/* Wallet selector in header */}
+          {wallets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+              <select 
+                value={activeScope} 
+                onChange={handleWalletScopeChange} 
+                style={{ 
+                  fontSize: '11px', 
+                  padding: '6px 10px', 
+                  borderRadius: '6px', 
+                  border: `1px solid ${colors.border}`, 
+                  background: colors.panelBg, 
+                  color: colors.muted,
+                  maxWidth: '140px',
+                  cursor: 'pointer'
+                }}
+              >
+                {wallets.map((addr) => (
+                  <option key={addr} value={addr}>
+                    {addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}
+                  </option>
+                ))}
+                {wallets.length > 1 && <option value="all">All wallets</option>}
+              </select>
+              <div style={{ fontSize: '9px', color: colors.muted, letterSpacing: '0.02em', opacity: 0.6 }}>check wallets here ↑</div>
+            </div>
+          )}
+        </header>
+
+        {/* User info row */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img src={user.pfpUrl} alt={user.username} style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${colors.border}` }} />
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: colors.ink }}>{user.displayName}</div>
+                <div style={{ fontSize: '12px', color: colors.muted }}>@{user.username}</div>
+              </div>
+            </div>
+            <div style={{ 
+              padding: '5px 12px', 
+              borderRadius: '999px', 
+              background: pnlData?.summary?.totalRealizedProfit >= 0 ? '#dcfce7' : '#fef2f2', 
+              color: pnlData?.summary?.totalRealizedProfit >= 0 ? '#166534' : '#991b1b', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.1em', 
+              fontSize: '10px', 
+              fontWeight: '600',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px' 
+            }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: pnlData?.summary?.totalRealizedProfit >= 0 ? colors.success : colors.error }} />
+              {pnlData?.summary?.totalRealizedProfit >= 0 ? 'Profitable' : 'In Loss'}
+            </div>
+          </div>
+        )}
 
         
 
@@ -2470,8 +2567,8 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
       >
         {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? 'Airdrops' : tab === 'lore' ? 'Audit' : 'Badges'}
       </button>
-    ))}
-  </div>
+    )</div>
+  )}
 )}
 
     
@@ -2564,8 +2661,8 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
               </div>
               {!isGated && badges.length > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                      {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div>)}
-                  </div>
+                      {badges.map((b, i) => <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${colors.border}`, background: '#f8fafc', fontSize: '11px', fontWeight: '600', color: colors.ink }}><span>{b.icon}</span> {b.label}</div></div>
+                  )}
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
                 <div style={{ flex: '1 1 auto' }}>
@@ -2683,9 +2780,24 @@ if (loading || checkingGate) return <div style={{ minHeight: '100vh', background
 
         {/* INFO */}
         {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
+        {!isGated && (
+          <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '20px', opacity: 0.6 }}>
+             <div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div>
+          </div>
+        )}
+
         {/* Gated content blur */}
-        
+        {isGated && (biggestWin || biggestLoss || biggestFumble) && (
+          <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
+            <Panel title="Highlights" subtitle="From sold tokens">
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+              </div>
+            </Panel>
+          </div>
+        </div>
       </div>
-    </div>
+    )}
   );
 }
