@@ -1636,231 +1636,249 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
   const walletAddress = user?.wallet || '0x...';
   const score = percentileData?.percentile || 50;
   const archetype = percentileData?.title || 'Trader';
-  const insight = percentileData?.insight || '';
 
   const fmtCur = (val) => {
-    if (!val) return '$0';
+    if (!val) return '$0.00';
     const abs = Math.abs(val);
     if (abs >= 1000000) return `$${(abs / 1000000).toFixed(2)}M`;
-    if (abs >= 1000) return `$${(abs / 1000).toFixed(1)}K`;
+    if (abs >= 1000) return `$${(abs / 1000).toFixed(2)}K`;
     return `$${abs.toFixed(2)}`;
   };
 
   const isProfit = (summary.totalRealizedProfit || 0) >= 0;
   const winCount = tokens.filter(t => t.isProfitable).length;
   const lossCount = tokens.filter(t => !t.isProfitable).length;
+  const totalTokens = summary.totalTokensTraded || tokens.length;
   
-  // Top tokens (exclude stables)
-  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'USD+'];
-  const topTokens = [...tokens].filter(t => !ignoreList.includes(t.symbol)).sort((a, b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 3);
-
   // Calculated metrics
   const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
   const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
-  const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(1) : '∞';
+  const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(2) : '∞';
+  const avgWin = winCount > 0 ? totalWins / winCount : 0;
+  const avgLoss = lossCount > 0 ? totalLosses / lossCount : 0;
+  const avgPosition = summary.totalTradingVolume && totalTokens ? summary.totalTradingVolume / totalTokens : 0;
+  const roi = summary.totalTradingVolume > 0 ? ((summary.totalRealizedProfit / summary.totalTradingVolume) * 100).toFixed(1) : 0;
+  
+  // Top tokens
+  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'USD+'];
+  const topWins = [...tokens].filter(t => t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (b.realizedProfitUsd || 0) - (a.realizedProfitUsd || 0)).slice(0, 3);
+  const topLosses = [...tokens].filter(t => !t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (a.realizedProfitUsd || 0) - (b.realizedProfitUsd || 0)).slice(0, 3);
 
-  // Archetype emoji & vibe
-  const getArchetypeEmoji = () => {
-    const t = archetype.toLowerCase();
-    if (t.includes('whale') || t.includes('alpha')) return '🐋';
-    if (t.includes('degen')) return '🎰';
-    if (t.includes('paper') || t.includes('fumble')) return '📄';
-    if (t.includes('diamond')) return '💎';
-    if (t.includes('sniper')) return '🎯';
-    if (t.includes('gambler')) return '🎲';
-    if (t.includes('exit') || t.includes('liquidit')) return '🔥';
-    if (t.includes('ape')) return '🦍';
-    return '📊';
+  // Risk assessment
+  const getRiskLevel = () => {
+    const winRate = summary.winRate || 0;
+    const fumbled = summary.totalFumbled || 0;
+    const profit = summary.totalRealizedProfit || 0;
+    if (winRate > 55 && profit > 5000) return { level: 'LOW', color: '#22c55e', desc: 'Disciplined risk management observed' };
+    if (winRate > 45 && profit > 0) return { level: 'MODERATE', color: '#f59e0b', desc: 'Acceptable risk tolerance with room for improvement' };
+    if (fumbled > profit * 2) return { level: 'ELEVATED', color: '#f97316', desc: 'Premature exit patterns indicate emotional trading' };
+    return { level: 'HIGH', color: '#ef4444', desc: 'Significant exposure to adverse market conditions' };
   };
+  const risk = getRiskLevel();
 
-  // Fun comparison stats
-  const getVibeCheck = () => {
+  // Behavioral findings
+  const getFindings = () => {
+    const findings = [];
     const winRate = summary.winRate || 0;
     const fumbled = summary.totalFumbled || 0;
     const profit = summary.totalRealizedProfit || 0;
     
-    if (profit > 50000) return { text: "touching grass isn't for everyone", color: '#22c55e' };
-    if (profit > 10000) return { text: "actually knows what they're doing", color: '#22c55e' };
-    if (fumbled > profit * 3 && fumbled > 5000) return { text: "the definition of 'sold too early'", color: '#f59e0b' };
-    if (winRate < 30) return { text: "a reliable fade signal", color: '#ef4444' };
-    if (winRate > 65 && profit > 0) return { text: "suspiciously good at this", color: '#22c55e' };
-    if (profit > 0 && profit < 500) return { text: "not losing is still winning", color: '#3b82f6' };
-    if (profit < -5000) return { text: "thank you for your service", color: '#ef4444' };
-    return { text: "perfectly mid performance", color: '#71717a' };
+    if (winRate >= 55) findings.push({ type: 'positive', text: 'Above-average entry timing and token selection' });
+    else if (winRate < 35) findings.push({ type: 'negative', text: 'Entry timing suggests systematic adverse selection' });
+    
+    if (fumbled > 5000) findings.push({ type: 'warning', text: `Premature exits resulted in ${fmtCur(fumbled)} unrealized gains` });
+    if (profit > 10000) findings.push({ type: 'positive', text: 'Consistent alpha generation across multiple positions' });
+    if (profit < -5000) findings.push({ type: 'negative', text: 'Significant capital erosion requiring strategy review' });
+    
+    if (avgLoss > avgWin * 1.5) findings.push({ type: 'warning', text: 'Loss magnitude exceeds win magnitude - position sizing review recommended' });
+    if (parseFloat(profitFactor) > 1.5) findings.push({ type: 'positive', text: 'Favorable profit factor indicates sound risk/reward management' });
+    
+    if (totalTokens > 100) findings.push({ type: 'neutral', text: 'High trading frequency - potential overtrading patterns detected' });
+    else if (totalTokens < 20 && profit > 0) findings.push({ type: 'positive', text: 'Selective approach with quality over quantity' });
+    
+    return findings.slice(0, 4);
   };
+  const findings = getFindings();
 
-  const vibe = getVibeCheck();
   const getScoreColor = (s) => s >= 75 ? '#22c55e' : s >= 50 ? '#3b82f6' : s >= 30 ? '#f59e0b' : '#ef4444';
   const scoreColor = getScoreColor(score);
+  const auditNumber = `TRD-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
+  const auditDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div style={{ 
-      background: 'linear-gradient(165deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)', 
-      borderRadius: '24px', 
+      background: '#fafaf9', 
+      borderRadius: '4px', 
       overflow: 'hidden', 
-      fontFamily: "'Inter', system-ui, sans-serif",
-      color: '#fff',
-      position: 'relative'
+      fontFamily: "'Georgia', 'Times New Roman', serif",
+      color: '#1c1917',
+      border: '1px solid #d6d3d1',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
     }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');`}</style>
       
-      {/* Ambient glow */}
-      <div style={{ position: 'absolute', top: '-50%', right: '-20%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-30%', left: '-20%', width: '250px', height: '250px', background: 'radial-gradient(circle, rgba(34,197,94,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-      {/* Header */}
-      <div style={{ padding: '24px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {user?.pfpUrl ? (
-            <img src={user.pfpUrl} style={{ width: '56px', height: '56px', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.2)' }} />
-          ) : (
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
-          )}
+      {/* Official Letterhead */}
+      <div style={{ padding: '28px 28px 20px', borderBottom: '3px double #292524' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: '800', color: '#fff' }}>{userName}</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#292524', letterSpacing: '0.1em' }}>TRIDENT LLC</div>
+            <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.2em', marginTop: '2px' }}>TRADING PERFORMANCE AUDITORS</div>
+            <div style={{ fontSize: '9px', color: '#a8a29e', marginTop: '6px', fontStyle: 'italic' }}>Blockchain Analytics Division</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em' }}>AUDIT REF.</div>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: '#292524', fontFamily: 'monospace', marginTop: '2px' }}>{auditNumber}</div>
+            <div style={{ fontSize: '10px', color: '#78716c', marginTop: '6px' }}>{auditDate}</div>
           </div>
         </div>
-        <div style={{ padding: '8px 14px', borderRadius: '20px', background: isProfit ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)', backdropFilter: 'blur(10px)' }}>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: isProfit ? '#4ade80' : '#f87171' }}>{isProfit ? '📈 PROFIT' : '📉 LOSS'}</span>
-        </div>
       </div>
 
-      {/* Hero Score Section */}
-      <div style={{ padding: '40px 24px', textAlign: 'center', position: 'relative' }}>
-        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.2em', marginBottom: '8px' }}>YOUR TRADING SCORE</div>
-        <div style={{ fontSize: '96px', fontWeight: '900', color: scoreColor, lineHeight: 1, textShadow: `0 0 60px ${scoreColor}50` }}>{score}</div>
-        <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>out of 100</div>
-        <div style={{ marginTop: '16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
-          Better than <span style={{ color: scoreColor, fontWeight: '700' }}>{score}%</span> of Base traders
-        </div>
-      </div>
-
-      {/* Archetype - THE VIRAL HOOK */}
-      <div style={{ 
-        margin: '0 16px 20px', 
-        padding: '28px 24px', 
-        background: 'rgba(255,255,255,0.05)', 
-        borderRadius: '20px', 
-        textAlign: 'center',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>{getArchetypeEmoji()}</div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', marginBottom: '8px' }}>YOU ARE</div>
-        <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{archetype}</div>
-        <div style={{ fontSize: '15px', color: vibe.color, fontStyle: 'italic' }}>"{vibe.text}"</div>
-      </div>
-
-      {/* P&L Hero */}
-      <div style={{ padding: '0 16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <div style={{ 
-          padding: '20px', 
-          background: isProfit ? 'linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.05) 100%)' : 'linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(239,68,68,0.05) 100%)', 
-          borderRadius: '16px',
-          border: `1px solid ${isProfit ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
-        }}>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>REALIZED P&L</div>
-          <div style={{ fontSize: '28px', fontWeight: '800', color: isProfit ? '#4ade80' : '#f87171' }}>{isProfit ? '+' : ''}{fmtCur(summary.totalRealizedProfit)}</div>
-        </div>
-        <div style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>WIN RATE</div>
-          <div style={{ fontSize: '28px', fontWeight: '800', color: (summary.winRate || 0) >= 50 ? '#4ade80' : '#f87171' }}>{(summary.winRate || 0).toFixed(0)}%</div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div style={{ padding: '0 16px 20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-          {[
-            { label: 'TOKENS', value: summary.totalTokensTraded || 0, color: '#fff' },
-            { label: 'WINS', value: winCount, color: '#4ade80' },
-            { label: 'LOSSES', value: lossCount, color: '#f87171' },
-            { label: 'VOLUME', value: fmtCur(summary.totalTradingVolume), color: '#a78bfa' },
-          ].map((stat, i) => (
-            <div key={i} style={{ padding: '14px 8px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '18px', fontWeight: '700', color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)', marginTop: '4px', letterSpacing: '0.05em' }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Best & Worst */}
-      <div style={{ padding: '0 16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        {biggestWin && (
-          <div style={{ padding: '16px', background: 'rgba(34,197,94,0.1)', borderRadius: '16px', border: '1px solid rgba(34,197,94,0.2)' }}>
-            <div style={{ fontSize: '10px', color: '#4ade80', marginBottom: '8px' }}>🏆 BEST PLAY</div>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>${biggestWin.symbol}</div>
-            <div style={{ fontSize: '22px', fontWeight: '800', color: '#4ade80' }}>+{fmtCur(biggestWin.realizedProfitUsd)}</div>
+      {/* Subject Line */}
+      <div style={{ padding: '16px 28px', background: '#f5f5f4', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {user?.pfpUrl && <img src={user.pfpUrl} style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid #d6d3d1' }} />}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em' }}>RE: TRADING PERFORMANCE AUDIT</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#1c1917', marginTop: '2px' }}>{userName}</div>
+            <div style={{ fontSize: '10px', color: '#78716c', fontFamily: 'monospace' }}>{walletAddress}</div>
           </div>
-        )}
-        {biggestLoss && (
-          <div style={{ padding: '16px', background: 'rgba(239,68,68,0.1)', borderRadius: '16px', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div style={{ fontSize: '10px', color: '#f87171', marginBottom: '8px' }}>💀 WORST PLAY</div>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>${biggestLoss.symbol}</div>
-            <div style={{ fontSize: '22px', fontWeight: '800', color: '#f87171' }}>{fmtCur(biggestLoss.realizedProfitUsd)}</div>
-          </div>
-        )}
-      </div>
-
-      {/* Fumbled Section - Emotional Hook */}
-      {(summary.totalFumbled || 0) > 100 && (
-        <div style={{ 
-          margin: '0 16px 20px', 
-          padding: '20px', 
-          background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(251,191,36,0.05) 100%)', 
-          borderRadius: '16px',
-          border: '1px solid rgba(251,191,36,0.3)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '11px', color: '#fbbf24', marginBottom: '4px' }}>😭 LEFT ON THE TABLE</div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>sold too early</div>
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '800', color: '#fbbf24' }}>{fmtCur(summary.totalFumbled)}</div>
+          <div style={{ padding: '4px 10px', background: '#3b82f6', borderRadius: '2px' }}>
+            <div style={{ fontSize: '9px', fontWeight: '600', color: '#fff' }}>BASE</div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* AI Roast */}
-      {auditNarrative && (
-        <div style={{ margin: '0 16px 20px', padding: '20px', background: 'rgba(139,92,246,0.1)', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.2)' }}>
-          <div style={{ fontSize: '10px', color: '#a78bfa', marginBottom: '10px', letterSpacing: '0.1em' }}>🤖 AI ASSESSMENT</div>
-          <div style={{ fontSize: '15px', color: '#c4b5fd', fontStyle: 'italic', lineHeight: '1.6' }}>"{auditNarrative}"</div>
+      {/* Performance Score Section */}
+      <div style={{ padding: '24px 28px', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§1. PERFORMANCE ASSESSMENT</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '56px', fontWeight: '700', color: scoreColor, lineHeight: 1 }}>{score}</div>
+            <div style={{ fontSize: '11px', color: '#78716c', marginTop: '4px' }}>/ 100</div>
+          </div>
+          <div style={{ flex: 1, borderLeft: '1px solid #e7e5e4', paddingLeft: '20px' }}>
+            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em', marginBottom: '4px' }}>TRADER CLASSIFICATION</div>
+            <div style={{ fontSize: '20px', fontWeight: '600', color: '#1c1917', marginBottom: '6px' }}>{archetype}</div>
+            <div style={{ fontSize: '11px', color: '#57534e' }}>Percentile Rank: Top <span style={{ fontWeight: '600', color: scoreColor }}>{100 - score}%</span> on Base</div>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Top Plays */}
-      {topTokens.length > 0 && (
-        <div style={{ padding: '0 16px 20px' }}>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em', marginBottom: '12px' }}>TOP PLAYS</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {topTokens.map((token, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700' }}>{token.symbol?.slice(0,2)}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>${token.symbol}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: token.isProfitable ? '#4ade80' : '#f87171' }}>
-                    {token.isProfitable ? '+' : ''}{fmtCur(token.realizedProfitUsd)}
-                  </div>
-                </div>
+      {/* Financial Summary */}
+      <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§2. FINANCIAL SUMMARY</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ padding: '14px', background: isProfit ? '#f0fdf4' : '#fef2f2', borderRadius: '4px', border: `1px solid ${isProfit ? '#bbf7d0' : '#fecaca'}` }}>
+            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.05em' }}>REALIZED P&L</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: isProfit ? '#16a34a' : '#dc2626', marginTop: '4px' }}>{isProfit ? '+' : ''}{fmtCur(summary.totalRealizedProfit)}</div>
+          </div>
+          <div style={{ padding: '14px', background: '#fff', borderRadius: '4px', border: '1px solid #e7e5e4' }}>
+            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.05em' }}>TOTAL VOLUME</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#1c1917', marginTop: '4px' }}>{fmtCur(summary.totalTradingVolume)}</div>
+          </div>
+        </div>
+        
+        {/* Metrics table */}
+        <div style={{ marginTop: '16px', border: '1px solid #e7e5e4', borderRadius: '4px', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            <tbody>
+              {[
+                ['Win Rate', `${(summary.winRate || 0).toFixed(1)}%`, 'ROI', `${roi}%`],
+                ['Wins', winCount, 'Losses', lossCount],
+                ['Avg Win', fmtCur(avgWin), 'Avg Loss', fmtCur(avgLoss)],
+                ['Profit Factor', profitFactor, 'Avg Position', fmtCur(avgPosition)],
+                ['Tokens Traded', totalTokens, 'Fumbled Gains', fmtCur(summary.totalFumbled || 0)],
+              ].map((row, i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? '#fafaf9' : '#fff' }}>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #e7e5e4', color: '#78716c', width: '25%' }}>{row[0]}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #e7e5e4', fontWeight: '600', color: '#1c1917', width: '25%' }}>{row[1]}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #e7e5e4', color: '#78716c', borderLeft: '1px solid #e7e5e4', width: '25%' }}>{row[2]}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #e7e5e4', fontWeight: '600', color: '#1c1917', width: '25%' }}>{row[3]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Risk Assessment */}
+      <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§3. RISK ASSESSMENT</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: `${risk.color}10`, borderRadius: '4px', border: `1px solid ${risk.color}30` }}>
+          <div style={{ padding: '6px 14px', background: risk.color, borderRadius: '2px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff', letterSpacing: '0.1em' }}>{risk.level}</div>
+          </div>
+          <div style={{ fontSize: '12px', color: '#57534e' }}>{risk.desc}</div>
+        </div>
+      </div>
+
+      {/* Notable Positions */}
+      <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§4. NOTABLE POSITIONS</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div>
+            <div style={{ fontSize: '9px', color: '#16a34a', letterSpacing: '0.1em', marginBottom: '8px', fontWeight: '600' }}>TOP PERFORMERS</div>
+            {topWins.length > 0 ? topWins.map((t, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f5f5f4', fontSize: '11px' }}>
+                <span style={{ color: '#57534e' }}>${t.symbol}</span>
+                <span style={{ fontWeight: '600', color: '#16a34a' }}>+{fmtCur(t.realizedProfitUsd)}</span>
+              </div>
+            )) : <div style={{ fontSize: '11px', color: '#a8a29e', fontStyle: 'italic' }}>No profitable positions</div>}
+          </div>
+          <div>
+            <div style={{ fontSize: '9px', color: '#dc2626', letterSpacing: '0.1em', marginBottom: '8px', fontWeight: '600' }}>UNDERPERFORMERS</div>
+            {topLosses.length > 0 ? topLosses.map((t, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f5f5f4', fontSize: '11px' }}>
+                <span style={{ color: '#57534e' }}>${t.symbol}</span>
+                <span style={{ fontWeight: '600', color: '#dc2626' }}>{fmtCur(t.realizedProfitUsd)}</span>
+              </div>
+            )) : <div style={{ fontSize: '11px', color: '#a8a29e', fontStyle: 'italic' }}>No losing positions</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Behavioral Findings */}
+      {findings.length > 0 && (
+        <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
+          <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§5. BEHAVIORAL ANALYSIS</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {findings.map((f, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px', background: '#fafaf9', borderRadius: '4px', borderLeft: `3px solid ${f.type === 'positive' ? '#22c55e' : f.type === 'negative' ? '#ef4444' : f.type === 'warning' ? '#f59e0b' : '#71717a'}` }}>
+                <span style={{ fontSize: '11px', flexShrink: 0 }}>{f.type === 'positive' ? '✓' : f.type === 'negative' ? '✗' : f.type === 'warning' ? '⚠' : '•'}</span>
+                <span style={{ fontSize: '11px', color: '#57534e', lineHeight: '1.4' }}>{f.text}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Footer */}
-      <div style={{ padding: '20px 24px', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', letterSpacing: '0.05em' }}>TRIDENT</div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Trading Audit</div>
+      {/* Official Verdict */}
+      <div style={{ padding: '20px 28px', background: '#1c1917', color: '#fff' }}>
+        <div style={{ fontSize: '10px', color: '#a8a29e', letterSpacing: '0.15em', marginBottom: '10px' }}>§6. TRIDENT LLC VERDICT</div>
+        <div style={{ fontSize: '13px', lineHeight: '1.7', color: '#e7e5e4', fontStyle: 'italic' }}>
+          "{auditNarrative || `Subject demonstrates ${isProfit ? 'net profitable' : 'net loss-making'} trading behavior with a ${(summary.winRate || 0).toFixed(0)}% success rate across ${totalTokens} positions. ${risk.desc}. Classification: ${archetype}.`}"
         </div>
-        <div style={{ padding: '12px 20px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', borderRadius: '24px', fontSize: '12px', fontWeight: '700', color: '#fff' }}>
-          Get Yours →
+        <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #44403c', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '9px', color: '#a8a29e' }}>Authorized by</div>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: '#fff', marginTop: '2px' }}>Trident Analytics Engine v2.1</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '9px', color: '#a8a29e' }}>Confidence</div>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: scoreColor, marginTop: '2px' }}>{score >= 70 ? 'HIGH' : score >= 40 ? 'MODERATE' : 'LOW'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legal Footer */}
+      <div style={{ padding: '16px 28px', background: '#f5f5f4', borderTop: '1px solid #e7e5e4' }}>
+        <div style={{ fontSize: '8px', color: '#a8a29e', lineHeight: '1.6', textAlign: 'center' }}>
+          This document is generated by Trident LLC for informational purposes only. Past performance does not guarantee future results.<br/>
+          This is not financial advice. All P&L figures reflect realized profits at time of sale.
+        </div>
+        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e7e5e4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '10px', fontWeight: '600', color: '#57534e' }}>TRIDENT LLC</div>
+          <div style={{ fontSize: '9px', color: '#78716c' }}>Courtesy of PNL Tracker</div>
+          <div style={{ fontSize: '9px', color: '#78716c', fontFamily: 'monospace' }}>{auditNumber}</div>
         </div>
       </div>
     </div>
