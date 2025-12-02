@@ -156,7 +156,7 @@ const calculateAdvancedStats = (summary) => {
   if (winR > 60 && profit < 0) luckFactor = Math.max(5, 50 - (winR - 50)); 
 
   // 5. Consistency (0-100)
-  // Penalize for unbalanced win/loss counts (though this is tricky, simple heuristic here)
+  // Penalize for unbalanced win/loss counts
   const consistencyScore = winCount > 0 && lossCount > 0 
     ? Math.round(100 - (Math.abs(winCount - lossCount) / Math.max(winCount, lossCount) * 50)) 
     : 50;
@@ -803,11 +803,146 @@ export default function PNLTrackerApp() {
       const percentile = calculatePercentile(summary);
       const score = percentile?.percentile || 50;
       const archetype = percentile?.title || 'Trader';
+      const profit = summary.totalRealizedProfit || 0;
       const username = user?.username || 'user';
+      
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // LARP-HEAVY DOCUMENT IMAGE
+      // GENERATE A VISUAL AUDIT REPORT using Vercel OG
       const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      
+      // We'll mimic the look of the "Audit File" using text layout
+      // Lines: "AUDIT FILE: @user", "SCORE: XX/100", "VERDICT: Archetype", "P&L: $XXXX"
       const line1 = `TRIDENT LLC // AUDIT FILE`;
       const line2 = `SUBJECT: @${username.toUpperCase()}`;
-      const line3 = `RATING:
+      const line3 = `RATING: ${score}/100 // ${archetype.toUpperCase()}`;
+      
+      // Encode with monospaced font look if possible, or just standard bold
+      const textPath = encodeURIComponent(`**${line1}**\n${line2}\n${line3}`);
+      
+      // Use 'light' theme but maybe we can customize colors via params if supported, 
+      // but standard black/white fits the "paper" aesthetic well.
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=40px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+
+      const castText = `CASE FILE: ${username}\nCLASSIFICATION: ${archetype.toUpperCase()}\n\nTrident LLC has released my trading audit. The psychometric profile is concerning.\n\nRead full report ⬇️`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { console.error('Share audit failed', err); }
+  };
+
+  const handleShareFumble = async () => {
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        const fumble = pnlData?.biggestFumble;
+        if (!fumble) return;
+        const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+        const missed = fumble.missedUpsideUsd || 0;
+        const tokenName = fumble.name || fumble.symbol || 'a token';
+        const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+        const topText = `$PNL  ·  Biggest Fumble`;
+        const bottomText = `${formatCurrency(missed)} left on the table`;
+        const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+        const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+        const castText = `I paper-handed ${tokenName} and missed ${formatCurrency(missed)} 💀\n\nFind your fumbles:`;
+        await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+      } catch (err) { }
+  };
+
+  const handleShareBestTrade = async () => {
+    try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        const token = pnlData?.biggestWin;
+        if (!token) return;
+        const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+        const pnl = token.realizedProfitUsd || 0;
+        const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+        const topText = `$PNL  ·  Best Trade`;
+        const bottomText = `+${formatCurrency(pnl)} on ${token.symbol || 'Token'}`;
+        const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+        const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+        const castText = `My biggest W on Base: +${formatCurrency(pnl)} on ${token.symbol} 🏆\n\nFind your best trade:`;
+        await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { }
+  };
+
+  const handleShareWorstTrade = async () => {
+    try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        const token = pnlData?.biggestLoss;
+        if (!token) return;
+        const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+        const pnl = Math.abs(token.realizedProfitUsd || 0);
+        const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+        const topText = `$PNL  ·  Worst Trade`;
+        const bottomText = `-${formatCurrency(pnl)} on ${token.symbol || 'Token'}`;
+        const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+        const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+        const castText = `My biggest L on Base: -${formatCurrency(pnl)} on ${token.symbol} 🪦\n\nFind your worst trade:`;
+        await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { }
+  };
+
+  const handleShareAirdrops = async () => {
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        const summary = pnlData?.summary;
+        if (!summary) return;
+        const profit = summary.airdropProfit || 0;
+        const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+        const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+        const topText = `$PNL  ·  Airdrops`;
+        const bottomText = `+${formatCurrency(profit)} Free Money`;
+        const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+        const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+        const castText = `Found +${formatCurrency(profit)} in airdrops on my wallet 🪂\n\nCheck your airdrops:`;
+        await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { }
+  };
+
+  const handleSwapForAccess = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const pnlCaip19 = getPnlCaip19();
+      if (!pnlCaip19) { await sdk.actions.openUrl('https://app.uniswap.org'); return; }
+      await sdk.actions.swapToken({ sellToken: BASE_ETH_CAIP19, buyToken: pnlCaip19 });
+    } catch (err) { console.error('swap for $PNL failed', err); }
+  };
+
+  const checkTokenGate = async (address) => {
+    if (!PNL_TOKEN_ADDRESS) { setTokenBalance(0); setCheckingGate(false); setIsGated(false); return true; }
+    if (address && WHITELISTED_WALLETS.includes(address.toLowerCase())) { setTokenBalance(REQUIRED_PNL_BALANCE); setCheckingGate(false); setIsGated(false); return true; }
+    if (DEMO_MODE) { await new Promise((r) => setTimeout(r, 500)); setTokenBalance(REQUIRED_PNL_BALANCE + 100); setCheckingGate(false); setIsGated(false); return true; }
+    try {
+      const response = await fetch(`https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=base&token_addresses[]=${PNL_TOKEN_ADDRESS}`, { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } });
+      const data = await response.json();
+      const pnlToken = data?.[0];
+      const balance = pnlToken ? parseInt(pnlToken.balance) / 10 ** (pnlToken.decimals || 18) : 0;
+      setTokenBalance(balance);
+      setIsGated(balance < REQUIRED_PNL_BALANCE);
+      setCheckingGate(false);
+      return balance >= REQUIRED_PNL_BALANCE;
+    } catch (err) { setCheckingGate(false); setIsGated(true); return false; }
+  };
+
+  const fetchPNLData = async (addresses) => {
+    try {
+      setLoading(true);
+      if (DEMO_MODE) { await new Promise((r) => setTimeout(r, 600)); setPnlData(MOCK_PNL_DATA); setLoading(false); return; }
+      let cacheKey = null;
+      if (typeof window !== 'undefined' && Array.isArray(addresses) && addresses.length > 0) {
+        const sortedAddresses = addresses.map((a) => a.toLowerCase()).sort();
+        const fidPart = user?.fid ? `fid_${user.fid}` : 'anon';
+        cacheKey = `pnl_cache_${CACHE_VERSION}_${fidPart}_${sortedAddresses.join(',')}`;
+        try {
+          const raw = window.localStorage.getItem(cacheKey);
+          if (raw) {
+            const stored = JSON.parse(raw);
+            if (stored && stored.timestamp && stored.data && Date.now() - stored.timestamp < PNL_CACHE_TTL_MS) {
+              setPnlData(stored.data); setLoading(false); return;
+            }
+          }
+        } catch (e) {}
+      }
+
+      const fetchPromises = addresses.map((address) => fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${address}/profitability?chain=base&exclude_spam=false`, { headers: { accept: 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' } }).then((res) => res.json()));
+      const results = await Promise.all(f
