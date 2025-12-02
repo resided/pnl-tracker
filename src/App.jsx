@@ -2480,57 +2480,23 @@ export default function PNLTrackerApp() {
       const archetype = percentile?.title || 'Trader';
       const profit = summary.totalRealizedProfit || 0;
       const winRate = summary.winRate || 0;
-      const totalTokens = summary.totalTokensTraded || 0;
-      const fumbled = summary.totalFumbled || 0;
-      const biggestWin = pnlData?.biggestWin;
-      const biggestLoss = pnlData?.biggestLoss;
-      
-      // Calculate profit factor
-      const tokens = pnlData?.tokens || [];
-      const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
-      const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
-      const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(1) : '∞';
+      const userName = user?.displayName || user?.username || 'Anon';
       
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // Generate viral cast text based on performance - MORE VARIETY
-      let castText = `📋 TRIDENT LLC TRADING AUDIT\n\n`;
-      
-      // Score & Classification
-      castText += `Score: ${score}/100\n`;
-      castText += `Classification: "${archetype}"\n\n`;
-      
-      // Performance-specific roast/praise
-      if (profit > 10000 && winRate > 50) {
-        castText += `Verdict: Actually cracked at this. ${formatCurrency(profit)} up with a ${winRate.toFixed(0)}% hit rate.\n`;
-        castText += `${biggestWin ? `$${biggestWin.symbol} carried (+${formatCurrency(biggestWin.realizedProfitUsd)})` : ''}`;
-      } else if (profit > 5000 && winRate < 40 && parseFloat(profitFactor) > 2) {
-        castText += `Verdict: ${winRate.toFixed(0)}% win rate looks bad until you see the ${profitFactor}x profit factor.\n`;
-        castText += `Loses often. Wins BIG. +${formatCurrency(profit)} speaks for itself.`;
-      } else if (profit > 1000 && winRate < 40) {
-        castText += `Verdict: Only wins ${winRate.toFixed(0)}% of the time but still up ${formatCurrency(profit)}.\n`;
-        castText += `The secret? Cutting losers fast. Profit factor: ${profitFactor}x`;
-      } else if (profit > 0 && profit < 1000) {
-        castText += `Verdict: +${formatCurrency(profit)} across ${totalTokens} tokens.\n`;
-        castText += `Not life-changing but in crypto, green is green.`;
-      } else if (profit < 0 && fumbled > Math.abs(profit) * 2) {
-        castText += `Verdict: Down ${formatCurrency(Math.abs(profit))} but fumbled ${formatCurrency(fumbled)}.\n`;
-        castText += `The picks were right. The conviction wasn't.`;
-      } else if (profit < 0 && winRate > 50) {
-        castText += `Verdict: ${winRate.toFixed(0)}% win rate but still down ${formatCurrency(Math.abs(profit))}?\n`;
-        castText += `Cutting winners early, letting losers run. Classic.`;
-      } else if (profit < -5000) {
-        castText += `Verdict: ${formatCurrency(Math.abs(profit))} donated to the markets.\n`;
-        castText += `${biggestLoss ? `$${biggestLoss.symbol} did the most damage.` : 'Thank you for your service.'} 🫡`;
-      } else if (profit < 0) {
-        castText += `Verdict: Down ${formatCurrency(Math.abs(profit))} with a ${winRate.toFixed(0)}% hit rate.\n`;
-        castText += `The markets have spoken. Time to inverse?`;
-      } else {
-        castText += `Verdict: ${formatCurrency(profit)} P&L | ${winRate.toFixed(0)}% win rate | ${totalTokens} tokens\n`;
-        castText += `Another day in the trenches.`;
+      // Use the auditNarrative (verdict) as the main quote
+      // Truncate if too long for cast
+      let verdict = auditNarrative || '';
+      if (verdict.length > 280) {
+        verdict = verdict.substring(0, 277) + '...';
       }
       
-      castText += `\n\nGet your audit:`;
+      // Build cast with verdict as main content
+      let castText = `📋 TRIDENT LLC TRADING AUDIT\n\n`;
+      castText += `Subject: ${userName}\n`;
+      castText += `Score: ${score}/100 • ${archetype}\n\n`;
+      castText += `"${verdict}"\n\n`;
+      castText += `Get your audit:`;
       
       await sdk.actions.composeCast({
         text: castText,
