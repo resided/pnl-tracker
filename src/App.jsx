@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import html2canvas from 'html2canvas';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
@@ -2269,6 +2270,7 @@ export default function PNLTrackerApp() {
   const [auditData, setAuditData] = useState(null);
   const [auditMetrics, setAuditMetrics] = useState(null);
   const [auditNarrative, setAuditNarrative] = useState(null);
+  const auditRef = useRef(null);
 
 
   // Check which badges have already been minted by this user
@@ -2614,82 +2616,46 @@ export default function PNLTrackerApp() {
       const userName = user?.displayName || user?.username || 'Anon';
       const profit = summary.totalRealizedProfit || 0;
       const winRate = summary.winRate || 0;
-      const totalTokens = summary.totalTokensTraded || 0;
-      
-      // Calculate profit factor
-      const tokens = pnlData?.tokens || [];
-      const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
-      const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
-      const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(1) : '∞';
-      
-      // Get best trade info
-      const biggestWin = pnlData?.biggestWin;
-      const bestTrade = biggestWin?.symbol ? `$${biggestWin.symbol}` : '';
-      const bestAmount = biggestWin?.realizedProfitUsd ? `+${formatCurrency(biggestWin.realizedProfitUsd)}` : '';
-      
-      // Get risk level
-      const getRisk = () => {
-        if (profit > 0 && parseFloat(profitFactor) > 2) return 'LOW';
-        if (profit > 5000 && winRate > 45) return 'LOW';
-        if (profit > 0 && winRate > 50) return 'LOW';
-        if (profit > 0) return 'MODERATE';
-        if (profit >= -500) return 'MODERATE';
-        if (profit < 0 && (summary.totalFumbled || 0) > Math.abs(profit) * 2) return 'ELEVATED';
-        if (profit < -5000) return 'HIGH';
-        return 'ELEVATED';
-      };
-      
-      // Get first paragraph of verdict
-      const verdict = auditNarrative || '';
-      const firstParagraph = verdict.split('\n\n')[0] || verdict;
-      
-      // POST to worker to generate image
-      const workerUrl = 'https://pnl.jab067.workers.dev'; // Your worker URL
-      
-      const snapData = {
-        username: userName,
-        displayName: userName,
-        score: score,
-        archetype: archetype,
-        profit: profit,
-        winRate: winRate,
-        profitFactor: profitFactor,
-        tokens: totalTokens,
-        verdict: firstParagraph,
-        risk: getRisk(),
-        bestTrade: bestTrade,
-        bestAmount: bestAmount,
-      };
-      
-      let imageUrl = null;
-      
-      try {
-        const response = await fetch(`${workerUrl}/audit/snap`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(snapData)
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          imageUrl = result.image;
-        }
-      } catch (err) {
-        console.warn('Worker image generation failed, falling back to text-only:', err);
-      }
-      
+
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
-      
+      let imageUrl = null;
+
+      // Capture the audit as an image using html2canvas
+      if (auditRef.current) {
+        try {
+          const canvas = await html2canvas(auditRef.current, {
+            backgroundColor: '#fafaf9',
+            scale: 2, // Higher quality
+            useCORS: true,
+            logging: false,
+          });
+          
+          const base64Image = canvas.toDataURL('image/png');
+          
+          // Upload to worker
+          const workerUrl = 'https://pnl.jab067.workers.dev';
+          const response = await fetch(`${workerUrl}/audit/upload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Image })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            imageUrl = result.image;
+          }
+        } catch (err) {
+          console.warn('Image capture failed:', err);
+        }
+      }
+
       // Build cast text
       let castText = `📋 TRIDENT LLC AUDIT\n\n`;
       castText += `Subject: ${userName}\n`;
       castText += `Score: ${score}/100 • "${archetype}"\n`;
       castText += `P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)} | ${winRate.toFixed(0)}% Win Rate\n\n`;
       castText += `Get audited:`;
-      
-      // Use image URL if available, otherwise just the app link
-      const embedUrl = imageUrl || appLink;
-      
+
       await sdk.actions.composeCast({
         text: castText,
         embeds: imageUrl ? [imageUrl, appLink] : [appLink]
@@ -3419,16 +3385,18 @@ const renderGatedOverlay = () => (
             
             {/* Audit Card */}
             {auditMetrics && !auditLoading && (
-              <TradingAudit
-                pnlData={{
-                  ...pnlData,
-                  summary: { ...pnlData.summary, ...auditMetrics }
-                }}
-                user={{ ...user, wallet: primaryWallet || wallets[0] }}
-                percentileData={calculatePercentile(pnlData.summary)}
-                auditNarrative={auditNarrative}
-                onShare={handleShareAudit}
-              />
+              <div ref={auditRef}>
+                <TradingAudit
+                  pnlData={{
+                    ...pnlData,
+                    summary: { ...pnlData.summary, ...auditMetrics }
+                  }}
+                  user={{ ...user, wallet: primaryWallet || wallets[0] }}
+                  percentileData={calculatePercentile(pnlData.summary)}
+                  auditNarrative={auditNarrative}
+                  onShare={handleShareAudit}
+                />
+              </div>
             )}
           </div>
         )}
