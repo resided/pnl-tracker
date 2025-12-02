@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
@@ -1783,14 +1782,14 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
       {/* Subject Line */}
       <div style={{ padding: '16px 28px', background: '#f5f5f4', borderBottom: '1px solid #e7e5e4' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {user?.pfpUrl && <img src={user.pfpUrl} style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid #d6d3d1' }} crossOrigin="anonymous" />}
+          {user?.pfpUrl && <img src={user.pfpUrl} style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid #d6d3d1' }} />}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em' }}>RE: TRADING PERFORMANCE AUDIT</div>
             <div style={{ fontSize: '16px', fontWeight: '600', color: '#1c1917', marginTop: '2px' }}>{userName}</div>
             <div style={{ fontSize: '10px', color: '#78716c', fontFamily: 'monospace' }}>{walletAddress}</div>
           </div>
-          <div style={{ padding: '4px 10px', backgroundColor: '#3b82f6', borderRadius: '2px', display: 'inline-block' }}>
-            <span style={{ fontSize: '9px', fontWeight: '600', color: '#fff' }}>BASE</span>
+          <div style={{ padding: '4px 10px', background: '#3b82f6', borderRadius: '2px' }}>
+            <div style={{ fontSize: '9px', fontWeight: '600', color: '#fff' }}>BASE</div>
           </div>
         </div>
       </div>
@@ -1799,9 +1798,9 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
       <div style={{ padding: '24px 28px', borderBottom: '1px solid #e7e5e4' }}>
         <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§1. PERFORMANCE ASSESSMENT</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-          <div style={{ textAlign: 'center', minWidth: '80px' }}>
-            <div style={{ fontSize: '56px', fontWeight: '700', color: scoreColor, lineHeight: '1.1' }}>{score}</div>
-            <div style={{ fontSize: '12px', color: '#78716c', marginTop: '2px' }}>/ 100</div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '56px', fontWeight: '700', color: scoreColor, lineHeight: 1 }}>{score}</div>
+            <div style={{ fontSize: '11px', color: '#78716c', marginTop: '4px' }}>/ 100</div>
           </div>
           <div style={{ flex: 1, borderLeft: '1px solid #e7e5e4', paddingLeft: '20px' }}>
             <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em', marginBottom: '4px' }}>TRADER CLASSIFICATION</div>
@@ -2270,7 +2269,6 @@ export default function PNLTrackerApp() {
   const [auditData, setAuditData] = useState(null);
   const [auditMetrics, setAuditMetrics] = useState(null);
   const [auditNarrative, setAuditNarrative] = useState(null);
-  const auditRef = useRef(null);
 
 
   // Check which badges have already been minted by this user
@@ -2614,76 +2612,33 @@ export default function PNLTrackerApp() {
       const score = percentile?.percentile || 50;
       const archetype = percentile?.title || 'Trader';
       const userName = user?.displayName || user?.username || 'Anon';
-      const profit = summary.totalRealizedProfit || 0;
-      const winRate = summary.winRate || 0;
-
-      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
-      let imageUrl = null;
-
-      // Capture the audit as an image using html2canvas
-      if (auditRef.current) {
-        try {
-          console.log('Capturing audit...');
-          
-          // Add a small delay to ensure rendering is complete
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          const canvas = await html2canvas(auditRef.current, {
-            backgroundColor: '#fafaf9',
-            scale: 2,
-            useCORS: true,
-            allowTaint: false,
-            logging: false,
-            removeContainer: true,
-            imageTimeout: 15000,
-            x: 0,
-            y: 0,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: auditRef.current.scrollWidth,
-            windowHeight: auditRef.current.scrollHeight,
-          });
-          
-          console.log('Canvas:', canvas.width, 'x', canvas.height);
-          
-          const base64Image = canvas.toDataURL('image/png');
-          console.log('Image size:', Math.round(base64Image.length / 1024), 'KB');
-          
-          // Upload to worker
-          const response = await fetch('https://pnl.jab067.workers.dev/audit/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: base64Image })
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('Uploaded:', result);
-            // Use the PAGE URL (has OG tags) - NOT the raw image URL!
-            imageUrl = result.page;
-          } else {
-            console.error('Upload failed:', await response.text());
-          }
-        } catch (err) {
-          console.error('Capture error:', err);
-        }
-      }
-
-      // Shorter text to make room for image
-      let castText = `📋 TRIDENT LLC AUDIT\n\n`;
-      castText += `${userName} • ${score}/100 "${archetype}"\n`;
-      castText += `${profit >= 0 ? '+' : ''}${formatCurrency(profit)} P&L\n\n`;
-      castText += `Get yours:`;
-
-      console.log('Image URL:', imageUrl);
       
-      // Embed both: image first (for preview), then app link
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      
+      // Use the auditNarrative (verdict) - take first paragraph for sharing
+      let verdict = auditNarrative || '';
+      // Split by double newline and take first paragraph
+      const paragraphs = verdict.split('\n\n');
+      let shareVerdict = paragraphs[0] || verdict;
+      
+      // Truncate if still too long (keep some room for header)
+      if (shareVerdict.length > 400) {
+        shareVerdict = shareVerdict.substring(0, 397) + '...';
+      }
+      
+      // Build cast with verdict as main content
+      let castText = `📋 TRIDENT LLC AUDIT\n\n`;
+      castText += `Subject: ${userName}\n`;
+      castText += `Score: ${score}/100 • "${archetype}"\n\n`;
+      castText += `"${shareVerdict}"\n\n`;
+      castText += `Get audited:`;
+      
       await sdk.actions.composeCast({
         text: castText,
-        embeds: imageUrl ? [imageUrl, appLink] : [appLink]
+        embeds: [appLink]
       });
     } catch (err) {
-      console.error('Share failed:', err);
+      console.error('Share audit failed', err);
     }
   };
 
@@ -3407,18 +3362,16 @@ const renderGatedOverlay = () => (
             
             {/* Audit Card */}
             {auditMetrics && !auditLoading && (
-              <div ref={auditRef}>
-                <TradingAudit
-                  pnlData={{
-                    ...pnlData,
-                    summary: { ...pnlData.summary, ...auditMetrics }
-                  }}
-                  user={{ ...user, wallet: primaryWallet || wallets[0] }}
-                  percentileData={calculatePercentile(pnlData.summary)}
-                  auditNarrative={auditNarrative}
-                  onShare={handleShareAudit}
-                />
-              </div>
+              <TradingAudit
+                pnlData={{
+                  ...pnlData,
+                  summary: { ...pnlData.summary, ...auditMetrics }
+                }}
+                user={{ ...user, wallet: primaryWallet || wallets[0] }}
+                percentileData={calculatePercentile(pnlData.summary)}
+                auditNarrative={auditNarrative}
+                onShare={handleShareAudit}
+              />
             )}
           </div>
         )}
