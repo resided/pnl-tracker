@@ -6,12 +6,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 // NOW WITH: Badge Claiming & Audits (free mint, gas only)
 
 // Auto-detect demo mode: true in development, false in production
-// Override with VITE_DEMO_MODE=true or VITE_DEMO_MODE=false
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' ? true : 
                   import.meta.env.VITE_DEMO_MODE === 'false' ? false :
                   import.meta.env.DEV || false; 
 const PNL_CACHE_TTL_MS = 10 * 60 * 1000;
-const CACHE_VERSION = 'v2'; // Increment to invalidate old cache
+const CACHE_VERSION = 'v2'; 
 
 // Token gate configuration
 const PNL_TOKEN_ADDRESS = import.meta.env.VITE_PNL_TOKEN_ADDRESS || '0x36FA7687bbA52d3C513497b69BcaD07f4919bB07';
@@ -22,46 +21,13 @@ const BADGE_CONTRACT_ADDRESS = import.meta.env.VITE_BADGE_CONTRACT_ADDRESS || '0
 
 // Badge Contract ABI (minimal for minting)
 const BADGE_ABI = [
-  {
-    name: 'mintBadge',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'badgeType', type: 'uint8' },
-      { name: 'winRate', type: 'uint256' },
-      { name: 'volume', type: 'uint256' },
-      { name: 'profit', type: 'uint256' }
-    ],
-    outputs: [{ name: 'tokenId', type: 'uint256' }]
-  },
-  {
-    name: 'hasMintedBadge',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'user', type: 'address' },
-      { name: 'badgeType', type: 'uint8' }
-    ],
-    outputs: [{ name: '', type: 'bool' }]
-  },
-  {
-    name: 'balanceOf',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'owner', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }]
-  }
+  { name: 'mintBadge', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'badgeType', type: 'uint8' }, { name: 'winRate', type: 'uint256' }, { name: 'volume', type: 'uint256' }, { name: 'profit', type: 'uint256' }], outputs: [{ name: 'tokenId', type: 'uint256' }] },
+  { name: 'hasMintedBadge', type: 'function', stateMutability: 'view', inputs: [{ name: 'user', type: 'address' }, { name: 'badgeType', type: 'uint8' }], outputs: [{ name: '', type: 'bool' }] },
+  { name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }
 ];
 
 // Badge type enum matching contract
-const BADGE_TYPES = {
-  SNIPER: 0,
-  EXIT_LIQUIDITY: 1,
-  VOLUME_WHALE: 2,
-  TOILET_PAPER_HANDS: 3,
-  DIAMOND: 4,
-  TRADER: 5
-};
+const BADGE_TYPES = { SNIPER: 0, EXIT_LIQUIDITY: 1, VOLUME_WHALE: 2, TOILET_PAPER_HANDS: 3, DIAMOND: 4, TRADER: 5 };
 
 // --- WHITELIST CONFIGURATION ---
 const WHITELISTED_WALLETS = [
@@ -101,7 +67,7 @@ const formatCurrency = (val) => val === undefined || val === null ? '$0.00' : `$
 const formatNumber = (num) => num >= 1000000 ? (num / 1000000).toFixed(1) + 'M' : num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toLocaleString();
 const truncateAddress = (addr) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : '';
 
-// Percentile calculation based on realistic crypto trading distributions
+// Percentile calculation
 const calculatePercentile = (summary) => {
   if (!summary) return { percentile: 50, title: 'Trader', emoji: '📊' };
   
@@ -109,7 +75,6 @@ const calculatePercentile = (summary) => {
   const winRate = summary.winRate || 0;
   const volume = summary.totalTradingVolume || 0;
   
-  // Profit-based percentile (primary factor)
   let profitPercentile;
   if (profit <= -10000) profitPercentile = 5;
   else if (profit <= -5000) profitPercentile = 12;
@@ -126,25 +91,18 @@ const calculatePercentile = (summary) => {
   else if (profit <= 50000) profitPercentile = 98;
   else profitPercentile = 99;
   
-  // Win rate bonus (secondary factor)
   let winRateBonus = 0;
   if (winRate >= 70) winRateBonus = 5;
   else if (winRate >= 60) winRateBonus = 3;
   else if (winRate >= 50) winRateBonus = 1;
   else if (winRate < 30) winRateBonus = -3;
   
-  // Volume consideration (shows experience)
   let volumeBonus = 0;
   if (volume >= 100000) volumeBonus = 2;
   else if (volume >= 50000) volumeBonus = 1;
   
   const rawPercentile = Math.min(99, Math.max(1, profitPercentile + winRateBonus + volumeBonus));
-  
-  // Round to nice numbers for display
-  const percentile = rawPercentile >= 99 ? 99 : 
-                     rawPercentile >= 95 ? Math.round(rawPercentile) :
-                     rawPercentile >= 90 ? Math.round(rawPercentile) :
-                     Math.round(rawPercentile);
+  const percentile = rawPercentile >= 99 ? 99 : Math.round(rawPercentile);
   
   return { percentile, ...getRankTitle(percentile, profit, winRate) };
 };
@@ -164,101 +122,61 @@ const getRankTitle = (percentile, profit, winRate) => {
   return { title: 'Wrecked', emoji: '🪦', vibe: 'Nowhere to go but up', insight: 'At least you are self-aware', callout: 'Legend in the making' };
 };
 
-// --- LORE ENGINE ---
-// Analyzes stats to create a "Wingman" style persona
-const generateLore = (summary, tokens, biggestWin, biggestLoss) => {
-  if (!summary) return null;
-  const { winRate, totalRealizedProfit, totalFumbled, totalTradingVolume } = summary;
-  
-  let archetype = "The NPC";
-  let quote = "I trade, therefore I am.";
-  let color = "#64748b"; // Default slate
-  
-  // Logic to determine Archetype (Simplified for basic report)
-  if (totalRealizedProfit > 50000) { archetype = "Based"; quote = "You leave each cycle with more than you brought in."; color = "#EAB308"; }
-  else if (totalRealizedProfit > 10000) { archetype = "Edge Carrier"; quote = "You have a repeatable edge and you use it."; color = "#22c55e"; }
-  else if (winRate > 70) { archetype = "High Hit Rate"; quote = "You are selective, and most swings connect."; color = "#06b6d4"; }
-  else if (totalFumbled > 20000) { archetype = "Early Exiter"; quote = "You read the narrative, then hand off the final leg."; color = "#f97316"; }
-  else if (totalRealizedProfit < -5000) { archetype = "Liquidity Donor"; quote = "You are currently financing other people's screenshots."; color = "#ef4444"; }
-  else if (totalTradingVolume > 100000) { archetype = "Flow Trader"; quote = "You live in the order flow rather than on the sidelines."; color = "#8b5cf6"; }
-  else { archetype = "Working File"; quote = "The story is still being written."; color = "#94a3b8"; }
-
-  // Generate Habits based on data
-  const habits = [
-    biggestWin ? `Legendary entry on $${biggestWin.symbol}` : "Still looking for a big win",
-    biggestLoss ? `Donated heavily to the $${biggestLoss.symbol} community` : "Risk management expert",
-    totalFumbled > 1000 ? `Allergic to holding winners (Missed $${formatNumber(totalFumbled)})` : "Diamond hands activated",
-    `Win Rate: ${winRate.toFixed(1)}% (${winRate > 50 ? 'Better than a coin flip' : 'Inverse me'})`
-  ];
-
-  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'WrETH'];
-  const topBags = [...tokens].filter(t => !ignoreList.includes(t.symbol)).sort((a,b) => (b.totalUsdInvested || 0) - (a.totalUsdInvested || 0)).slice(0, 4);
-
-  return { archetype, quote, color, habits, topBags };
-};
-
-// --- ADVANCED AUDIT VERDICT GENERATOR (New & Improved) ---
-const generateAuditVerdict = (summary) => {
-  if (!summary) return "Insufficent data to generate verdict.";
+// --- TRIDENT LLC VERDICT ENGINE ---
+// Generates stylized, roleplay-heavy audit narratives
+const generateAuditVerdict = (summary, biggestWin, biggestLoss) => {
+  if (!summary) return "CLASSIFIED: Insufficient data to clear security clearance.";
 
   const profit = summary.totalRealizedProfit || 0;
   const winRate = summary.winRate || 0;
   const fumbled = summary.totalFumbled || 0;
   const volume = summary.totalTradingVolume || 0;
-  const tokensCount = summary.totalTokensTraded || 0;
+  
+  const winSymbol = biggestWin ? `$${biggestWin.symbol}` : "unknown assets";
+  const lossSymbol = biggestLoss ? `$${biggestLoss.symbol}` : "unknown assets";
 
   // 1. THE WHALE (High Profit)
   if (profit > 25000) {
-    return "Subject demonstrates institutional-grade performance. Capital allocation is highly efficient, and position sizing indicates extreme confidence. You aren't just participating in the market; you are moving it.";
+    return `Subject demonstrates institutional-grade capital deployment. The extraction of value from ${winSymbol} suggests asymmetric information or exceptional execution. You aren't just participating in the market; you are the market. Trident LLC recommends immediate classification as 'Tier 1 Operator'.`;
   }
 
   // 2. THE SNIPER (High Win Rate + Profit)
   if (profit > 0 && winRate > 60) {
-    return "Surgical precision detected. Subject displays exceptional discipline, only entering setups with high probability. This is not gambling; this is a system executing at peak efficiency.";
+    return `Surgical precision detected. Subject displays exceptional discipline, ignoring noise to strike ${winSymbol} with lethal accuracy. This is not gambling; this is a system executing at peak efficiency. Trident LLC approves this wallet for unrestricted operational status.`;
   }
 
-  // 3. THE HOMERUN HITTER (Low Win Rate + High Profit) - Fixes the user's issue
+  // 3. THE HOMERUN HITTER (Low Win Rate + High Profit)
   if (profit > 0 && winRate < 40) {
-    return "The Venture Capitalist approach. Subject endures frequent losses to find the 100x outliers. Low win rate is irrelevant; the asymmetric upside of your winners more than covers the tuition of your losers. A valid, albeit stressful, strategy.";
+    return `The 'Venture Capitalist' profile. Subject endures frequent tactical losses to secure strategic 100x victories like ${winSymbol}. Your win rate is abysmal, yet your P&L is enviable. You are the chaos engine that Trident LLC warns interns about. Proceed with caution.`;
   }
 
-  // 4. THE GRINDER (Positive Profit + High Volume)
-  if (profit > 0 && volume > 50000) {
-    return "A volume trader extracting value through sheer persistence. You are churning the water to catch the fish. It isn't always pretty, and the fees are high, but the net result is green.";
+  // 4. THE PAPER HANDS (Profitable but High Fumble)
+  if (profit > 0 && fumbled > profit * 3) {
+    return `Subject suffers from acute 'Take Profit Early' syndrome. While profitable, the decision to exit ${winSymbol} prematurely cost an estimated $${(fumbled/1000).toFixed(1)}k in unrealized gains. You are effectively selling a Ferrari to buy a Civic. Psychological conditioning recommended.`;
   }
 
   // 5. THE SURVIVOR (Small Profit)
   if (profit >= 0 && profit <= 1000) {
-    return "Performance is stable. In a market where 90% of participants lose liquidity, breaking even or making a small profit is a genuine achievement. You are surviving the PVP arena.";
+    return `Vital signs are stable. In a theatre where 90% of combatants face liquidation, breaking even is a statistical anomaly. You are surviving the PVP arena, likely by avoiding exposure to assets like ${lossSymbol}. Maintain holding pattern.`;
   }
 
-  // 6. THE PAPER HANDS (Profitable but High Fumble)
-  if (profit > 0 && fumbled > profit * 3) {
-    return "Subject suffers from acute 'Take Profit Early' syndrome. While profitable, the disparity between realized gains and potential gains indicates a lack of conviction in your own thesis. You are selling the Lambo to buy a Civic.";
-  }
-
-  // 7. THE COUNTER-INDICATOR (Loss + Low Win Rate)
+  // 6. THE COUNTER-INDICATOR (Loss + Low Win Rate)
   if (profit < 0 && winRate < 35) {
-    return "Market timing is consistently inverted. Subject buys local tops with conviction and capitulates at local bottoms. A strategy inversion (doing the opposite of your instincts) is recommended immediately.";
+    return `Subject exhibits 'Inverse Midas Touch'. Capital allocation into ${lossSymbol} coincided perfectly with local tops. Trident LLC analysts suggest doing the exact opposite of your instincts. If you feel bullish, short it. If you feel fear, buy.`;
   }
 
-  // 8. THE BLEEDER (Loss + High Win Rate)
+  // 7. THE BLEEDER (Loss + High Win Rate)
   if (profit < 0 && winRate > 55) {
-    return "Risk management failure detected. Subject wins the majority of trades but allows a few catastrophic losses to wipe out all progress. Stop-losses are not suggestions; they are requirements.";
+    return `Catastrophic risk management detected. Subject wins the majority of skirmishes but allows a single nuclear event on ${lossSymbol} to wipe out the war chest. Stop-losses are not suggestions, soldier; they are requirements. Immediate remedial training ordered.`;
   }
 
-  // 9. THE GAMBLER (High Volume + Big Loss)
+  // 8. THE GAMBLER (High Volume + Big Loss)
   if (profit < -5000 && volume > 50000) {
-    return "High velocity capital destruction. Subject treats the market like a casino, and the house is winning. High volume with negative expectancy is simply an expensive form of entertainment.";
-  }
-
-  // 10. THE TOURIST (Low Volume + Low Count)
-  if (tokensCount < 5) {
-    return "Insufficient sample size for a definitive psychological profile. Subject is dipping toes in the water but has not yet committed to the volatility of the arena.";
+    return `High-velocity capital destruction. Subject treats the blockchain like a slot machine, and the house is winning. Heavy volume on ${lossSymbol} with negative expectancy is simply expensive entertainment. Trident LLC has flagged this wallet for 'Degen Rehabilitation'.`;
   }
 
   // Fallback
-  return "Performance is within standard deviation for retail traders. Volatility exposure is present, but a definitive edge has not yet materialized in the on-chain data.";
+  return "Performance within standard deviation for retail personnel. Volatility exposure is confirmed. Continue operations under observation.";
 };
 
 // Styles
@@ -270,7 +188,6 @@ const colors = {
   mint: '#059669', mintBg: '#ecfdf5', mintBorder: '#6ee7b7'
 };
 
-// Design system
 const ds = {
   radius: { sm: '8px', md: '12px', lg: '16px', xl: '20px', pill: '999px', full: '50%' },
   text: { xs: '10px', sm: '11px', base: '13px', md: '14px', lg: '18px', xl: '20px', xxl: '32px' },
@@ -344,7 +261,6 @@ const InfoPanel = ({ isVisible, onClose }) => {
   );
 };
 
-// --- UPDATED RANK CARD (WITH GRADIENT BADGE) ---
 const RankCard = ({ summary, onShare }) => {
   const rank = calculatePercentile(summary);
   const profit = summary?.totalRealizedProfit || 0;
@@ -519,17 +435,14 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
   );
 };
 
-// --- INLINE TRADING AUDIT COMPONENT ---
+// --- TRIDENT LLC AUDIT COMPONENT (The LARP Focal Point) ---
 const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }) => {
   const summary = pnlData?.summary || {};
   const tokens = pnlData?.tokens || [];
-  const biggestWin = pnlData?.biggestWin;
-  const biggestLoss = pnlData?.biggestLoss;
-
-  const userName = user?.displayName || user?.username || 'Anon';
-  const walletAddress = user?.wallet || '0x...';
   const score = percentileData?.percentile || 50;
   const archetype = percentileData?.title || 'Trader';
+  const userName = user?.displayName || 'Unknown Subject';
+  const walletAddress = user?.wallet ? `${user.wallet.slice(0,6)}...${user.wallet.slice(-4)}` : 'UNKNOWN';
 
   const fmtCur = (val) => {
     if (!val) return '$0.00';
@@ -540,138 +453,125 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   };
 
   const isProfit = (summary.totalRealizedProfit || 0) >= 0;
-  const winCount = tokens.filter(t => t.isProfitable).length;
-  const lossCount = tokens.filter(t => !t.isProfitable).length;
-  const totalTokens = summary.totalTokensTraded || tokens.length;
   const winRate = summary.winRate || 0;
-  const fumbled = summary.totalFumbled || 0;
-  
-  // Calculated metrics
-  const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
-  const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
-  const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(2) : '∞';
-  const avgWin = winCount > 0 ? totalWins / winCount : 0;
-  const avgLoss = lossCount > 0 ? totalLosses / lossCount : 0;
-  const avgPosition = summary.totalTradingVolume && totalTokens ? summary.totalTradingVolume / totalTokens : 0;
-  const roi = summary.totalTradingVolume > 0 ? ((summary.totalRealizedProfit / summary.totalTradingVolume) * 100).toFixed(1) : 0;
-  
-  // Top tokens
-  const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'USD+'];
-  const topWins = [...tokens].filter(t => t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (b.realizedProfitUsd || 0) - (a.realizedProfitUsd || 0)).slice(0, 3);
-  const topLosses = [...tokens].filter(t => !t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (a.realizedProfitUsd || 0) - (b.realizedProfitUsd || 0)).slice(0, 3);
-
-  // Risk assessment
-  const getRiskLevel = () => {
-    const profit = summary.totalRealizedProfit || 0;
-    if (winRate > 55 && profit > 5000) return { level: 'LOW', color: '#22c55e', desc: 'Disciplined risk management observed' };
-    if (winRate > 45 && profit > 0) return { level: 'MODERATE', color: '#f59e0b', desc: 'Acceptable risk tolerance' };
-    if (fumbled > profit * 2) return { level: 'ELEVATED', color: '#f97316', desc: 'Premature exit patterns' };
-    return { level: 'HIGH', color: '#ef4444', desc: 'Significant exposure' };
-  };
-  const risk = getRiskLevel();
-
-  // Behavioral findings
-  const getFindings = () => {
-    const findings = [];
-    const profit = summary.totalRealizedProfit || 0;
-    
-    // Check Profit first (Override negative winrate sentiment if profit is high)
-    if (profit > 0 && winRate < 40) findings.push({ type: 'positive', text: 'Low win rate but profitable: High reward/risk ratio strategy.' });
-    else if (winRate >= 55) findings.push({ type: 'positive', text: 'Above-average entry timing and token selection' });
-    else if (winRate < 35 && profit < 0) findings.push({ type: 'negative', text: 'Entry timing suggests adverse selection' });
-    
-    if (fumbled > 5000) findings.push({ type: 'warning', text: `Premature exits resulted in ${fmtCur(fumbled)} unrealized gains` });
-    if (profit > 10000) findings.push({ type: 'positive', text: 'Consistent alpha generation across positions' });
-    
-    if (parseFloat(profitFactor) > 1.5) findings.push({ type: 'positive', text: 'Favorable profit factor indicates sound risk management' });
-    
-    return findings.slice(0, 4);
-  };
-  const findings = getFindings();
-
-  const getScoreColor = (s) => s >= 75 ? '#22c55e' : s >= 50 ? '#3b82f6' : s >= 30 ? '#f59e0b' : '#ef4444';
-  const scoreColor = getScoreColor(score);
   const auditNumber = `TRD-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
-  const auditDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  
+  // Stamp Color logic
+  const stampColor = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
+  const stampBorder = score >= 80 ? '#86efac' : score >= 50 ? '#fcd34d' : '#fca5a5';
+  const stampRotate = score % 2 === 0 ? 'rotate(-10deg)' : 'rotate(8deg)';
 
   return (
-    <div style={{ background: '#fafaf9', borderRadius: '4px', overflow: 'hidden', fontFamily: "'Courier Prime', 'Courier New', monospace", color: '#1c1917', border: '1px solid #d6d3d1', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-      {/* Letterhead */}
-      <div style={{ padding: '24px 24px 16px', borderBottom: '2px solid #292524' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: '20px', fontWeight: '700', color: '#292524', letterSpacing: '-0.02em' }}>TRIDENT LLC</div>
-            <div style={{ fontSize: '10px', color: '#78716c', marginTop: '2px' }}>TRADING PERFORMANCE AUDITORS</div>
+    <div style={{ 
+      background: '#f5f5f4', 
+      backgroundImage: 'radial-gradient(#e5e4dc 1px, transparent 1px)',
+      backgroundSize: '20px 20px',
+      borderRadius: '2px', 
+      overflow: 'hidden', 
+      fontFamily: "'Courier Prime', 'Courier New', monospace", 
+      color: '#1c1917', 
+      border: '1px solid #a8a29e', 
+      boxShadow: '0 10px 30px -5px rgba(0,0,0,0.2)',
+      position: 'relative',
+      marginBottom: '24px'
+    }}>
+      
+      {/* Watermark */}
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)', fontSize: '60px', fontWeight: '900', color: 'rgba(0,0,0,0.03)', pointerEvents: 'none', whiteSpace: 'nowrap' }}>CONFIDENTIAL</div>
+
+      {/* Header */}
+      <div style={{ padding: '24px 24px 16px', borderBottom: '2px solid #292524', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: '#fff' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '24px', height: '24px', background: '#292524', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', borderRadius: '2px' }}>T</div>
+            <div style={{ fontSize: '20px', fontWeight: '700', color: '#292524', letterSpacing: '-0.05em' }}>TRIDENT LLC</div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', fontWeight: '600', color: '#292524' }}>REF: {auditNumber}</div>
-            <div style={{ fontSize: '10px', color: '#78716c' }}>{auditDate}</div>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px', color: '#57534e' }}>Department of On-Chain Corrections</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#78716c' }}>REF: {auditNumber}</div>
+          <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: '700', marginTop: '2px' }}>EYES ONLY</div>
+        </div>
+      </div>
+
+      {/* Subject Section */}
+      <div style={{ padding: '20px 24px', borderBottom: '1px dashed #a8a29e' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '2px' }}>SUBJECT</div>
+            <div style={{ fontSize: '16px', fontWeight: '700' }}>{userName}</div>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace' }}>{walletAddress}</div>
+          </div>
+          {/* THE STAMP */}
+          <div style={{ 
+            border: `3px solid ${stampColor}`, 
+            padding: '4px 12px', 
+            borderRadius: '4px', 
+            transform: stampRotate,
+            color: stampColor,
+            textAlign: 'center',
+            opacity: 0.9,
+            maskImage: 'url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png)',
+            WebkitMaskImage: 'url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png)',
+          }}>
+            <div style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}>Trading Score</div>
+            <div style={{ fontSize: '28px', fontWeight: '900', lineHeight: '1' }}>{score}</div>
           </div>
         </div>
       </div>
 
-      {/* Subject Line */}
-      <div style={{ padding: '16px 24px', background: '#f5f5f4', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {user?.pfpUrl && <img src={user.pfpUrl} style={{ width: '40px', height: '40px', borderRadius: '4px', border: '1px solid #d6d3d1', filter: 'grayscale(100%)' }} alt="" />}
-          <div>
-            <div style={{ fontSize: '10px', color: '#78716c', textTransform: 'uppercase' }}>SUBJECT</div>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1c1917' }}>{userName}</div>
-            <div style={{ fontSize: '10px', color: '#78716c' }}>{walletAddress}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Performance Score Section */}
-      <div style={{ padding: '20px 24px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '12px' }}>PERFORMANCE RATING</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ border: `2px solid ${scoreColor}`, padding: '8px 12px', borderRadius: '4px', color: scoreColor, transform: 'rotate(-2deg)' }}>
-            <div style={{ fontSize: '32px', fontWeight: '700', lineHeight: 1 }}>{score}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '600', color: '#1c1917' }}>{archetype}</div>
-            <div style={{ fontSize: '11px', color: '#57534e' }}>Top {100 - score}% on Base</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Summary */}
-      <div style={{ padding: '20px 24px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ padding: '12px', background: isProfit ? '#f0fdf4' : '#fef2f2', borderRadius: '2px', border: `1px solid ${isProfit ? '#bbf7d0' : '#fecaca'}` }}>
-            <div style={{ fontSize: '9px', color: '#78716c' }}>REALIZED P&L</div>
+      {/* Stats Grid */}
+      <div style={{ padding: '20px 24px', background: 'rgba(255,255,255,0.5)' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '8px', letterSpacing: '0.1em' }}>PERFORMANCE METRICS</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ border: '1px solid #d6d3d1', padding: '8px', background: '#fff' }}>
+            <div style={{ fontSize: '9px', color: '#78716c' }}>NET P&L</div>
             <div style={{ fontSize: '18px', fontWeight: '700', color: isProfit ? '#16a34a' : '#dc2626' }}>{isProfit ? '+' : ''}{fmtCur(summary.totalRealizedProfit)}</div>
           </div>
-          <div style={{ padding: '12px', background: '#fff', borderRadius: '2px', border: '1px solid #e7e5e4' }}>
-            <div style={{ fontSize: '9px', color: '#78716c' }}>VOLUME</div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#1c1917' }}>{fmtCur(summary.totalTradingVolume)}</div>
+          <div style={{ border: '1px solid #d6d3d1', padding: '8px', background: '#fff' }}>
+            <div style={{ fontSize: '9px', color: '#78716c' }}>WIN RATE</div>
+            <div style={{ fontSize: '18px', fontWeight: '700' }}>{winRate.toFixed(1)}%</div>
           </div>
         </div>
-        
-        {/* Metrics Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', fontSize: '10px' }}>
-           <div>Win Rate: <strong>{winRate.toFixed(1)}%</strong></div>
-           <div>Trades: <strong>{totalTokens}</strong></div>
-           <div>ROI: <strong>{roi}%</strong></div>
-           <div>Avg Win: <strong>{fmtCur(avgWin)}</strong></div>
-           <div>Avg Loss: <strong>{fmtCur(avgLoss)}</strong></div>
-           <div>Fumbled: <strong>{fmtCur(fumbled)}</strong></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', borderTop: '1px solid #e5e5e5', paddingTop: '8px' }}>
+          <div>Volume: <strong>{fmtCur(summary.totalTradingVolume)}</strong></div>
+          <div>Trades: <strong>{summary.totalTokensTraded}</strong></div>
+          <div>Class: <strong>{archetype.toUpperCase()}</strong></div>
         </div>
       </div>
 
-      {/* Verdict */}
-      <div style={{ padding: '20px 24px', background: '#1c1917', color: '#fff' }}>
-        <div style={{ fontSize: '10px', color: '#a8a29e', marginBottom: '8px' }}>OFFICIAL VERDICT</div>
-        <div style={{ fontSize: '12px', lineHeight: '1.6', color: '#e7e5e4', fontStyle: 'italic' }}>
-          "{auditNarrative || generateAuditVerdict(summary)}"
+      {/* Narrative Section */}
+      <div style={{ padding: '20px 24px', borderTop: '2px solid #292524', background: '#fff' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '8px', letterSpacing: '0.1em' }}>ANALYST NOTES</div>
+        <div style={{ fontSize: '12px', lineHeight: '1.6', fontFamily: "'Courier Prime', monospace" }}>
+          "{auditNarrative || "Generating assessment..."}"
+        </div>
+        <div style={{ marginTop: '16px', textAlign: 'right' }}>
+           <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Signature_sample.svg/1200px-Signature_sample.svg.png" style={{ height: '24px', opacity: 0.4, transform: 'rotate(-5deg)' }} alt="signature" />
+           <div style={{ fontSize: '9px', color: '#78716c' }}>CHIEF AUDITOR</div>
         </div>
       </div>
 
       {/* Share Button */}
       {onShare && (
-        <div style={{ padding: '12px 24px', background: '#292524', borderTop: '1px solid #44403c' }}>
-          <button onClick={onShare} style={{ width: '100%', padding: '10px', background: '#fff', border: 'none', borderRadius: '2px', color: '#000', fontSize: '11px', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Share Official Audit</button>
+        <div style={{ background: '#292524', padding: '12px 24px' }}>
+          <button 
+            onClick={onShare}
+            style={{ 
+              width: '100%', 
+              background: '#f5f5f4', 
+              color: '#1c1917', 
+              border: 'none', 
+              padding: '10px', 
+              fontFamily: "'Courier Prime', monospace",
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Leak to Public
+          </button>
         </div>
       )}
     </div>
@@ -802,10 +702,9 @@ export default function PNLTrackerApp() {
   const handleRequestAudit = async () => {
     try {
       setAuditLoading(true); setAuditError(null);
-      // Generate the narrative once here so it persists
-      const narrative = generateAuditVerdict(pnlData?.summary);
+      const narrative = generateAuditVerdict(pnlData?.summary, pnlData?.biggestWin, pnlData?.biggestLoss);
       setAuditNarrative(narrative);
-      setAuditMetrics({}); // Trigger view change
+      setAuditMetrics({}); 
     } catch (err) { setAuditError(String(err?.message || err)); } 
     finally { setAuditLoading(false); }
   };
@@ -819,26 +718,19 @@ export default function PNLTrackerApp() {
       const archetype = percentile?.title || 'Trader';
       const profit = summary.totalRealizedProfit || 0;
       const username = user?.username || 'user';
-      
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // GENERATE A VISUAL AUDIT REPORT using Vercel OG
+      // GENERATE A LARP-HEAVY DOCUMENT IMAGE
       const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const line1 = `TRIDENT LLC // AUDIT FILE`;
+      const line2 = `SUBJECT: @${username.toUpperCase()}`;
+      const line3 = `RATING: ${score}/100 // ${archetype.toUpperCase()}`;
       
-      // We'll mimic the look of the "Audit File" using text layout
-      // Lines: "AUDIT FILE: @user", "SCORE: XX/100", "VERDICT: Archetype", "P&L: $XXXX"
-      const line1 = `AUDIT FILE: @${username}`;
-      const line2 = `SCORE: ${score}/100  ·  ${archetype.toUpperCase()}`;
-      const line3 = `P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`;
-      
-      // Encode with monospaced font look if possible, or just standard bold
+      // Using monospaced aesthetic for the OG image text
       const textPath = encodeURIComponent(`**${line1}**\n${line2}\n${line3}`);
-      
-      // Use 'light' theme but maybe we can customize colors via params if supported, 
-      // but standard black/white fits the "paper" aesthetic well.
-      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=50px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=40px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
 
-      const castText = `My Official Trading Audit 📋\n\nRating: ${score}/100\nVerdict: ${archetype}\n\n"${auditNarrative || generateAuditVerdict(summary)}"\n\nGet audited:`;
+      const castText = `CASE FILE: ${username}\nCLASSIFICATION: ${archetype.toUpperCase()}\n\nMy official trading audit from Trident LLC is in. The results are... concerning.\n\nRead full report ⬇️`;
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('Share audit failed', err); }
@@ -969,7 +861,7 @@ export default function PNLTrackerApp() {
             const invested = parseFloat(token.total_usd_invested) || 0;
             const realized = parseFloat(token.realized_profit_usd) || 0;
             const soldUsd = parseFloat(token.total_sold_usd) || 0;
-            const isAirdrop = invested < 5 && (realized > 0 || soldUsd > 0);
+            const isAirdrop = invested < 1 && (realized > 0 || soldUsd > 0);
             allTokenData.push({ name: token.name, symbol: token.symbol, tokenAddress: token.token_address?.toLowerCase(), totalUsdInvested: invested, realizedProfitUsd: realized, isProfitable: realized > 0, totalTokensSold: parseFloat(token.total_tokens_sold) || 0, totalSoldUsd: soldUsd, isAirdrop: isAirdrop });
             if (token.token_address && parseFloat(token.total_tokens_sold) > 0) tokenAddressesForFumble.add(token.token_address);
           });
@@ -1063,7 +955,7 @@ export default function PNLTrackerApp() {
     let addresses = scope === 'all' ? wallets : (scope === 'primary' && primaryWallet ? [primaryWallet] : [scope]);
     setClaimedBadges([]); setMintTxHash(null); setMintError(null);
     if (addresses.length > 0) checkMintedBadges(addresses[0]);
-    if (addresses.length > 0 && !isGated) await fetchPNLData(addresses);
+    if (addresses.length > 0) await fetchPNLData(addresses);
   };
 
   const renderGatedOverlay = () => (
@@ -1164,7 +1056,7 @@ export default function PNLTrackerApp() {
             {pnlData?.tokens && (
               <Panel title={tokenListView === 'wins' ? "Best Performers" : "All Tokens"}>
                 {(tokenListView === 'wins' ? pnlData.tokens.filter(t => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 5) : pnlData.tokens.sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)).map((token, idx) => (
-                  <TokenRow key={idx} token={token} />
+                  <TokenRow key={token.tokenAddress || token.symbol || idx} token={token} />
                 ))}
               </Panel>
             )}
