@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { shareExactAudit } from './lib/shareExactAudit';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
@@ -2613,30 +2612,87 @@ export default function PNLTrackerApp() {
       const score = percentile?.percentile || 50;
       const archetype = percentile?.title || 'Trader';
       const userName = user?.displayName || user?.username || 'Anon';
+      const profit = summary.totalRealizedProfit || 0;
+      const winRate = summary.winRate || 0;
+      const totalTokens = summary.totalTokensTraded || 0;
+      
+      // Calculate profit factor
+      const tokens = pnlData?.tokens || [];
+      const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
+      const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
+      const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(1) : '∞';
+      
+      // Get best trade info
+      const biggestWin = pnlData?.biggestWin;
+      const bestTrade = biggestWin?.symbol ? `$${biggestWin.symbol}` : '';
+      const bestAmount = biggestWin?.realizedProfitUsd ? `+${formatCurrency(biggestWin.realizedProfitUsd)}` : '';
+      
+      // Get risk level
+      const getRisk = () => {
+        if (profit > 0 && parseFloat(profitFactor) > 2) return 'LOW';
+        if (profit > 5000 && winRate > 45) return 'LOW';
+        if (profit > 0 && winRate > 50) return 'LOW';
+        if (profit > 0) return 'MODERATE';
+        if (profit >= -500) return 'MODERATE';
+        if (profit < 0 && (summary.totalFumbled || 0) > Math.abs(profit) * 2) return 'ELEVATED';
+        if (profit < -5000) return 'HIGH';
+        return 'ELEVATED';
+      };
+      
+      // Get first paragraph of verdict
+      const verdict = auditNarrative || '';
+      const firstParagraph = verdict.split('\n\n')[0] || verdict;
+      
+      // POST to worker to generate image
+      const workerUrl = 'https://pnl.jab067.workers.dev'; // Your worker URL
+      
+      const snapData = {
+        username: userName,
+        displayName: userName,
+        score: score,
+        archetype: archetype,
+        profit: profit,
+        winRate: winRate,
+        profitFactor: profitFactor,
+        tokens: totalTokens,
+        verdict: firstParagraph,
+        risk: getRisk(),
+        bestTrade: bestTrade,
+        bestAmount: bestAmount,
+      };
+      
+      let imageUrl = null;
+      
+      try {
+        const response = await fetch(`${workerUrl}/audit/snap`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(snapData)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          imageUrl = result.image;
+        }
+      } catch (err) {
+        console.warn('Worker image generation failed, falling back to text-only:', err);
+      }
       
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // Use the auditNarrative (verdict) - take first paragraph for sharing
-      let verdict = auditNarrative || '';
-      // Split by double newline and take first paragraph
-      const paragraphs = verdict.split('\n\n');
-      let shareVerdict = paragraphs[0] || verdict;
-      
-      // Truncate if still too long (keep some room for header)
-      if (shareVerdict.length > 400) {
-        shareVerdict = shareVerdict.substring(0, 397) + '...';
-      }
-      
-      // Build cast with verdict as main content
+      // Build cast text
       let castText = `📋 TRIDENT LLC AUDIT\n\n`;
       castText += `Subject: ${userName}\n`;
-      castText += `Score: ${score}/100 • "${archetype}"\n\n`;
-      castText += `"${shareVerdict}"\n\n`;
+      castText += `Score: ${score}/100 • "${archetype}"\n`;
+      castText += `P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)} | ${winRate.toFixed(0)}% Win Rate\n\n`;
       castText += `Get audited:`;
+      
+      // Use image URL if available, otherwise just the app link
+      const embedUrl = imageUrl || appLink;
       
       await sdk.actions.composeCast({
         text: castText,
-        embeds: [appLink]
+        embeds: imageUrl ? [imageUrl, appLink] : [appLink]
       });
     } catch (err) {
       console.error('Share audit failed', err);
@@ -3520,8 +3576,8 @@ const renderGatedOverlay = () => (
           <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
             <Panel title="Highlights" subtitle="From sold tokens">
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShare}/>}
-                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShare}/>}
+                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
+                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
               </div>
             </Panel>
           </div>
