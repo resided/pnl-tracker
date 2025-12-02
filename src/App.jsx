@@ -1735,57 +1735,9 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   const generateVerdict = () => {
     if (auditNarrative) return auditNarrative;
     
-    const profit = summary.totalRealizedProfit || 0;
-    let verdict = '';
-    
-    // Opening based on overall result
-    if (isProfit && parseFloat(profitFactor) > 2) {
-      verdict += `${userName} demonstrates sophisticated risk management. `;
-    } else if (isProfit) {
-      verdict += `${userName} is net profitable on Base. `;
-    } else {
-      verdict += `Following analysis of ${userName}'s on-chain activity, `;
-    }
-    
-    // Core stats
-    verdict += `Across ${totalTokens} token positions and ${fmtCur(summary.totalTradingVolume)} in volume, the result is a ${isProfit ? 'profit' : 'loss'} of ${fmtCur(Math.abs(profit))}. `;
-    
-    // Win rate analysis - CONTEXT MATTERS
-    if (winRate < 40 && isProfit && parseFloat(profitFactor) > 2) {
-      // Low win rate but profitable = GOOD
-      verdict += `The ${winRate.toFixed(0)}% win rate is deceptive—a ${profitFactor} profit factor proves the strategy works. Loses small, wins big. This is how pros trade. `;
-    } else if (winRate >= 55) {
-      verdict += `A ${winRate.toFixed(0)}% hit rate shows strong entry timing. `;
-    } else if (winRate >= 45) {
-      verdict += `A ${winRate.toFixed(0)}% win rate is within normal range. `;
-    } else if (!isProfit) {
-      verdict += `The ${winRate.toFixed(0)}% win rate combined with negative returns suggests entry timing needs work. `;
-    }
-    
-    // Notable trades
-    if (biggestWin) {
-      verdict += `Best trade: ${biggestWin.symbol} at +${fmtCur(biggestWin.realizedProfitUsd)}. `;
-    }
-    if (biggestLoss) {
-      verdict += `Worst: ${biggestLoss.symbol} at ${fmtCur(biggestLoss.realizedProfitUsd)}. `;
-    }
-    
-    // Fumbled gains
-    if (fumbled > 1000 && fumbled > profit) {
-      verdict += `${fmtCur(fumbled)} was left on the table from early exits. `;
-    }
-    
-    // Closing assessment
-    verdict += `Classification: ${archetype}. `;
-    if (isProfit && parseFloat(profitFactor) > 1.5) {
-      verdict += `The numbers speak for themselves.`;
-    } else if (isProfit) {
-      verdict += `Profitable is profitable.`;
-    } else {
-      verdict += `Room for improvement.`;
-    }
-    
-    return verdict;
+    // If no narrative, generate one using the fallback function
+    const summaryWithPF = { ...summary, profitFactor: parseFloat(profitFactor) };
+    return getFallbackNarrative(summaryWithPF, biggestWin, biggestLoss, userName);
   };
 
   const getScoreColor = (s) => s >= 75 ? '#22c55e' : s >= 50 ? '#3b82f6' : s >= 30 ? '#f59e0b' : '#ef4444';
@@ -1971,8 +1923,10 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
       {/* Official Verdict */}
       <div style={{ padding: '24px 28px', background: brandColor, color: '#fff' }}>
         <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', marginBottom: '14px' }}>§6. TRIDENT LLC VERDICT</div>
-        <div style={{ fontSize: '15px', lineHeight: '1.8', color: '#fff', fontStyle: 'italic' }}>
-          "{generateVerdict()}"
+        <div style={{ fontSize: '14px', lineHeight: '1.7', color: '#fff', fontStyle: 'italic' }}>
+          {generateVerdict().split('\n\n').map((paragraph, i) => (
+            <p key={i} style={{ margin: i === 0 ? 0 : '12px 0 0 0' }}>"{paragraph}"</p>
+          ))}
         </div>
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -2028,83 +1982,262 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   );
 };
 
-// Fallback narrative generator - FIXED with proper logic
+// Comprehensive verdict generator - two paragraphs with highlights
 const getFallbackNarrative = (summary, biggestWin, biggestLoss, userName) => {
   const profit = summary?.totalRealizedProfit || 0;
   const winRate = summary?.winRate || 0;
   const fumbled = summary?.totalFumbled || 0;
   const totalTokens = summary?.totalTokensTraded || 0;
   const volume = summary?.totalTradingVolume || 0;
-  
-  // Calculate profit factor properly
   const profitFactor = summary?.profitFactor || 1;
   
-  const name = userName || 'Subject';
-  const bestTrade = biggestWin?.symbol ? `$${biggestWin.symbol}` : 'their best play';
-  const worstTrade = biggestLoss?.symbol ? `$${biggestLoss.symbol}` : 'their worst position';
+  const name = userName || 'This trader';
+  const bestSymbol = biggestWin?.symbol ? `$${biggestWin.symbol}` : null;
+  const bestAmount = biggestWin?.realizedProfitUsd || 0;
+  const worstSymbol = biggestLoss?.symbol ? `$${biggestLoss.symbol}` : null;
+  const worstAmount = Math.abs(biggestLoss?.realizedProfitUsd || 0);
   
-  // PROFITABLE WALLETS (profit > 0)
-  if (profit > 0) {
-    // Big winner with high win rate
-    if (profit > 10000 && winRate > 50) {
-      return `${name} is the real deal. With ${formatCurrency(profit)} in realized gains and a ${winRate.toFixed(0)}% hit rate across ${totalTokens} tokens, this isn't luck—it's skill. ${bestTrade} was the crown jewel. The kind of wallet you study, not fade.`;
+  // Helper for random variety
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  
+  let p1 = ''; // First paragraph - overview & what went right
+  let p2 = ''; // Second paragraph - areas for improvement & closing
+  
+  // ============ HIGHLY PROFITABLE (>$5K) ============
+  if (profit > 5000) {
+    if (winRate > 50) {
+      // Elite trader - high profit, high win rate
+      const openers = [
+        `${name} is operating at an elite level.`,
+        `${name} has figured something out.`,
+        `The data speaks for itself: ${name} knows what they're doing.`,
+        `${name} is running circles around the average trader.`
+      ];
+      p1 = `${pick(openers)} With ${formatCurrency(profit)} in realized profits across ${totalTokens} positions and a ${winRate.toFixed(0)}% win rate, this isn't a lucky streak—it's consistent execution. `;
+      if (bestSymbol) p1 += `${bestSymbol} was the standout play, banking +${formatCurrency(bestAmount)}. `;
+      p1 += `A ${profitFactor.toFixed(1)}x profit factor confirms the risk management is dialed in.`;
+      
+      if (fumbled > 1000) {
+        p2 = `The only knock? ${formatCurrency(fumbled)} left on the table from early exits. Even the best leave money behind sometimes. `;
+      } else {
+        p2 = `What's impressive is the consistency—no glaring weaknesses in the data. `;
+      }
+      p2 += pick([
+        `${name} is the type of wallet others should be studying.`,
+        `Keep doing whatever this is.`,
+        `This is what sustainable alpha looks like.`,
+        `The portfolio management here is textbook.`
+      ]);
+      
+    } else if (winRate < 40 && profitFactor > 2) {
+      // Smart trader - low win rate but massive winners
+      const openers = [
+        `${name} trades like a sniper, not a machine gunner.`,
+        `Don't let the win rate fool you—${name} plays a different game.`,
+        `${name} understands something most traders never learn.`,
+        `The ${winRate.toFixed(0)}% win rate is misleading.`
+      ];
+      p1 = `${pick(openers)} Yes, only ${winRate.toFixed(0)}% of trades hit, but when they hit, they HIT. A ${profitFactor.toFixed(1)}x profit factor means every dollar lost comes back ${profitFactor.toFixed(1)}x over. `;
+      if (bestSymbol) p1 += `Case in point: ${bestSymbol} alone delivered +${formatCurrency(bestAmount)}. `;
+      p1 += `Total profit: ${formatCurrency(profit)} across ${totalTokens} tokens.`;
+      
+      p2 = `The strategy is clear: cut losers fast, let winners run. `;
+      if (worstSymbol) p2 += `Even the worst position (${worstSymbol} at -${formatCurrency(worstAmount)}) was contained. `;
+      p2 += pick([
+        `This is how professional traders operate.`,
+        `${name} has internalized that you don't need to be right often—you need to be right big.`,
+        `Respect the process. The results validate it.`,
+        `Win rate is vanity. Profit factor is sanity.`
+      ]);
+      
+    } else {
+      // Good trader - profitable with decent metrics
+      p1 = `${name} is solidly profitable with ${formatCurrency(profit)} in realized gains. Across ${totalTokens} token positions and ${formatCurrency(volume)} in volume, the ${winRate.toFixed(0)}% win rate sits comfortably above average. `;
+      if (bestSymbol) p1 += `The highlight reel features ${bestSymbol} at +${formatCurrency(bestAmount)}. `;
+      
+      if (fumbled > profit) {
+        p2 = `Room for improvement: ${formatCurrency(fumbled)} was fumbled from early exits—more than the actual realized profit. The entries are clearly good; it's the conviction that needs work. `;
+      } else if (worstSymbol && worstAmount > 500) {
+        p2 = `The main blemish is ${worstSymbol}, which cost -${formatCurrency(worstAmount)}. But one bad trade doesn't define a profitable portfolio. `;
+      } else {
+        p2 = `No major red flags in the execution. The fundamentals are sound. `;
+      }
+      p2 += pick([
+        `${name} is doing something right.`,
+        `Profitable is profitable—keep building.`,
+        `Solid foundation to scale from here.`
+      ]);
     }
-    // Big winner with low win rate but great risk/reward
-    if (profit > 5000 && winRate < 40 && profitFactor > 2) {
-      return `${name} plays the game differently. A ${winRate.toFixed(0)}% win rate looks bad until you see the ${profitFactor.toFixed(1)}x profit factor. Loses often, but wins BIG when it counts. ${bestTrade} alone proves the strategy works. Respect the process.`;
-    }
-    // Profitable with excellent profit factor
-    if (profitFactor > 2.5 && profit > 1000) {
-      return `${name} understands something most don't: you don't need to win often, you need to win big. A ${profitFactor.toFixed(1)}x profit factor means every $1 lost returns $${profitFactor.toFixed(1)} gained. ${bestTrade} delivered +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}. Textbook risk management.`;
-    }
-    // Solid profitable trader
-    if (profit > 1000 && winRate > 45) {
-      return `${name} is doing something right. ${formatCurrency(profit)} profit, ${winRate.toFixed(0)}% win rate, ${totalTokens} tokens traded. Not flashy, but consistently in the green. ${bestTrade} was the highlight at +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}. Keep cooking.`;
-    }
-    // Profitable despite low win rate
-    if (profit > 0 && winRate < 35) {
-      return `Don't let the ${winRate.toFixed(0)}% win rate fool you—${name} is profitable. The secret? Cutting losers fast and letting winners run. ${bestTrade} carried with +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}. A ${profitFactor.toFixed(1)}x profit factor tells the real story.`;
-    }
-    // Modest profit with fumbles
-    if (profit > 0 && fumbled > profit * 2) {
-      return `${name} is profitable at +${formatCurrency(profit)}, but the ${formatCurrency(fumbled)} in fumbled gains hurts to see. The entries are good—it's the exits that need work. Diamond hands would've changed everything here.`;
-    }
-    // Small but positive
-    if (profit > 0 && profit < 500) {
-      return `${name} is in the green with +${formatCurrency(profit)}. Not life-changing money, but in crypto, not losing IS winning. ${totalTokens} tokens traded, lessons learned, and still standing. The foundation is there.`;
-    }
-    // Default profitable
-    return `${name} walks away a winner with ${formatCurrency(profit)} in realized profits across ${totalTokens} positions. ${bestTrade} was the standout performer. A ${winRate.toFixed(0)}% win rate with positive returns—the math is mathing.`;
   }
   
-  // BREAK-EVEN / SMALL LOSS
-  if (profit >= -500 && profit <= 0) {
-    return `${name} is essentially flat—${formatCurrency(profit)} across ${totalTokens} tokens. In the casino of crypto, breaking even is an achievement. ${fumbled > 1000 ? `Though ${formatCurrency(fumbled)} in fumbled gains suggests the alpha was there, just left on the table.` : 'Live to trade another day.'}`;
+  // ============ MODERATELY PROFITABLE ($500-$5K) ============
+  else if (profit >= 500) {
+    if (profitFactor > 2) {
+      p1 = `${name} is quietly profitable. ${formatCurrency(profit)} in realized gains with a ${profitFactor.toFixed(1)}x profit factor shows the risk/reward math is working. `;
+      if (bestSymbol) p1 += `${bestSymbol} led the way at +${formatCurrency(bestAmount)}. `;
+      p1 += `${totalTokens} tokens traded, ${winRate.toFixed(0)}% win rate—nothing flashy, but the numbers are green.`;
+      
+    } else {
+      p1 = `${name} sits in positive territory with ${formatCurrency(profit)} profit across ${totalTokens} positions. `;
+      if (winRate > 50) {
+        p1 += `A ${winRate.toFixed(0)}% hit rate suggests decent entry timing. `;
+      }
+      if (bestSymbol) p1 += `${bestSymbol} was the best performer at +${formatCurrency(bestAmount)}. `;
+    }
+    
+    // Second paragraph - improvement areas
+    if (fumbled > profit * 2) {
+      p2 = `The elephant in the room: ${formatCurrency(fumbled)} in fumbled gains. ${name} is finding winners but selling them too early. With better exit timing, this profit could easily 2-3x. `;
+    } else if (winRate < 35) {
+      p2 = `The ${winRate.toFixed(0)}% win rate is below average, but profitability proves the sizing is right. `;
+    } else if (worstSymbol) {
+      p2 = `${worstSymbol} was the biggest setback at -${formatCurrency(worstAmount)}, but overall the losses are contained. `;
+    } else {
+      p2 = `Execution is clean with no standout problems. `;
+    }
+    p2 += pick([
+      `In crypto, staying green is an achievement.`,
+      `${name} is ahead of 80% of traders on this metric alone.`,
+      `Not retirement money, but proof of concept.`,
+      `The foundation is there—now scale it.`
+    ]);
   }
   
-  // LOSING WALLETS (profit < 0)
-  // Lost money but had good entries (high fumbles)
-  if (profit < 0 && fumbled > Math.abs(profit) * 2) {
-    return `${name} has a gift for finding winners—and an equal gift for selling them too early. Down ${formatCurrency(Math.abs(profit))}, but ${formatCurrency(fumbled)} was left on the table. The problem isn't selection, it's conviction. ${biggestWin ? `${bestTrade} proved they can pick 'em.` : ''}`;
+  // ============ SLIGHTLY PROFITABLE ($0-$500) ============
+  else if (profit > 0) {
+    const openers = [
+      `${name} is technically profitable at +${formatCurrency(profit)}.`,
+      `${name} squeaks into the green with +${formatCurrency(profit)}.`,
+      `+${formatCurrency(profit)} puts ${name} ahead of most.`,
+    ];
+    p1 = `${pick(openers)} It's not life-changing money, but in the casino of crypto memecoins, walking away positive is genuinely rare. ${totalTokens} tokens traded, ${winRate.toFixed(0)}% win rate. `;
+    if (bestSymbol) p1 += `${bestSymbol} carried with +${formatCurrency(bestAmount)}.`;
+    
+    if (fumbled > 1000) {
+      p2 = `The frustrating part: ${formatCurrency(fumbled)} was left on the table. ${name} is picking winners but not holding them long enough. Address the paper hands and this account looks very different. `;
+    } else if (worstSymbol && worstAmount > bestAmount) {
+      p2 = `${worstSymbol} at -${formatCurrency(worstAmount)} nearly wiped the gains. Tighter stop losses would help here. `;
+    } else {
+      p2 = `No catastrophic mistakes, just small edges adding up. `;
+    }
+    p2 += pick([
+      `Green is green.`,
+      `Live to trade another day.`,
+      `Not losing money is step one. ${name} cleared it.`
+    ]);
   }
-  // High win rate but still losing (bad position sizing)
-  if (profit < 0 && winRate > 50) {
-    return `${name} wins ${winRate.toFixed(0)}% of the time but is still down ${formatCurrency(Math.abs(profit))}. Classic case of cutting winners short and letting losers run. ${worstTrade} did the most damage at ${formatCurrency(biggestLoss?.realizedProfitUsd || 0)}. The entries are fine—it's the sizing that kills.`;
+  
+  // ============ BREAK EVEN (-$500 to $0) ============
+  else if (profit >= -500) {
+    p1 = `${name} is essentially flat at ${formatCurrency(profit)}. Across ${totalTokens} tokens and ${formatCurrency(volume)} in volume, the account broke even. In the high-volatility memecoin trenches, that's not nothing. `;
+    if (bestSymbol) p1 += `${bestSymbol} was the bright spot at +${formatCurrency(bestAmount)}.`;
+    
+    if (fumbled > 2000) {
+      p2 = `Here's the painful part: ${formatCurrency(fumbled)} in gains were fumbled. ${name} was sitting on winners and sold too early. This account should be profitable—the entries prove it. It's purely an exit problem. `;
+    } else if (worstSymbol) {
+      p2 = `${worstSymbol} at -${formatCurrency(worstAmount)} offset the wins. `;
+    } else {
+      p2 = `The gains and losses balanced out. `;
+    }
+    p2 += pick([
+      `Breaking even is underrated. Most lose.`,
+      `The tuition has been paid. Now apply the lessons.`,
+      `One good trade away from green.`
+    ]);
   }
-  // Low win rate and losing
-  if (profit < 0 && winRate < 35) {
-    return `${name}'s ${winRate.toFixed(0)}% win rate across ${totalTokens} tokens tells a tough story. Down ${formatCurrency(Math.abs(profit))}, with ${worstTrade} being the biggest offender. The market has been taking notes—maybe it's time to inverse the strategy.`;
+  
+  // ============ MODERATE LOSS (-$500 to -$3K) ============
+  else if (profit >= -3000) {
+    if (fumbled > Math.abs(profit) * 2) {
+      // Good picker, bad holder
+      p1 = `${name} has a gift for finding winners—and an equal gift for selling them too early. Down ${formatCurrency(Math.abs(profit))}, but ${formatCurrency(fumbled)} was left on the table from premature exits. `;
+      if (bestSymbol) p1 += `${bestSymbol} proved the eye for entries is there (+${formatCurrency(bestAmount)}). `;
+      p1 += `This isn't a skill problem. It's a conviction problem.`;
+      
+      p2 = `The fix is simple but not easy: hold longer. `;
+      if (worstSymbol) p2 += `${worstSymbol} cost -${formatCurrency(worstAmount)}, but that's not what's killing the P&L—it's the winners that got sold too soon. `;
+      p2 += pick([
+        `${name}'s inverse would be printing money.`,
+        `Diamond hands would change everything here.`,
+        `The entries are the hard part. ${name} has those. Just... don't sell.`
+      ]);
+      
+    } else if (winRate > 50) {
+      // Wins often but loses big
+      p1 = `${name} wins ${winRate.toFixed(0)}% of trades but is still down ${formatCurrency(Math.abs(profit))}. Classic case of cutting winners short and letting losers run. `;
+      if (worstSymbol) p1 += `${worstSymbol} alone did -${formatCurrency(worstAmount)} in damage. `;
+      
+      p2 = `The entries are actually good—the high win rate proves it. The problem is position sizing and exit timing. `;
+      if (bestSymbol) p2 += `${bestSymbol}'s +${formatCurrency(bestAmount)} shows what's possible. `;
+      p2 += pick([
+        `Flip the script: hold winners, cut losers.`,
+        `This is fixable. The hardest part (entries) is already working.`,
+        `Profitable trader trapped in a losing trader's habits.`
+      ]);
+      
+    } else {
+      // Standard losing trader
+      p1 = `${name} is down ${formatCurrency(Math.abs(profit))} across ${totalTokens} positions. A ${winRate.toFixed(0)}% win rate suggests entry timing needs work. `;
+      if (worstSymbol) p1 += `${worstSymbol} was the biggest offender at -${formatCurrency(worstAmount)}. `;
+      if (bestSymbol) p1 += `${bestSymbol} provided some relief at +${formatCurrency(bestAmount)}.`;
+      
+      p2 = pick([
+        `The data suggests either chasing pumps or poor timing on entries. Consider waiting for pullbacks.`,
+        `High frequency trading without an edge is expensive. Quality over quantity.`,
+        `The market is sending feedback. Time to adjust the approach.`
+      ]);
+      p2 += ` Not blown up yet—there's time to course correct.`;
+    }
   }
-  // Big loser
-  if (profit < -5000) {
-    return `${name} has paid ${formatCurrency(Math.abs(profit))} in tuition to the crypto markets. ${totalTokens} tokens, ${winRate.toFixed(0)}% win rate, and ${worstTrade} leading the losses. Expensive lessons, but lessons nonetheless. The comeback arc starts here.`;
+  
+  // ============ SIGNIFICANT LOSS (>$3K) ============
+  else {
+    if (fumbled > Math.abs(profit)) {
+      // Found winners but fumbled even more than lost
+      p1 = `${name} has had a rough run: -${formatCurrency(Math.abs(profit))} realized. But here's the twist—${formatCurrency(fumbled)} was fumbled from early exits. `;
+      if (bestSymbol) p1 += `${bestSymbol} proves the selection skills exist (+${formatCurrency(bestAmount)}). `;
+      p1 += `The problem isn't finding winners. It's holding them.`;
+      
+      p2 = `This is simultaneously frustrating and encouraging. The hard part of trading (picking tokens) is working. The easy part (not selling too early) is the gap. `;
+      p2 += pick([
+        `Set some limit sells and walk away from the screen.`,
+        `The comeback is there waiting. Just need to let trades breathe.`,
+        `Paper hands have been expensive. Like, really expensive.`
+      ]);
+      
+    } else if (winRate > 45) {
+      p1 = `Despite a ${winRate.toFixed(0)}% win rate, ${name} is down ${formatCurrency(Math.abs(profit))}. The wins exist, but the losses overwhelm them. `;
+      if (worstSymbol) p1 += `${worstSymbol} was devastating at -${formatCurrency(worstAmount)}. `;
+      
+      p2 = `Position sizing is likely the issue—too much capital in losing trades, too little in winners. `;
+      if (bestSymbol) p2 += `${bestSymbol}'s +${formatCurrency(bestAmount)} shows there's alpha being found. `;
+      p2 += `The edge might actually exist, it's just getting destroyed by bet sizing.`;
+      
+    } else {
+      // Rough performance all around
+      const openers = [
+        `${name} has paid ${formatCurrency(Math.abs(profit))} in tuition to the crypto markets.`,
+        `It's been a tough education: ${name} is down ${formatCurrency(Math.abs(profit))}.`,
+        `${name} has donated ${formatCurrency(Math.abs(profit))} to more fortunate traders.`
+      ];
+      p1 = `${pick(openers)} ${totalTokens} tokens traded, ${winRate.toFixed(0)}% win rate, ${formatCurrency(volume)} in volume. `;
+      if (worstSymbol) p1 += `${worstSymbol} hurt the most at -${formatCurrency(worstAmount)}. `;
+      if (bestSymbol && bestAmount > 100) p1 += `At least ${bestSymbol} provided +${formatCurrency(bestAmount)} of relief.`;
+      
+      p2 = pick([
+        `The data suggests a strategy rethink is needed. Consider paper trading new approaches before deploying more capital.`,
+        `Every losing trader's P&L is a lesson in disguise. The market has been teaching ${name} a lot lately.`,
+        `This isn't terminal. Many great traders have similar drawdowns in their history. The question is what comes next.`
+      ]);
+      p2 += pick([
+        ` Thank you for your service. 🫡`,
+        ` The comeback arc starts here.`,
+        ` Down but not out.`
+      ]);
+    }
   }
-  // Moderate loss
-  if (profit < -1000) {
-    return `${name} is down ${formatCurrency(Math.abs(profit))} across ${totalTokens} positions. ${worstTrade} hurt the most. A ${winRate.toFixed(0)}% hit rate suggests the strategy needs refinement. Not blown up, but definitely bruised.`;
-  }
-  // Default losing
-  return `${name} has realized a ${formatCurrency(Math.abs(profit))} loss across ${totalTokens} token positions. ${biggestWin ? `${bestTrade} showed promise at +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}, ` : ''}${biggestLoss ? `while ${worstTrade} did the damage.` : 'but overall execution needs work.'} The data doesn't lie—time for a strategy review.`;
+  
+  return p1 + '\n\n' + p2;
 };
 
 
@@ -2478,25 +2611,27 @@ export default function PNLTrackerApp() {
       const percentile = calculatePercentile(summary);
       const score = percentile?.percentile || 50;
       const archetype = percentile?.title || 'Trader';
-      const profit = summary.totalRealizedProfit || 0;
-      const winRate = summary.winRate || 0;
       const userName = user?.displayName || user?.username || 'Anon';
       
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // Use the auditNarrative (verdict) as the main quote
-      // Truncate if too long for cast
+      // Use the auditNarrative (verdict) - take first paragraph for sharing
       let verdict = auditNarrative || '';
-      if (verdict.length > 280) {
-        verdict = verdict.substring(0, 277) + '...';
+      // Split by double newline and take first paragraph
+      const paragraphs = verdict.split('\n\n');
+      let shareVerdict = paragraphs[0] || verdict;
+      
+      // Truncate if still too long (keep some room for header)
+      if (shareVerdict.length > 400) {
+        shareVerdict = shareVerdict.substring(0, 397) + '...';
       }
       
       // Build cast with verdict as main content
-      let castText = `📋 TRIDENT LLC TRADING AUDIT\n\n`;
+      let castText = `📋 TRIDENT LLC AUDIT\n\n`;
       castText += `Subject: ${userName}\n`;
-      castText += `Score: ${score}/100 • ${archetype}\n\n`;
-      castText += `"${verdict}"\n\n`;
-      castText += `Get your audit:`;
+      castText += `Score: ${score}/100 • "${archetype}"\n\n`;
+      castText += `"${shareVerdict}"\n\n`;
+      castText += `Get audited:`;
       
       await sdk.actions.composeCast({
         text: castText,
