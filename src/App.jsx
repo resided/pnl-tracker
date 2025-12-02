@@ -122,8 +122,9 @@ const getRankTitle = (percentile, profit, winRate) => {
   return { title: 'Wrecked', emoji: '🪦', vibe: 'Nowhere to go but up', insight: 'At least you are self-aware', callout: 'Legend in the making' };
 };
 
-// --- ADVANCED METRICS ENGINE (RESTORED FROM PREVIOUS VERSION) ---
-const calculateAdvancedStats = (summary, tokens) => {
+// --- ADVANCED METRICS ENGINE ---
+// Calculates "fun" stats for the audit report
+const calculateAdvancedStats = (summary) => {
   if (!summary) return null;
   const { totalRealizedProfit, totalFumbled, totalTradingVolume, totalTokensTraded, winRate } = summary;
   
@@ -166,19 +167,13 @@ const calculateAdvancedStats = (summary, tokens) => {
   else if (winR > 45 && profit > 0) riskLevel = 'MODERATE';
   else if (fumbled > profit * 2) riskLevel = 'ELEVATED';
 
-  // 7. Average Bet
-  const avgBetSize = volume / tradeCount;
-
   return {
     degenScore,
     paperHandsScore,
     diamondHands,
     luckFactor,
     consistencyScore,
-    riskLevel,
-    avgBetSize,
-    winCount,
-    lossCount
+    riskLevel
   };
 };
 
@@ -472,4 +467,347 @@ const getAllBadges = (summary) => {
     { icon: '🎯', label: 'Sniper', type: BADGE_TYPES.SNIPER, scoreBonus: 10, qualified: winRate >= 60, requirement: 'Win Rate ≥ 60%', current: `${winRate.toFixed(1)}%` },
     { icon: '💧', label: 'Exit Liquidity', type: BADGE_TYPES.EXIT_LIQUIDITY, scoreBonus: 10, qualified: winRate < 40 && tokens > 5, requirement: 'Win Rate < 40% & 5+ tokens', current: `${winRate.toFixed(1)}%, ${tokens} tokens` },
     { icon: '🐋', label: 'Volume Whale', type: BADGE_TYPES.VOLUME_WHALE, scoreBonus: 20, qualified: volume > 50000, requirement: 'Volume > $50k', current: `$${(volume/1000).toFixed(1)}k` },
-    { icon: '🧻', label: 'Paper Hands', type: BADG
+    { icon: '🧻', label: 'Paper Hands', type: BADGE_TYPES.TOILET_PAPER_HANDS, scoreBonus: 10, qualified: fumbled > 10000, requirement: 'Fumbled > $10k', current: `$${(fumbled/1000).toFixed(1)}k` },
+    { icon: '💎', label: 'Diamond', type: BADGE_TYPES.DIAMOND, scoreBonus: 20, qualified: profit > 10000, requirement: 'Profit > $10k', current: `$${(profit/1000).toFixed(1)}k` },
+    { icon: '💰', label: 'Profitable', type: BADGE_TYPES.TRADER, scoreBonus: 5, qualified: profit > 0, requirement: 'Any profit > $0', current: profit > 0 ? `+$${profit.toFixed(0)}` : `-$${Math.abs(profit).toFixed(0)}` }
+  ];
+};
+
+const getBadges = (summary) => getAllBadges(summary).filter(b => b.qualified);
+
+const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, mintTxHash, mintError, canClaim, currentWallet }) => {
+  const allBadges = getAllBadges(summary);
+  return (
+    <Panel title="Your Badges" subtitle={`${claimedBadges.length} of ${allBadges.length} unlocked`} style={{ marginTop: '20px' }}>
+      {currentWallet && <div style={{ fontSize: '10px', color: colors.muted, marginBottom: '12px' }}>Badges for {currentWallet.slice(0, 6)}...{currentWallet.slice(-4)}</div>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', marginBottom: mintTxHash || mintError ? '12px' : '0' }}>
+        {allBadges.map((b, i) => (
+          <Badge key={i} icon={b.icon} label={b.label} badgeType={b.type} onClaim={onClaimBadge} isClaiming={claimingBadge === b.type} isClaimed={claimedBadges.includes(b.type)} canClaim={canClaim} qualified={b.qualified} requirement={b.requirement} current={b.current} scoreBonus={b.scoreBonus} />
+        ))}
+      </div>
+      {mintTxHash && <div style={{ padding: '10px 12px', borderRadius: '8px', background: colors.mintBg, border: `1px solid ${colors.mintBorder}`, fontSize: '11px', color: colors.mint }}>✓ Badge minted! <a href={`https://basescan.org/tx/${mintTxHash}`} target="_blank" rel="noopener noreferrer" style={{ color: colors.mint, textDecoration: 'underline' }}>View tx</a></div>}
+      {mintError && <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '11px', color: colors.error }}>{mintError}</div>}
+      <div style={{ marginTop: '12px', padding: '8px 10px', borderRadius: '6px', background: '#f8fafc', border: `1px solid ${colors.border}`, fontSize: '10px', color: colors.muted, textAlign: 'center' }}>Free to mint (gas only ~$0.001) • One-time mint per badge • Collect all to boost score</div>
+    </Panel>
+  );
+};
+
+// --- TRIDENT LLC AUDIT COMPONENT (The LARP Focal Point) ---
+const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, auditMetrics, onShare }) => {
+  const summary = pnlData?.summary || {};
+  const score = percentileData?.percentile || 50;
+  const archetype = percentileData?.title || 'Trader';
+  const userName = user?.displayName || 'Unknown Subject';
+  const walletAddress = user?.wallet ? `${user.wallet.slice(0,6)}...${user.wallet.slice(-4)}` : 'UNKNOWN';
+
+  // Metrics from the advanced engine
+  const { degenScore, diamondHands, paperHandsScore, luckFactor, consistencyScore, riskLevel } = auditMetrics || 
+    { degenScore: 50, diamondHands: 50, paperHandsScore: 0, luckFactor: 50, consistencyScore: 50, riskLevel: 'MODERATE' };
+
+  const fmtCur = (val) => {
+    if (!val) return '$0.00';
+    const abs = Math.abs(val);
+    if (abs >= 1000000) return `$${(abs / 1000000).toFixed(2)}M`;
+    if (abs >= 1000) return `$${(abs / 1000).toFixed(2)}K`;
+    return `$${abs.toFixed(2)}`;
+  };
+
+  const isProfit = (summary.totalRealizedProfit || 0) >= 0;
+  const winRate = summary.winRate || 0;
+  const auditNumber = `TRD-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
+  
+  // Stamp Color logic
+  const stampColor = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
+  const stampRotate = score % 2 === 0 ? 'rotate(-10deg)' : 'rotate(8deg)';
+
+  return (
+    <div style={{ 
+      background: '#f5f5f4', 
+      backgroundImage: 'radial-gradient(#e5e4dc 1px, transparent 1px)',
+      backgroundSize: '20px 20px',
+      borderRadius: '2px', 
+      overflow: 'hidden', 
+      fontFamily: "'Courier Prime', 'Courier New', monospace", 
+      color: '#1c1917', 
+      border: '1px solid #a8a29e', 
+      boxShadow: '0 10px 30px -5px rgba(0,0,0,0.2)',
+      position: 'relative',
+      marginBottom: '24px'
+    }}>
+      
+      {/* Watermark */}
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)', fontSize: '60px', fontWeight: '900', color: 'rgba(0,0,0,0.03)', pointerEvents: 'none', whiteSpace: 'nowrap' }}>CONFIDENTIAL</div>
+
+      {/* Header */}
+      <div style={{ padding: '24px 24px 16px', borderBottom: '2px solid #292524', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: '#fff' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '24px', height: '24px', background: '#292524', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', borderRadius: '2px' }}>T</div>
+            <div style={{ fontSize: '20px', fontWeight: '700', color: '#292524', letterSpacing: '-0.05em' }}>TRIDENT LLC</div>
+          </div>
+          <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px', color: '#57534e' }}>Department of On-Chain Corrections</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#78716c' }}>REF: {auditNumber}</div>
+          <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: '700', marginTop: '2px' }}>EYES ONLY</div>
+        </div>
+      </div>
+
+      {/* Subject Section */}
+      <div style={{ padding: '20px 24px', borderBottom: '1px dashed #a8a29e' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '2px' }}>SUBJECT</div>
+            <div style={{ fontSize: '16px', fontWeight: '700' }}>{userName}</div>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace' }}>{walletAddress}</div>
+          </div>
+          {/* THE STAMP */}
+          <div style={{ 
+            border: `3px solid ${stampColor}`, 
+            padding: '4px 12px', 
+            borderRadius: '4px', 
+            transform: stampRotate,
+            color: stampColor,
+            textAlign: 'center',
+            opacity: 0.9,
+            maskImage: 'url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png)',
+            WebkitMaskImage: 'url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png)',
+          }}>
+            <div style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}>Trading Score</div>
+            <div style={{ fontSize: '28px', fontWeight: '900', lineHeight: '1' }}>{score}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ padding: '20px 24px', background: 'rgba(255,255,255,0.5)' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '8px', letterSpacing: '0.1em' }}>PERFORMANCE METRICS</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ border: '1px solid #d6d3d1', padding: '8px', background: '#fff' }}>
+            <div style={{ fontSize: '9px', color: '#78716c' }}>NET P&L</div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: isProfit ? '#16a34a' : '#dc2626' }}>{isProfit ? '+' : ''}{fmtCur(summary.totalRealizedProfit)}</div>
+          </div>
+          <div style={{ border: '1px solid #d6d3d1', padding: '8px', background: '#fff' }}>
+            <div style={{ fontSize: '9px', color: '#78716c' }}>WIN RATE</div>
+            <div style={{ fontSize: '18px', fontWeight: '700' }}>{winRate.toFixed(1)}%</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', borderTop: '1px solid #e5e5e5', paddingTop: '8px' }}>
+          <div>Volume: <strong>{fmtCur(summary.totalTradingVolume)}</strong></div>
+          <div>Trades: <strong>{summary.totalTokensTraded}</strong></div>
+          <div>Class: <strong>{archetype.toUpperCase()}</strong></div>
+        </div>
+      </div>
+
+      {/* OPERATIVE RATINGS (Fun Metrics) */}
+      <div style={{ padding: '20px 24px', borderTop: '1px dashed #a8a29e', background: '#fafaf9' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '12px', letterSpacing: '0.1em' }}>OPERATIVE RATINGS</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', textAlign: 'center' }}>
+          {[
+            { label: 'Degen', val: degenScore, color: degenScore > 70 ? '#ef4444' : '#3b82f6' },
+            { label: 'Diamond', val: diamondHands, color: diamondHands > 70 ? '#22c55e' : '#eab308' },
+            { label: 'Paper', val: paperHandsScore, color: paperHandsScore > 50 ? '#ef4444' : '#78716c' },
+            { label: 'Luck', val: luckFactor, color: '#f59e0b' },
+            { label: 'Consistency', val: consistencyScore, color: consistencyScore > 60 ? '#22c55e' : '#78716c' },
+          ].map((m, i) => (
+            <div key={i} style={{ padding: '8px 2px', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '4px' }}>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: m.color }}>{m.val}</div>
+              <div style={{ fontSize: '8px', color: '#78716c', marginTop: '4px', textTransform: 'uppercase' }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '10px' }}>
+          Risk Assessment: <strong style={{ color: riskLevel === 'HIGH' || riskLevel === 'ELEVATED' ? '#ef4444' : riskLevel === 'LOW' ? '#22c55e' : '#f59e0b' }}>{riskLevel}</strong>
+        </div>
+      </div>
+
+      {/* Narrative Section */}
+      <div style={{ padding: '20px 24px', borderTop: '2px solid #292524', background: '#fff' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '8px', letterSpacing: '0.1em' }}>ANALYST NOTES</div>
+        <div style={{ fontSize: '12px', lineHeight: '1.6', fontFamily: "'Courier Prime', monospace" }}>
+          "{auditNarrative || "Generating assessment..."}"
+        </div>
+        <div style={{ marginTop: '16px', textAlign: 'right' }}>
+           <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Signature_sample.svg/1200px-Signature_sample.svg.png" style={{ height: '24px', opacity: 0.4, transform: 'rotate(-5deg)' }} alt="signature" />
+           <div style={{ fontSize: '9px', color: '#78716c' }}>CHIEF AUDITOR</div>
+        </div>
+      </div>
+
+      {/* Share Button */}
+      {onShare && (
+        <div style={{ background: '#292524', padding: '12px 24px' }}>
+          <button 
+            onClick={onShare}
+            style={{ 
+              width: '100%', 
+              background: '#f5f5f4', 
+              color: '#1c1917', 
+              border: 'none', 
+              padding: '10px', 
+              fontFamily: "'Courier Prime', monospace",
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Leak to Public
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function PNLTrackerApp() {
+  const [user, setUser] = useState(null);
+  const [wallets, setWallets] = useState([]);
+  const [primaryWallet, setPrimaryWallet] = useState(null);
+  const [activeScope, setActiveScope] = useState('primary');
+  const [pnlData, setPnlData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('stats');
+  const [isGated, setIsGated] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState(0);
+  const [checkingGate, setCheckingGate] = useState(true);
+  const [envError, setEnvError] = useState(null);
+  
+  const [claimingBadge, setClaimingBadge] = useState(null);
+  const [claimedBadges, setClaimedBadges] = useState([]);
+  const [tokenListView, setTokenListView] = useState('wins'); 
+  const [mintTxHash, setMintTxHash] = useState(null);
+  const [mintError, setMintError] = useState(null);
+  
+  const [showInfo, setShowInfo] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState(null);
+  const [auditMetrics, setAuditMetrics] = useState(null);
+  const [auditNarrative, setAuditNarrative] = useState(null);
+
+  const checkMintedBadges = useCallback(async (userAddress) => {
+    if (!userAddress || BADGE_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') return;
+    if (DEMO_MODE) return;
+    
+    const cacheKey = `minted_badges_${userAddress.toLowerCase()}`;
+    try {
+      const cached = window.localStorage.getItem(cacheKey);
+      if (cached) {
+        const { badges, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 60 * 1000) {
+          setClaimedBadges(badges);
+          return;
+        }
+      }
+    } catch (e) {}
+    
+    try {
+      const { createPublicClient, http } = await import('viem');
+      const { base } = await import('viem/chains');
+      const client = createPublicClient({ chain: base, transport: http() });
+      const minted = [];
+      for (let badgeType = 0; badgeType <= 5; badgeType++) {
+        try {
+          const hasMinted = await client.readContract({
+            address: BADGE_CONTRACT_ADDRESS,
+            abi: BADGE_ABI,
+            functionName: 'hasMintedBadge',
+            args: [userAddress, badgeType]
+          });
+          if (hasMinted) minted.push(badgeType);
+        } catch (e) {}
+      }
+      try { window.localStorage.setItem(cacheKey, JSON.stringify({ badges: minted, timestamp: Date.now() })); } catch (e) {}
+      setClaimedBadges(minted); 
+    } catch (err) { console.error('Error checking badges:', err); }
+  }, []);
+
+  const encodeMintBadgeCall = async (badgeType, summary) => {
+    const { encodeFunctionData } = await import('viem');
+    const badgeTypeNum = Number(badgeType);
+    const winRate = BigInt(Math.floor((summary.winRate || 0) * 100));
+    const volume = BigInt(Math.floor(summary.totalTradingVolume || 0));
+    const profit = BigInt(Math.floor(Math.abs(summary.totalRealizedProfit || 0)));
+    return encodeFunctionData({ abi: BADGE_ABI, functionName: 'mintBadge', args: [badgeTypeNum, winRate, volume, profit] });
+  };
+
+  const handleClaimBadgeViaSDK = useCallback(async (badgeType) => {
+    setClaimingBadge(badgeType); setMintError(null); setMintTxHash(null);
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const summary = pnlData?.summary || {};
+      const provider = sdk.wallet.ethProvider;
+      if (!provider) throw new Error('Wallet provider not available');
+      let fromAddress = primaryWallet;
+      try {
+        const accounts = await provider.request({ method: 'eth_accounts' });
+        if (accounts && accounts.length > 0) fromAddress = accounts[0];
+      } catch (e) {}
+      const callData = await encodeMintBadgeCall(badgeType, summary);
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: fromAddress, to: BADGE_CONTRACT_ADDRESS, data: callData, value: '0x0', chainId: '0x2105' }]
+      });
+      setMintTxHash(txHash);
+      setClaimedBadges(prev => [...prev, badgeType]);
+    } catch (err) {
+      setMintError(String(err).includes('rejected') ? 'Transaction cancelled' : 'Failed to claim badge');
+    } finally { setClaimingBadge(null); }
+  }, [primaryWallet, pnlData]);
+
+  const handleSharePnL = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const summary = pnlData?.summary;
+      if (!summary) return;
+
+      const username = user?.username || 'user';
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      const rank = calculatePercentile(summary);
+      const score = rank.percentile;
+      const realized = formatCurrency(summary.totalRealizedProfit || 0);
+      const topPercent = 100 - rank.percentile;
+      const pnlSign = summary.totalRealizedProfit >= 0 ? '+' : '-';
+      
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const topText = `$PNL  ·  @${username}`;
+      const bottomText = `Trading Score: ${score}/100  ·  ${pnlSign}${realized}`;
+      const textPath = encodeURIComponent(`**${topText}**\n${bottomText}`);
+      const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=60px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
+      
+      const castText = `Using $PNL: My Trading Score is ${score}/100 📊\n\nTop ${topPercent}% on Base\n${realized >= 0 ? 'Profit' : 'Loss'}: ${pnlSign}${realized}\n\nGet your score:`;
+      
+      await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
+    } catch (err) { console.error('share pnl failed', err); }
+  };
+
+  const handleRequestAudit = async () => {
+    try {
+      setAuditLoading(true); setAuditError(null);
+      
+      // Calculate advanced metrics
+      const stats = calculateAdvancedStats(pnlData?.summary, pnlData?.tokens);
+      setAuditMetrics(stats);
+      
+      // Generate narrative with stats
+      const narrative = generateAuditVerdict(pnlData?.summary, stats, pnlData?.biggestWin, pnlData?.biggestLoss);
+      setAuditNarrative(narrative);
+      
+    } catch (err) { setAuditError(String(err?.message || err)); } 
+    finally { setAuditLoading(false); }
+  };
+
+  const handleShareAudit = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const summary = pnlData?.summary || {};
+      const percentile = calculatePercentile(summary);
+      const score = percentile?.percentile || 50;
+      const archetype = percentile?.title || 'Trader';
+      const username = user?.username || 'user';
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      
+      // LARP-HEAVY DOCUMENT IMAGE
+      const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
+      const line1 = `TRIDENT LLC // AUDIT FILE`;
+      const line2 = `SUBJECT: @${username.toUpperCase()}`;
+      const line3 = `RATING:
