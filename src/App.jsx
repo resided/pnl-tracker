@@ -1793,29 +1793,36 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   const auditNumber = `TRD-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
   const auditDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+  // Brand color
+  const brandColor = '#1e3a5f';
+
   return (
     <div style={{ 
       background: '#fafaf9', 
-      borderRadius: '4px', 
+      borderRadius: '8px', 
       overflow: 'hidden', 
       fontFamily: "'Georgia', 'Times New Roman', serif",
       color: '#1c1917',
       border: '1px solid #d6d3d1',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+      boxShadow: '0 4px 24px rgba(0,0,0,0.1)'
     }}>
       
+      {/* Top Color Bar */}
+      <div style={{ background: brandColor, padding: '12px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', color: '#fff', fontWeight: '600', letterSpacing: '0.15em' }}>OFFICIAL TRADING AUDIT</div>
+        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace' }}>{auditNumber}</div>
+      </div>
+      
       {/* Official Letterhead */}
-      <div style={{ padding: '28px 28px 20px', borderBottom: '3px double #292524' }}>
+      <div style={{ padding: '24px 28px 20px', borderBottom: '2px solid #e7e5e4', background: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#292524', letterSpacing: '0.1em' }}>TRIDENT LLC</div>
-            <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.2em', marginTop: '2px' }}>TRADING PERFORMANCE AUDITORS</div>
-            <div style={{ fontSize: '9px', color: '#a8a29e', marginTop: '6px', fontStyle: 'italic' }}>Blockchain Analytics Division • Est. 2024</div>
+            <div style={{ fontSize: '26px', fontWeight: '700', color: brandColor, letterSpacing: '0.08em' }}>TRIDENT LLC</div>
+            <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginTop: '4px' }}>TRADING PERFORMANCE AUDITORS</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em' }}>AUDIT REF.</div>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#292524', fontFamily: 'monospace', marginTop: '2px' }}>{auditNumber}</div>
-            <div style={{ fontSize: '10px', color: '#78716c', marginTop: '6px' }}>{auditDate}</div>
+            <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em' }}>DATE ISSUED</div>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: '#292524', marginTop: '2px' }}>{auditDate}</div>
           </div>
         </div>
       </div>
@@ -1961,23 +1968,23 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
         </div>
       )}
 
-      {/* Official Verdict - EXPANDED */}
-      <div style={{ padding: '24px 28px', background: '#1c1917', color: '#fff' }}>
-        <div style={{ fontSize: '10px', color: '#a8a29e', letterSpacing: '0.15em', marginBottom: '14px' }}>§6. TRIDENT LLC VERDICT</div>
-        <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#e7e5e4', fontStyle: 'italic' }}>
+      {/* Official Verdict */}
+      <div style={{ padding: '24px 28px', background: brandColor, color: '#fff' }}>
+        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', marginBottom: '14px' }}>§6. TRIDENT LLC VERDICT</div>
+        <div style={{ fontSize: '15px', lineHeight: '1.8', color: '#fff', fontStyle: 'italic' }}>
           "{generateVerdict()}"
         </div>
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #44403c', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: '9px', color: '#a8a29e' }}>Authorized by</div>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#fff', marginTop: '2px' }}>Trident Analytics Engine v2.1</div>
+            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>Authorized by</div>
+            <div style={{ fontSize: '11px', fontWeight: '600', color: '#fff', marginTop: '2px' }}>Trident Analytics Engine</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '9px', color: '#a8a29e' }}>Risk Level</div>
+            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>Risk Level</div>
             <div style={{ fontSize: '12px', fontWeight: '600', color: risk.color, marginTop: '2px' }}>{risk.level}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '9px', color: '#a8a29e' }}>Confidence</div>
+            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>Confidence</div>
             <div style={{ fontSize: '12px', fontWeight: '600', color: scoreColor, marginTop: '2px' }}>{score >= 70 ? 'HIGH' : score >= 40 ? 'MODERATE' : 'LOW'}</div>
           </div>
         </div>
@@ -1985,17 +1992,17 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
 
       {/* Share Button */}
       {onShare && (
-        <div style={{ padding: '16px 28px', background: '#292524', borderTop: '1px solid #44403c' }}>
+        <div style={{ padding: '20px 28px', background: '#fff', borderTop: '1px solid #e7e5e4' }}>
           <button 
             onClick={onShare}
             style={{ 
               width: '100%', 
-              padding: '14px', 
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
+              padding: '16px', 
+              background: brandColor, 
               border: 'none', 
-              borderRadius: '4px', 
+              borderRadius: '6px', 
               color: '#fff', 
-              fontSize: '13px', 
+              fontSize: '14px', 
               fontWeight: '600', 
               cursor: 'pointer',
               letterSpacing: '0.05em'
@@ -2006,16 +2013,15 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
         </div>
       )}
 
-      {/* Legal Footer */}
-      <div style={{ padding: '16px 28px', background: '#f5f5f4', borderTop: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '8px', color: '#a8a29e', lineHeight: '1.6', textAlign: 'center' }}>
-          This document is generated by Trident LLC for informational purposes only. Past performance does not guarantee future results.<br/>
-          This is not financial advice. All P&L figures reflect realized profits calculated at time of sale via Moralis Deep Index API.
+      {/* Bottom Color Bar Footer */}
+      <div style={{ background: brandColor, padding: '16px 28px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', letterSpacing: '0.08em' }}>TRIDENT LLC</div>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>Powered by PNL Tracker</div>
         </div>
-        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e7e5e4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '10px', fontWeight: '600', color: '#57534e' }}>TRIDENT LLC</div>
-          <div style={{ fontSize: '9px', color: '#78716c' }}>Courtesy of PNL Tracker</div>
-          <div style={{ fontSize: '9px', color: '#78716c', fontFamily: 'monospace' }}>{auditNumber}</div>
+        <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.6', textAlign: 'center' }}>
+          This document is for informational purposes only. Not financial advice. Past performance ≠ future results.<br/>
+          P&L figures reflect realized profits at time of sale via Moralis API. {auditNumber}
         </div>
       </div>
     </div>
