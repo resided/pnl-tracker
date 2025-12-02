@@ -1625,7 +1625,7 @@ const AuditReportCard = ({ user, summary, lore, rank, biggestWin, biggestLoss })
 };
 
 // --- INLINE TRADING AUDIT COMPONENT ---
-const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
+const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }) => {
   const summary = pnlData?.summary || {};
   const tokens = pnlData?.tokens || [];
   const biggestWin = pnlData?.biggestWin;
@@ -1649,6 +1649,8 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
   const winCount = tokens.filter(t => t.isProfitable).length;
   const lossCount = tokens.filter(t => !t.isProfitable).length;
   const totalTokens = summary.totalTokensTraded || tokens.length;
+  const winRate = summary.winRate || 0;
+  const fumbled = summary.totalFumbled || 0;
   
   // Calculated metrics
   const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
@@ -1659,6 +1661,13 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
   const avgPosition = summary.totalTradingVolume && totalTokens ? summary.totalTradingVolume / totalTokens : 0;
   const roi = summary.totalTradingVolume > 0 ? ((summary.totalRealizedProfit / summary.totalTradingVolume) * 100).toFixed(1) : 0;
   
+  // Fun/quirky metrics
+  const paperHandsScore = fumbled > 0 ? Math.min(100, Math.round((fumbled / (Math.abs(summary.totalRealizedProfit || 1) + fumbled)) * 100)) : 0;
+  const degenScore = Math.min(100, Math.round((totalTokens / 2) + (summary.totalTradingVolume > 10000 ? 20 : 0) + (winRate < 40 ? 20 : 0)));
+  const diamondHandsRating = 100 - paperHandsScore;
+  const luckScore = winRate > 50 && !isProfit ? Math.round(winRate) : (isProfit && winRate < 40 ? 100 - Math.round(winRate) : 50);
+  const consistencyScore = winCount > 0 && lossCount > 0 ? Math.round(100 - Math.abs(winCount - lossCount) / Math.max(winCount, lossCount) * 50) : 50;
+  
   // Top tokens
   const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'USD+'];
   const topWins = [...tokens].filter(t => t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (b.realizedProfitUsd || 0) - (a.realizedProfitUsd || 0)).slice(0, 3);
@@ -1666,8 +1675,6 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
 
   // Risk assessment
   const getRiskLevel = () => {
-    const winRate = summary.winRate || 0;
-    const fumbled = summary.totalFumbled || 0;
     const profit = summary.totalRealizedProfit || 0;
     if (winRate > 55 && profit > 5000) return { level: 'LOW', color: '#22c55e', desc: 'Disciplined risk management observed' };
     if (winRate > 45 && profit > 0) return { level: 'MODERATE', color: '#f59e0b', desc: 'Acceptable risk tolerance with room for improvement' };
@@ -1679,8 +1686,6 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
   // Behavioral findings
   const getFindings = () => {
     const findings = [];
-    const winRate = summary.winRate || 0;
-    const fumbled = summary.totalFumbled || 0;
     const profit = summary.totalRealizedProfit || 0;
     
     if (winRate >= 55) findings.push({ type: 'positive', text: 'Above-average entry timing and token selection' });
@@ -1699,6 +1704,55 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
     return findings.slice(0, 4);
   };
   const findings = getFindings();
+
+  // Generate detailed verdict
+  const generateVerdict = () => {
+    if (auditNarrative) return auditNarrative;
+    
+    const profit = summary.totalRealizedProfit || 0;
+    let verdict = '';
+    
+    // Opening assessment
+    verdict += `Following a comprehensive analysis of ${userName}'s on-chain trading activity across the Base network, Trident LLC presents the following findings. `;
+    
+    // Performance summary
+    verdict += `The subject has executed ${totalTokens} token positions with a cumulative trading volume of ${fmtCur(summary.totalTradingVolume)}, resulting in a ${isProfit ? 'net profit' : 'net loss'} of ${fmtCur(Math.abs(profit))}. `;
+    
+    // Win rate analysis
+    if (winRate >= 55) {
+      verdict += `With a ${winRate.toFixed(0)}% win rate, the subject demonstrates above-average market timing abilities. `;
+    } else if (winRate >= 45) {
+      verdict += `A ${winRate.toFixed(0)}% win rate places the subject within normal parameters for retail traders. `;
+    } else {
+      verdict += `The ${winRate.toFixed(0)}% win rate suggests a tendency toward adverse selection—buying near local tops and selling near bottoms. `;
+    }
+    
+    // Notable trades
+    if (biggestWin) {
+      verdict += `The most successful position was ${biggestWin.symbol}, generating +${fmtCur(biggestWin.realizedProfitUsd)} in realized gains. `;
+    }
+    if (biggestLoss) {
+      verdict += `Conversely, the most painful position was ${biggestLoss.symbol}, resulting in a ${fmtCur(biggestLoss.realizedProfitUsd)} loss. `;
+    }
+    
+    // Fumbled gains
+    if (fumbled > 1000) {
+      verdict += `Perhaps most notably, premature exit patterns cost an estimated ${fmtCur(fumbled)} in unrealized gains—tokens sold before reaching their peak value. `;
+      if (fumbled > profit * 2 && profit > 0) {
+        verdict += `This suggests the subject's primary weakness is conviction, not selection. `;
+      }
+    }
+    
+    // Closing
+    verdict += `Final classification: ${archetype}. `;
+    if (parseFloat(profitFactor) > 1) {
+      verdict += `Risk management fundamentals appear sound.`;
+    } else {
+      verdict += `Risk management protocols require immediate attention.`;
+    }
+    
+    return verdict;
+  };
 
   const getScoreColor = (s) => s >= 75 ? '#22c55e' : s >= 50 ? '#3b82f6' : s >= 30 ? '#f59e0b' : '#ef4444';
   const scoreColor = getScoreColor(score);
@@ -1722,7 +1776,7 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
           <div>
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#292524', letterSpacing: '0.1em' }}>TRIDENT LLC</div>
             <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.2em', marginTop: '2px' }}>TRADING PERFORMANCE AUDITORS</div>
-            <div style={{ fontSize: '9px', color: '#a8a29e', marginTop: '6px', fontStyle: 'italic' }}>Blockchain Analytics Division</div>
+            <div style={{ fontSize: '9px', color: '#a8a29e', marginTop: '6px', fontStyle: 'italic' }}>Blockchain Analytics Division • Est. 2024</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '9px', color: '#78716c', letterSpacing: '0.1em' }}>AUDIT REF.</div>
@@ -1777,16 +1831,17 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
           </div>
         </div>
         
-        {/* Metrics table */}
+        {/* Metrics table - expanded */}
         <div style={{ marginTop: '16px', border: '1px solid #e7e5e4', borderRadius: '4px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
             <tbody>
               {[
-                ['Win Rate', `${(summary.winRate || 0).toFixed(1)}%`, 'ROI', `${roi}%`],
+                ['Win Rate', `${winRate.toFixed(1)}%`, 'ROI', `${roi}%`],
                 ['Wins', winCount, 'Losses', lossCount],
                 ['Avg Win', fmtCur(avgWin), 'Avg Loss', fmtCur(avgLoss)],
                 ['Profit Factor', profitFactor, 'Avg Position', fmtCur(avgPosition)],
-                ['Tokens Traded', totalTokens, 'Fumbled Gains', fmtCur(summary.totalFumbled || 0)],
+                ['Tokens Traded', totalTokens, 'Fumbled Gains', fmtCur(fumbled)],
+                ['Best Trade', biggestWin ? `${biggestWin.symbol} +${fmtCur(biggestWin.realizedProfitUsd)}` : 'N/A', 'Worst Trade', biggestLoss ? `${biggestLoss.symbol} ${fmtCur(biggestLoss.realizedProfitUsd)}` : 'N/A'],
               ].map((row, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? '#fafaf9' : '#fff' }}>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #e7e5e4', color: '#78716c', width: '25%' }}>{row[0]}</td>
@@ -1800,9 +1855,28 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
         </div>
       </div>
 
+      {/* Trader Profile Scores */}
+      <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§3. TRADER PROFILE</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+          {[
+            { label: 'Diamond Hands', value: diamondHandsRating, color: diamondHandsRating > 60 ? '#22c55e' : '#f59e0b' },
+            { label: 'Paper Hands', value: paperHandsScore, color: paperHandsScore > 40 ? '#ef4444' : '#22c55e' },
+            { label: 'Degen Score', value: degenScore, color: degenScore > 60 ? '#8b5cf6' : '#3b82f6' },
+            { label: 'Luck Factor', value: luckScore, color: '#f59e0b' },
+            { label: 'Consistency', value: consistencyScore, color: consistencyScore > 60 ? '#22c55e' : '#78716c' },
+          ].map((item, i) => (
+            <div key={i} style={{ padding: '12px 8px', background: '#f5f5f4', borderRadius: '4px', textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: item.color }}>{item.value}</div>
+              <div style={{ fontSize: '8px', color: '#78716c', marginTop: '4px', letterSpacing: '0.05em' }}>{item.label.toUpperCase()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Risk Assessment */}
       <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§3. RISK ASSESSMENT</div>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§4. RISK ASSESSMENT</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: `${risk.color}10`, borderRadius: '4px', border: `1px solid ${risk.color}30` }}>
           <div style={{ padding: '6px 14px', background: risk.color, borderRadius: '2px' }}>
             <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff', letterSpacing: '0.1em' }}>{risk.level}</div>
@@ -1813,7 +1887,7 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
 
       {/* Notable Positions */}
       <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§4. NOTABLE POSITIONS</div>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§5. NOTABLE POSITIONS</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div>
             <div style={{ fontSize: '9px', color: '#16a34a', letterSpacing: '0.1em', marginBottom: '8px', fontWeight: '600' }}>TOP PERFORMERS</div>
@@ -1839,11 +1913,10 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
       {/* Behavioral Findings */}
       {findings.length > 0 && (
         <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-          <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§5. BEHAVIORAL ANALYSIS</div>
+          <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§6. BEHAVIORAL ANALYSIS</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {findings.map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px', background: '#fafaf9', borderRadius: '4px', borderLeft: `3px solid ${f.type === 'positive' ? '#22c55e' : f.type === 'negative' ? '#ef4444' : f.type === 'warning' ? '#f59e0b' : '#71717a'}` }}>
-                <span style={{ fontSize: '11px', flexShrink: 0 }}>{f.type === 'positive' ? '✓' : f.type === 'negative' ? '✗' : f.type === 'warning' ? '⚠' : '•'}</span>
                 <span style={{ fontSize: '11px', color: '#57534e', lineHeight: '1.4' }}>{f.text}</span>
               </div>
             ))}
@@ -1851,16 +1924,20 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
         </div>
       )}
 
-      {/* Official Verdict */}
-      <div style={{ padding: '20px 28px', background: '#1c1917', color: '#fff' }}>
-        <div style={{ fontSize: '10px', color: '#a8a29e', letterSpacing: '0.15em', marginBottom: '10px' }}>§6. TRIDENT LLC VERDICT</div>
-        <div style={{ fontSize: '13px', lineHeight: '1.7', color: '#e7e5e4', fontStyle: 'italic' }}>
-          "{auditNarrative || `Subject demonstrates ${isProfit ? 'net profitable' : 'net loss-making'} trading behavior with a ${(summary.winRate || 0).toFixed(0)}% success rate across ${totalTokens} positions. ${risk.desc}. Classification: ${archetype}.`}"
+      {/* Official Verdict - EXPANDED */}
+      <div style={{ padding: '24px 28px', background: '#1c1917', color: '#fff' }}>
+        <div style={{ fontSize: '10px', color: '#a8a29e', letterSpacing: '0.15em', marginBottom: '14px' }}>§7. TRIDENT LLC VERDICT</div>
+        <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#e7e5e4', fontStyle: 'italic' }}>
+          "{generateVerdict()}"
         </div>
-        <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #44403c', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #44403c', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '9px', color: '#a8a29e' }}>Authorized by</div>
             <div style={{ fontSize: '12px', fontWeight: '600', color: '#fff', marginTop: '2px' }}>Trident Analytics Engine v2.1</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '9px', color: '#a8a29e' }}>Risk Level</div>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: risk.color, marginTop: '2px' }}>{risk.level}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '9px', color: '#a8a29e' }}>Confidence</div>
@@ -1869,11 +1946,34 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative }) => {
         </div>
       </div>
 
+      {/* Share Button */}
+      {onShare && (
+        <div style={{ padding: '16px 28px', background: '#292524', borderTop: '1px solid #44403c' }}>
+          <button 
+            onClick={onShare}
+            style={{ 
+              width: '100%', 
+              padding: '14px', 
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
+              border: 'none', 
+              borderRadius: '4px', 
+              color: '#fff', 
+              fontSize: '13px', 
+              fontWeight: '600', 
+              cursor: 'pointer',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Share Audit Report
+          </button>
+        </div>
+      )}
+
       {/* Legal Footer */}
       <div style={{ padding: '16px 28px', background: '#f5f5f4', borderTop: '1px solid #e7e5e4' }}>
         <div style={{ fontSize: '8px', color: '#a8a29e', lineHeight: '1.6', textAlign: 'center' }}>
           This document is generated by Trident LLC for informational purposes only. Past performance does not guarantee future results.<br/>
-          This is not financial advice. All P&L figures reflect realized profits at time of sale.
+          This is not financial advice. All P&L figures reflect realized profits calculated at time of sale via Moralis Deep Index API.
         </div>
         <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e7e5e4', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '10px', fontWeight: '600', color: '#57534e' }}>TRIDENT LLC</div>
@@ -2248,6 +2348,43 @@ export default function PNLTrackerApp() {
       setAuditError(String(err?.message || err));
     } finally {
       setAuditLoading(false);
+    }
+  };
+
+  const handleShareAudit = async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const summary = pnlData?.summary || {};
+      const percentile = calculatePercentile(summary);
+      const score = percentile?.percentile || 50;
+      const archetype = percentile?.title || 'Trader';
+      const profit = summary.totalRealizedProfit || 0;
+      const winRate = summary.winRate || 0;
+      const totalTokens = summary.totalTokensTraded || 0;
+      const fumbled = summary.totalFumbled || 0;
+      
+      const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
+      
+      // Generate cast text based on performance
+      let castText = '';
+      if (profit > 10000) {
+        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: +${formatCurrency(profit)}\nWin Rate: ${winRate.toFixed(0)}%\n\nTurns out I actually know what I'm doing.`;
+      } else if (profit > 0) {
+        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: +${formatCurrency(profit)}\nWin Rate: ${winRate.toFixed(0)}%\n\nNot losing money is a W in crypto.`;
+      } else if (fumbled > Math.abs(profit) * 2) {
+        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: ${formatCurrency(profit)}\nFumbled: ${formatCurrency(fumbled)}\n\nI find winners. Then I sell them too early.`;
+      } else {
+        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: ${formatCurrency(profit)}\nWin Rate: ${winRate.toFixed(0)}%\n\nThank you for your service. 🫡`;
+      }
+      
+      castText += `\n\nGet your audit:`;
+      
+      await sdk.actions.composeCast({
+        text: castText,
+        embeds: [appLink]
+      });
+    } catch (err) {
+      console.error('Share audit failed', err);
     }
   };
 
@@ -2973,6 +3110,7 @@ const renderGatedOverlay = () => (
                 user={{ ...user, wallet: primaryWallet || wallets[0] }}
                 percentileData={calculatePercentile(pnlData.summary)}
                 auditNarrative={auditNarrative}
+                onShare={handleShareAudit}
               />
             )}
           </div>
