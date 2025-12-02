@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { shareExactAudit } from './lib/shareExactAudit';
 
 // PNL Tracker MiniApp for Farcaster
 // Styled to match psycast.pages.dev aesthetic (Light Mode / Minimalist)
@@ -3519,8 +3520,8 @@ const renderGatedOverlay = () => (
           <div style={{ filter: 'blur(5px)', marginTop: '20px' }}>
             <Panel title="Highlights" subtitle="From sold tokens">
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} />}
-                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} />}
+                {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShare}/>}
+                {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShare}/>}
               </div>
             </Panel>
           </div>
