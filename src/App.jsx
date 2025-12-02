@@ -2618,36 +2618,56 @@ export default function PNLTrackerApp() {
       const winRate = summary.winRate || 0;
 
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
-      let imageUrl = null;
+      let pageUrl = null;
 
       // Capture the audit as an image using html2canvas
       if (auditRef.current) {
         try {
+          console.log('Starting html2canvas capture...');
+          
           const canvas = await html2canvas(auditRef.current, {
             backgroundColor: '#fafaf9',
-            scale: 2, // Higher quality
+            scale: 2,
             useCORS: true,
-            logging: false,
+            logging: true,
+            allowTaint: true,
+            foreignObjectRendering: false,
           });
           
+          console.log('Canvas created:', canvas.width, 'x', canvas.height);
+          
           const base64Image = canvas.toDataURL('image/png');
+          console.log('Base64 image length:', base64Image.length);
           
           // Upload to worker
           const workerUrl = 'https://pnl.jab067.workers.dev';
+          console.log('Uploading to worker...');
+          
           const response = await fetch(`${workerUrl}/audit/upload`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: base64Image })
           });
           
+          console.log('Worker response status:', response.status);
+          
           if (response.ok) {
             const result = await response.json();
-            imageUrl = result.image;
+            console.log('Worker result:', result);
+            // Use the PAGE URL (with OG tags) not the raw image URL
+            pageUrl = result.page;
+          } else {
+            const errorText = await response.text();
+            console.error('Worker error:', errorText);
           }
         } catch (err) {
-          console.warn('Image capture failed:', err);
+          console.error('Image capture/upload failed:', err);
         }
+      } else {
+        console.warn('auditRef.current is null');
       }
+
+      console.log('Final pageUrl:', pageUrl);
 
       // Build cast text
       let castText = `📋 TRIDENT LLC AUDIT\n\n`;
@@ -2656,9 +2676,13 @@ export default function PNLTrackerApp() {
       castText += `P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)} | ${winRate.toFixed(0)}% Win Rate\n\n`;
       castText += `Get audited:`;
 
+      // Use page URL (with OG tags) for Farcaster to render the image
+      const embeds = pageUrl ? [pageUrl] : [appLink];
+      console.log('Embeds:', embeds);
+
       await sdk.actions.composeCast({
         text: castText,
-        embeds: imageUrl ? [imageUrl, appLink] : [appLink]
+        embeds: embeds
       });
     } catch (err) {
       console.error('Share audit failed', err);
