@@ -2659,8 +2659,8 @@ export default function PNLTrackerApp() {
           if (response.ok) {
             const result = await response.json();
             console.log('Uploaded:', result);
-            // Use the RAW IMAGE URL (ends in .png)
-            imageUrl = result.image;
+            // Use the PAGE URL (has OG tags) - NOT the raw image URL!
+            imageUrl = result.page;
           } else {
             console.error('Upload failed:', await response.text());
           }
