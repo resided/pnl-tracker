@@ -122,9 +122,50 @@ const getRankTitle = (percentile, profit, winRate) => {
   return { title: 'Wrecked', emoji: '🪦', vibe: 'Nowhere to go but up', insight: 'At least you are self-aware', callout: 'Legend in the making' };
 };
 
+// --- ADVANCED METRICS ENGINE ---
+// Calculates "fun" stats for the audit report
+const calculateAdvancedStats = (summary) => {
+  if (!summary) return null;
+  const { totalRealizedProfit, totalFumbled, totalTradingVolume, totalTokensTraded, winRate } = summary;
+  
+  const profit = totalRealizedProfit || 0;
+  const fumbled = totalFumbled || 0;
+  const volume = totalTradingVolume || 0;
+  const tradeCount = totalTokensTraded || 1;
+  const winR = winRate || 0;
+
+  // 1. Degen Index (0-100): High volume + high count = High Degen
+  let degenScore = Math.min(100, Math.round((tradeCount * 2) + (volume / 5000)));
+  
+  // 2. Diamond Hands (0-100): Inverse of fumbling ratio
+  const fumbleRatio = fumbled / (Math.abs(profit) + fumbled + 1); // Avoid div by zero
+  let diamondHands = Math.round((1 - fumbleRatio) * 100);
+  if (diamondHands > 100) diamondHands = 100;
+  
+  // 3. Ape Factor: Buying lots of low conviction plays
+  const avgBetSize = volume / tradeCount;
+  let apeFactor = avgBetSize < 100 ? 90 : avgBetSize < 500 ? 60 : 30;
+  if (tradeCount > 50) apeFactor += 10;
+
+  // 4. Luck Factor (Simple heuristic)
+  let luckFactor = 50;
+  if (winR < 40 && profit > 0) luckFactor = 90; // Profitable with low win rate = lucky (or homerun hitter)
+  if (winR > 60 && profit < 0) luckFactor = 10; // High win rate but lost money = unlucky (or bad sizing)
+
+  return {
+    degenScore,
+    diamondHands,
+    apeFactor,
+    luckFactor,
+    avgBetSize,
+    estWinStreak: Math.ceil(winR / 12), // Rough estimate
+    estLossStreak: Math.ceil((100 - winR) / 15)
+  };
+};
+
 // --- TRIDENT LLC VERDICT ENGINE ---
 // Generates stylized, roleplay-heavy audit narratives
-const generateAuditVerdict = (summary, biggestWin, biggestLoss) => {
+const generateAuditVerdict = (summary, stats, biggestWin, biggestLoss) => {
   if (!summary) return "CLASSIFIED: Insufficient data to clear security clearance.";
 
   const profit = summary.totalRealizedProfit || 0;
@@ -134,45 +175,47 @@ const generateAuditVerdict = (summary, biggestWin, biggestLoss) => {
   
   const winSymbol = biggestWin ? `$${biggestWin.symbol}` : "unknown assets";
   const lossSymbol = biggestLoss ? `$${biggestLoss.symbol}` : "unknown assets";
+  
+  const { degenScore, diamondHands } = stats || { degenScore: 50, diamondHands: 50 };
 
   // 1. THE WHALE (High Profit)
   if (profit > 25000) {
-    return `Subject demonstrates institutional-grade capital deployment. The extraction of value from ${winSymbol} suggests asymmetric information or exceptional execution. You aren't just participating in the market; you are the market. Trident LLC recommends immediate classification as 'Tier 1 Operator'.`;
+    return `Subject demonstrates institutional-grade capital deployment. Value extraction from ${winSymbol} suggests asymmetric information. With a Degen Score of ${degenScore}/100, you are operating with lethal efficiency. Trident LLC recommends immediate classification as 'Tier 1 Operator'.`;
   }
 
   // 2. THE SNIPER (High Win Rate + Profit)
   if (profit > 0 && winRate > 60) {
-    return `Surgical precision detected. Subject displays exceptional discipline, ignoring noise to strike ${winSymbol} with lethal accuracy. This is not gambling; this is a system executing at peak efficiency. Trident LLC approves this wallet for unrestricted operational status.`;
+    return `Surgical precision detected. Subject displays exceptional discipline, striking ${winSymbol} with ${winRate.toFixed(0)}% accuracy. Diamond Hands rating of ${diamondHands}/100 confirms you hold winners. This is not gambling; this is a system. Approved for unrestricted ops.`;
   }
 
   // 3. THE HOMERUN HITTER (Low Win Rate + High Profit)
   if (profit > 0 && winRate < 40) {
-    return `The 'Venture Capitalist' profile. Subject endures frequent tactical losses to secure strategic 100x victories like ${winSymbol}. Your win rate is abysmal, yet your P&L is enviable. You are the chaos engine that Trident LLC warns interns about. Proceed with caution.`;
+    return `The 'Venture Capitalist' profile. Subject endures frequent tactical losses to secure strategic 100x victories like ${winSymbol}. Your ${winRate.toFixed(0)}% win rate is deceptive; your P&L is undeniable. You are a volatility harvesting machine. Proceed with caution.`;
   }
 
   // 4. THE PAPER HANDS (Profitable but High Fumble)
-  if (profit > 0 && fumbled > profit * 3) {
-    return `Subject suffers from acute 'Take Profit Early' syndrome. While profitable, the decision to exit ${winSymbol} prematurely cost an estimated $${(fumbled/1000).toFixed(1)}k in unrealized gains. You are effectively selling a Ferrari to buy a Civic. Psychological conditioning recommended.`;
+  if (profit > 0 && fumbled > profit * 2) {
+    return `Subject suffers from acute 'Take Profit Early' syndrome. While profitable, the Diamond Hands score of ${diamondHands}/100 is critical. Exiting ${winSymbol} prematurely cost ~$${(fumbled/1000).toFixed(1)}k. You are effectively selling a Ferrari to buy a Civic. Psychological conditioning recommended.`;
   }
 
   // 5. THE SURVIVOR (Small Profit)
   if (profit >= 0 && profit <= 1000) {
-    return `Vital signs are stable. In a theatre where 90% of combatants face liquidation, breaking even is a statistical anomaly. You are surviving the PVP arena, likely by avoiding exposure to assets like ${lossSymbol}. Maintain holding pattern.`;
+    return `Vital signs are stable. In a theatre where 90% of combatants face liquidation, breaking even is a statistical anomaly. You are surviving the PVP arena, likely by avoiding full exposure to assets like ${lossSymbol}. Maintain holding pattern.`;
   }
 
   // 6. THE COUNTER-INDICATOR (Loss + Low Win Rate)
   if (profit < 0 && winRate < 35) {
-    return `Subject exhibits 'Inverse Midas Touch'. Capital allocation into ${lossSymbol} coincided perfectly with local tops. Trident LLC analysts suggest doing the exact opposite of your instincts. If you feel bullish, short it. If you feel fear, buy.`;
+    return `Subject exhibits 'Inverse Midas Touch'. Capital allocation into ${lossSymbol} coincided perfectly with local tops. With a Degen Score of ${degenScore}, you are effectively donating liquidity to the ecosystem. Analysts suggest inverting your own instincts immediately.`;
   }
 
   // 7. THE BLEEDER (Loss + High Win Rate)
   if (profit < 0 && winRate > 55) {
-    return `Catastrophic risk management detected. Subject wins the majority of skirmishes but allows a single nuclear event on ${lossSymbol} to wipe out the war chest. Stop-losses are not suggestions, soldier; they are requirements. Immediate remedial training ordered.`;
+    return `Catastrophic risk management detected. Subject wins the majority of skirmishes (${winRate.toFixed(0)}% win rate) but allowed a nuclear event on ${lossSymbol} to wipe the war chest. Stop-losses are not suggestions, soldier. Immediate remedial training ordered.`;
   }
 
   // 8. THE GAMBLER (High Volume + Big Loss)
   if (profit < -5000 && volume > 50000) {
-    return `High-velocity capital destruction. Subject treats the blockchain like a slot machine, and the house is winning. Heavy volume on ${lossSymbol} with negative expectancy is simply expensive entertainment. Trident LLC has flagged this wallet for 'Degen Rehabilitation'.`;
+    return `High-velocity capital destruction. Subject treats the blockchain like a slot machine (Degen Score: ${degenScore}). Heavy volume on ${lossSymbol} with negative expectancy is simply expensive entertainment. Trident LLC has flagged this wallet for 'Degen Rehabilitation'.`;
   }
 
   // Fallback
@@ -436,12 +479,15 @@ const ClaimBadgePanel = ({ summary, onClaimBadge, claimingBadge, claimedBadges, 
 };
 
 // --- TRIDENT LLC AUDIT COMPONENT (The LARP Focal Point) ---
-const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }) => {
+const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, auditMetrics, onShare }) => {
   const summary = pnlData?.summary || {};
   const score = percentileData?.percentile || 50;
   const archetype = percentileData?.title || 'Trader';
   const userName = user?.displayName || 'Unknown Subject';
   const walletAddress = user?.wallet ? `${user.wallet.slice(0,6)}...${user.wallet.slice(-4)}` : 'UNKNOWN';
+
+  // Metrics from the advanced engine
+  const { degenScore, diamondHands, apeFactor, estWinStreak, estLossStreak, avgBetSize } = auditMetrics || { degenScore: 50, diamondHands: 50, apeFactor: 50, estWinStreak: 0, estLossStreak: 0, avgBetSize: 0 };
 
   const fmtCur = (val) => {
     if (!val) return '$0.00';
@@ -458,6 +504,19 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   // Stamp Color logic
   const stampColor = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
   const stampRotate = score % 2 === 0 ? 'rotate(-10deg)' : 'rotate(8deg)';
+
+  // Helper for progress bars
+  const ProgressBar = ({ label, value, color }) => (
+    <div style={{ marginBottom: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <span>{label}</span>
+        <span>{value}/100</span>
+      </div>
+      <div style={{ height: '4px', background: '#e5e5e5', borderRadius: '2px', overflow: 'hidden' }}>
+        <div style={{ width: `${value}%`, height: '100%', background: color }}></div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ 
@@ -531,10 +590,23 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
             <div style={{ fontSize: '18px', fontWeight: '700' }}>{winRate.toFixed(1)}%</div>
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', borderTop: '1px solid #e5e5e5', paddingTop: '8px' }}>
+        
+        {/* Tactical Data */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', fontSize: '10px', marginBottom: '16px', color: '#1c1917' }}>
           <div>Volume: <strong>{fmtCur(summary.totalTradingVolume)}</strong></div>
           <div>Trades: <strong>{summary.totalTokensTraded}</strong></div>
-          <div>Class: <strong>{archetype.toUpperCase()}</strong></div>
+          <div>Avg Bet: <strong>{fmtCur(avgBetSize)}</strong></div>
+          <div>Win Streak: <strong>~{estWinStreak}</strong></div>
+          <div>Loss Streak: <strong>~{estLossStreak}</strong></div>
+          <div>Fumbled: <strong>{fmtCur(summary.totalFumbled)}</strong></div>
+        </div>
+
+        {/* Psychometrics */}
+        <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '12px' }}>
+          <div style={{ fontSize: '10px', color: '#78716c', marginBottom: '8px', letterSpacing: '0.1em' }}>PSYCHOMETRIC PROFILE</div>
+          <ProgressBar label="Degen Index" value={degenScore} color={degenScore > 80 ? '#991b1b' : '#3b82f6'} />
+          <ProgressBar label="Diamond Hands" value={diamondHands} color={diamondHands > 80 ? '#166534' : '#eab308'} />
+          <ProgressBar label="Ape Factor" value={apeFactor} color="#8b5cf6" />
         </div>
       </div>
 
@@ -700,9 +772,15 @@ export default function PNLTrackerApp() {
   const handleRequestAudit = async () => {
     try {
       setAuditLoading(true); setAuditError(null);
-      const narrative = generateAuditVerdict(pnlData?.summary, pnlData?.biggestWin, pnlData?.biggestLoss);
+      
+      // Calculate advanced metrics
+      const stats = calculateAdvancedStats(pnlData?.summary);
+      setAuditMetrics(stats);
+      
+      // Generate narrative with stats
+      const narrative = generateAuditVerdict(pnlData?.summary, stats, pnlData?.biggestWin, pnlData?.biggestLoss);
       setAuditNarrative(narrative);
-      setAuditMetrics({}); 
+      
     } catch (err) { setAuditError(String(err?.message || err)); } 
     finally { setAuditLoading(false); }
   };
@@ -714,21 +792,19 @@ export default function PNLTrackerApp() {
       const percentile = calculatePercentile(summary);
       const score = percentile?.percentile || 50;
       const archetype = percentile?.title || 'Trader';
-      const profit = summary.totalRealizedProfit || 0;
       const username = user?.username || 'user';
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // GENERATE A LARP-HEAVY DOCUMENT IMAGE
+      // LARP-HEAVY DOCUMENT IMAGE
       const invisibleLogo = 'https://res.cloudinary.com/demo/image/upload/v1/transparent.png';
       const line1 = `TRIDENT LLC // AUDIT FILE`;
       const line2 = `SUBJECT: @${username.toUpperCase()}`;
       const line3 = `RATING: ${score}/100 // ${archetype.toUpperCase()}`;
       
-      // Using monospaced aesthetic for the OG image text
       const textPath = encodeURIComponent(`**${line1}**\n${line2}\n${line3}`);
       const imageUrl = `https://og-image.vercel.app/${textPath}.png?theme=light&md=1&fontSize=40px&images=${encodeURIComponent(invisibleLogo)}&widths=1&heights=1`;
 
-      const castText = `CASE FILE: ${username}\nCLASSIFICATION: ${archetype.toUpperCase()}\n\nMy official trading audit from Trident LLC is in. The results are... concerning.\n\nRead full report ⬇️`;
+      const castText = `CASE FILE: ${username}\nCLASSIFICATION: ${archetype.toUpperCase()}\n\nTrident LLC has released my trading audit. The psychometric profile is concerning.\n\nRead full report ⬇️`;
       
       await sdk.actions.composeCast({ text: castText, embeds: [imageUrl, appLink] });
     } catch (err) { console.error('Share audit failed', err); }
@@ -883,4 +959,211 @@ export default function PNLTrackerApp() {
       let biggestWin = null, biggestLoss = null;
       allTokenData.forEach(token => {
         if(token.realizedProfitUsd > 0) { if(!biggestWin || token.realizedProfitUsd > biggestWin.realizedProfitUsd) biggestWin = token; }
-        if(to
+        if(token.realizedProfitUsd < 0) { if(!biggestLoss || token.realizedProfitUsd < biggestLoss.realizedProfitUsd) biggestLoss = token; }
+      });
+
+      let biggestFumbleToken = null;
+      if (tokenAddressesForFumble.size > 0) {
+        try {
+          const priceResponse = await fetch('https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=base', { method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/json', 'X-API-Key': import.meta.env.VITE_MORALIS_API_KEY || '' }, body: JSON.stringify({ tokens: Array.from(tokenAddressesForFumble).map((addr) => ({ token_address: addr })) }) });
+          const priceData = await priceResponse.json();
+          const priceArray = Array.isArray(priceData) ? priceData : priceData.result || priceData.tokens || [];
+          const priceMap = new Map();
+          priceArray.forEach((p) => { const addr = (p.tokenAddress || p.token_address || '').toLowerCase(); if(addr && parseFloat(p.usdPrice ?? p.usd_price ?? 0) > 0) priceMap.set(addr, parseFloat(p.usdPrice ?? p.usd_price)); });
+          allTokenData.forEach((t) => {
+            if (!t.tokenAddress || !t.totalTokensSold) return;
+            const priceUsd = priceMap.get(t.tokenAddress);
+            if (!priceUsd) return;
+            const currentValueSoldTokens = t.totalTokensSold * priceUsd;
+            const missedUpsideUsd = currentValueSoldTokens - t.totalSoldUsd;
+            if (missedUpsideUsd > 0) {
+                summary.totalFumbled += missedUpsideUsd;
+                if (!biggestFumbleToken || missedUpsideUsd > biggestFumbleToken.missedUpsideUsd) biggestFumbleToken = { ...t, missedUpsideUsd, currentValueSoldTokens };
+            }
+          });
+        } catch (e) {}
+      }
+      const resultData = { summary, tokens: allTokenData, biggestWin, biggestLoss, biggestFumble: biggestFumbleToken };
+      setPnlData(resultData);
+      if (cacheKey && typeof window !== 'undefined') window.localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: resultData }));
+      setLoading(false);
+    } catch (err) { setLoading(false); }
+  };
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        setLoading(true);
+        if (DEMO_MODE) { await new Promise((r) => setTimeout(r, 800)); setUser(MOCK_USER); setWallets(MOCK_WALLETS); await checkTokenGate(MOCK_WALLETS[0]); setPnlData(MOCK_PNL_DATA); setLoading(false); return; }
+        let fid = null;
+        try {
+          const { sdk } = await import('@farcaster/miniapp-sdk');
+          const context = await sdk.context;
+          if (context?.user?.fid) { fid = context.user.fid; setUser(context.user); } 
+          else { setEnvError('PNL Tracker needs a Farcaster user context.'); setLoading(false); return; }
+          sdk.actions.ready();
+        } catch (err) { setEnvError('PNL Tracker runs as a Farcaster miniapp.'); setLoading(false); return; }
+        if (fid) {
+          const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, { headers: { accept: 'application/json', api_key: import.meta.env.VITE_NEYNAR_API_KEY || '' } });
+          const neynarData = await neynarResponse.json();
+          const primaryEth = neynarData?.users?.[0]?.verified_addresses?.primary?.eth_address || null;
+          const allEth = neynarData?.users?.[0]?.verified_addresses?.eth_addresses || [];
+          if (allEth.length === 0) { setEnvError('No verified Base wallets found.'); setLoading(false); return; }
+          setWallets(allEth);
+          const resolvedPrimary = primaryEth || allEth[0];
+          setPrimaryWallet(resolvedPrimary);
+          setActiveScope(resolvedPrimary);
+          checkMintedBadges(resolvedPrimary);
+          await checkTokenGate(resolvedPrimary);
+          await fetchPNLData([resolvedPrimary]);
+        }
+      } catch (err) { setEnvError('Init failed.'); setLoading(false); }
+    };
+    initialize();
+  }, []);
+
+  // Reset audit state when PNL data changes (e.g. wallet switch) or Tab changes
+  useEffect(() => {
+    setAuditMetrics(null);
+    setAuditNarrative(null);
+  }, [pnlData, activeTab]);
+
+  const handleWalletScopeChange = async (event) => {
+    const scope = event.target.value;
+    setActiveScope(scope);
+    if (DEMO_MODE) return;
+    let addresses = scope === 'all' ? wallets : (scope === 'primary' && primaryWallet ? [primaryWallet] : [scope]);
+    setClaimedBadges([]); setMintTxHash(null); setMintError(null);
+    if (addresses.length > 0) checkMintedBadges(addresses[0]);
+    if (addresses.length > 0) await fetchPNLData(addresses);
+  };
+
+  const renderGatedOverlay = () => (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', pointerEvents: 'auto', overflowY: 'auto', paddingTop: '80px', paddingBottom: '32px' }}>
+      <div style={{ background: colors.panelBg, borderRadius: ds.radius.xl, border: `1px solid ${colors.border}`, padding: ds.space.xl, maxWidth: '400px', width: '90%', boxShadow: ds.shadow.lg, textAlign: 'center', pointerEvents: 'auto' }}>
+        <div style={{ fontSize: '48px', marginBottom: ds.space.sm, lineHeight: '1' }}>🔒</div>
+        <h2 style={{ fontSize: ds.text.xl, fontWeight: '700', color: colors.ink, margin: `0 0 ${ds.space.xs}`, letterSpacing: '-0.01em' }}>Premium Access Required</h2>
+        <p style={{ fontSize: ds.text.base, color: colors.muted, margin: `0 0 ${ds.space.lg}`, lineHeight: '1.5' }}>Hold <strong>{formatNumber(REQUIRED_PNL_BALANCE)} $PNL</strong> to unlock your complete trading profile</p>
+        <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.sm }}>
+          <button onClick={handleSwapForAccess} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: colors.pill, color: colors.pillText, fontSize: ds.text.sm, fontWeight: '600', border: 'none', cursor: 'pointer' }}>Get $PNL</button>
+          <button onClick={() => window.location.reload()} style={{ flex: 1, padding: ds.space.sm, borderRadius: ds.radius.pill, background: 'transparent', color: colors.ink, border: `1px solid ${colors.border}`, fontSize: ds.text.sm, fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading || checkingGate) return <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ textAlign: 'center' }}>Loading...</div></div>;
+  if (envError) return <ErrorScreen title="Access Locked" message={envError} />;
+
+  const tokens = pnlData?.tokens || [];
+  const biggestWin = pnlData?.biggestWin || null;
+  const biggestLoss = pnlData?.biggestLoss || null;
+  const biggestFumble = pnlData?.biggestFumble || null;
+  const badges = getBadges(pnlData?.summary);
+
+  return (
+    <div style={{ minHeight: '100vh', background: colors.bg, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', color: colors.ink, position: 'relative', overflow: 'hidden' }}>
+      {isGated && renderGatedOverlay()}
+      <div style={{ maxWidth: '540px', margin: '0 auto', padding: '20px 18px 60px', transition: 'all 0.4s ease' }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1.5px solid ${colors.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '600' }}>Ψ</div>
+            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '12px', fontWeight: '600' }}>PNL Tracker</span>
+          </div>
+          {wallets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+              <select value={activeScope} onChange={handleWalletScopeChange} style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.panelBg, color: colors.muted, maxWidth: '140px', cursor: 'pointer' }}>
+                {wallets.map((addr) => (<option key={addr} value={addr}>{addr === primaryWallet ? `Primary · ${truncateAddress(addr)}` : truncateAddress(addr)}</option>))}
+                {wallets.length > 1 && <option value="all">All wallets</option>}
+              </select>
+            </div>
+          )}
+        </header>
+
+        {!isGated && pnlData?.summary && (
+          <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.md, width: '100%' }}>
+            {['stats', 'airdrops', 'badges', 'lore'].map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{ flex: 1, minWidth: 0, padding: `${ds.space.sm} 2px`, borderRadius: ds.radius.md, border: activeTab === tab ? 'none' : `1px solid ${colors.border}`, background: activeTab === tab ? colors.accent : colors.panelBg, color: activeTab === tab ? colors.pillText : colors.muted, fontSize: ds.text.sm, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {tab === 'stats' ? 'Stats' : tab === 'airdrops' ? 'Airdrops' : tab === 'lore' ? 'Audit' : 'Badges'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!isGated && activeTab !== 'lore' && pnlData?.summary && <RankCard summary={pnlData.summary} onShare={handleSharePnL} />}
+
+        {!isGated && activeTab === 'lore' && pnlData?.summary && (
+          <div>
+            {!auditMetrics && !auditLoading && (
+              <button onClick={handleRequestAudit} style={{ width: '100%', padding: ds.space.md, borderRadius: ds.radius.md, background: 'linear-gradient(135deg, #111827 0%, #374151 100%)', border: 'none', color: '#fff', fontSize: ds.text.md, fontWeight: '600', cursor: 'pointer', marginBottom: ds.space.md }}>🔍 Generate My Audit</button>
+            )}
+            {auditLoading && <div style={{ textAlign: 'center', padding: ds.space.xl }}>Generating...</div>}
+            {auditMetrics && !auditLoading && (
+              <TradingAudit pnlData={{ ...pnlData, summary: { ...pnlData.summary, ...auditMetrics } }} user={{ ...user, wallet: primaryWallet || wallets[0] }} percentileData={calculatePercentile(pnlData.summary)} auditNarrative={auditNarrative} auditMetrics={auditMetrics} onShare={handleShareAudit} />
+            )}
+          </div>
+        )}
+
+        {!isGated && activeTab === 'stats' && pnlData?.summary && (
+          <>
+            <Panel title="Realized P&L">
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: '32px', fontWeight: '600', color: pnlData.summary.totalRealizedProfit >= 0 ? colors.success : colors.error, marginBottom: '8px' }}>{pnlData.summary.totalRealizedProfit >= 0 ? '+' : ''}{formatCurrency(pnlData.summary.totalRealizedProfit)}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: '999px', background: pnlData.summary.profitPercentage >= 0 ? '#dcfce7' : '#fef2f2', color: pnlData.summary.profitPercentage >= 0 ? '#166534' : '#991b1b', fontSize: '12px', fontWeight: '500' }}>{pnlData.summary.profitPercentage >= 0 ? '↑' : '↓'}{Math.abs(pnlData.summary.profitPercentage).toFixed(1)}% ROI</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px', marginTop: '16px' }}>
+                <div style={{ flex: '1 1 auto' }}>
+                  <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.metricLabel, marginBottom: '6px' }}>Total Invested</div>
+                  <div style={{ fontSize: '20px', fontWeight: '600', color: colors.ink }}>{formatCurrency(pnlData.summary.totalTradingVolume)}</div>
+                </div>
+                <Metric label="Win Rate" value={`${pnlData.summary.winRate.toFixed(1)}%`} isPositive={pnlData.summary.winRate >= 50} />
+                <Metric label="Tokens" value={pnlData.summary.totalTokensTraded} />
+              </div>
+            </Panel>
+            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <Panel title="Highlights" subtitle="From sold tokens">
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                  {biggestWin && <BigMoveCard label="Best Trade" token={biggestWin} isWin={true} onShare={handleShareBestTrade} />}
+                  {biggestLoss && <BigMoveCard label="Worst Trade" token={biggestLoss} isWin={false} onShare={handleShareWorstTrade} />}
+                  {biggestFumble && <BigFumbleCard token={biggestFumble} onShare={handleShareFumble} />}
+                </div>
+              </Panel>
+            </div>
+            <div style={{ display: 'flex', gap: ds.space.xs, marginBottom: ds.space.sm }}>
+              <button onClick={() => setTokenListView('wins')} style={{ padding: `${ds.space.xs} ${ds.space.sm}`, borderRadius: ds.radius.pill, border: `1px solid ${tokenListView === 'wins' ? colors.accent : colors.border}`, background: tokenListView === 'wins' ? colors.accent : colors.panelBg, color: tokenListView === 'wins' ? '#fff' : colors.muted, fontSize: ds.text.xs, textTransform: 'uppercase', cursor: 'pointer' }}>Top Wins</button>
+              <button onClick={() => setTokenListView('all')} style={{ padding: `${ds.space.xs} ${ds.space.sm}`, borderRadius: ds.radius.pill, border: `1px solid ${tokenListView === 'all' ? colors.accent : colors.border}`, background: tokenListView === 'all' ? colors.accent : colors.panelBg, color: tokenListView === 'all' ? '#fff' : colors.muted, fontSize: ds.text.xs, textTransform: 'uppercase', cursor: 'pointer' }}>All Tokens</button>
+            </div>
+            {pnlData?.tokens && (
+              <Panel title={tokenListView === 'wins' ? "Best Performers" : "All Tokens"}>
+                {(tokenListView === 'wins' ? pnlData.tokens.filter(t => t.isProfitable).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).slice(0, 5) : pnlData.tokens.sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd)).map((token, idx) => (
+                  <TokenRow key={token.tokenAddress || token.symbol || idx} token={token} />
+                ))}
+              </Panel>
+            )}
+          </>
+        )}
+
+        {!isGated && activeTab === 'airdrops' && pnlData?.tokens && (
+          <Panel title="Airdrops" subtitle="Tokens received for free">
+            {pnlData.tokens.filter(t => t.isAirdrop).length > 0 ? (
+              pnlData.tokens.filter(t => t.isAirdrop).sort((a, b) => b.realizedProfitUsd - a.realizedProfitUsd).map((token, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
+                  <div><div style={{ fontSize: '13px', fontWeight: '600' }}>{token.symbol}</div><div style={{ fontSize: '11px', color: colors.muted }}>{token.name}</div></div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: colors.success }}>+{formatCurrency(token.realizedProfitUsd)}</div>
+                </div>
+              ))
+            ) : (<div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No airdrops found</div>)}
+            <button onClick={handleShareAirdrops} style={{ marginTop: '12px', width: '100%', padding: '10px', background: colors.accent, color: '#fff', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>Share Airdrops</button>
+          </Panel>
+        )}
+
+        {!isGated && activeTab === 'badges' && pnlData?.summary && (
+          <ClaimBadgePanel summary={pnlData.summary} onClaimBadge={handleClaimBadgeViaSDK} claimingBadge={claimingBadge} claimedBadges={claimedBadges} mintTxHash={mintTxHash} mintError={mintError} canClaim={!!primaryWallet} currentWallet={activeScope === 'all' ? (primaryWallet || wallets[0]) : (activeScope === 'primary' ? primaryWallet : activeScope)} />
+        )}
+
+        {!isGated && <InfoPanel isVisible={showInfo} onClose={() => setShowInfo(false)} />}
+        {!isGated && <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '20px', opacity: 0.6 }}><div onClick={() => setShowInfo(true)} style={{ fontSize: '11px', color: colors.muted, textDecoration: 'underline', cursor: 'pointer' }}>How is this calculated?</div></div>}
+      </div>
+    </div>
+  );
+}
