@@ -1662,93 +1662,127 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   const roi = summary.totalTradingVolume > 0 ? ((summary.totalRealizedProfit / summary.totalTradingVolume) * 100).toFixed(1) : 0;
   
   // Fun/quirky metrics
-  const paperHandsScore = fumbled > 0 ? Math.min(100, Math.round((fumbled / (Math.abs(summary.totalRealizedProfit || 1) + fumbled)) * 100)) : 0;
-  const degenScore = Math.min(100, Math.round((totalTokens / 2) + (summary.totalTradingVolume > 10000 ? 20 : 0) + (winRate < 40 ? 20 : 0)));
-  const diamondHandsRating = 100 - paperHandsScore;
-  const luckScore = winRate > 50 && !isProfit ? Math.round(winRate) : (isProfit && winRate < 40 ? 100 - Math.round(winRate) : 50);
-  const consistencyScore = winCount > 0 && lossCount > 0 ? Math.round(100 - Math.abs(winCount - lossCount) / Math.max(winCount, lossCount) * 50) : 50;
   
   // Top tokens
   const ignoreList = ['WETH', 'USDC', 'USDT', 'DAI', 'cbBTC', 'ETH', 'USD+'];
   const topWins = [...tokens].filter(t => t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (b.realizedProfitUsd || 0) - (a.realizedProfitUsd || 0)).slice(0, 3);
   const topLosses = [...tokens].filter(t => !t.isProfitable && !ignoreList.includes(t.symbol)).sort((a, b) => (a.realizedProfitUsd || 0) - (b.realizedProfitUsd || 0)).slice(0, 3);
 
-  // Risk assessment
+  // Risk assessment - FIXED logic
   const getRiskLevel = () => {
     const profit = summary.totalRealizedProfit || 0;
-    if (winRate > 55 && profit > 5000) return { level: 'LOW', color: '#22c55e', desc: 'Disciplined risk management observed' };
-    if (winRate > 45 && profit > 0) return { level: 'MODERATE', color: '#f59e0b', desc: 'Acceptable risk tolerance with room for improvement' };
-    if (fumbled > profit * 2) return { level: 'ELEVATED', color: '#f97316', desc: 'Premature exit patterns indicate emotional trading' };
-    return { level: 'HIGH', color: '#ef4444', desc: 'Significant exposure to adverse market conditions' };
+    // Profitable with good profit factor = LOW risk
+    if (profit > 0 && parseFloat(profitFactor) > 2) return { level: 'LOW', color: '#22c55e', desc: 'Excellent risk/reward ratio with positive returns' };
+    if (profit > 5000 && winRate > 45) return { level: 'LOW', color: '#22c55e', desc: 'Strong profitability with disciplined execution' };
+    if (profit > 0 && winRate > 50) return { level: 'LOW', color: '#22c55e', desc: 'Profitable with above-average hit rate' };
+    // Profitable but some concerns
+    if (profit > 0 && winRate < 35) return { level: 'MODERATE', color: '#f59e0b', desc: 'Profitable but heavily dependent on outlier wins' };
+    if (profit > 0) return { level: 'MODERATE', color: '#f59e0b', desc: 'Net profitable with room for optimization' };
+    // Break even
+    if (profit >= -500 && profit <= 500) return { level: 'MODERATE', color: '#f59e0b', desc: 'Near break-even performance' };
+    // Losing but good entries (high fumbles)
+    if (profit < 0 && fumbled > Math.abs(profit) * 2) return { level: 'ELEVATED', color: '#f97316', desc: 'Good selection, poor execution on exits' };
+    // Losing
+    if (profit < -5000) return { level: 'HIGH', color: '#ef4444', desc: 'Significant capital drawdown requiring strategy review' };
+    return { level: 'ELEVATED', color: '#f97316', desc: 'Negative returns indicate execution challenges' };
   };
   const risk = getRiskLevel();
 
-  // Behavioral findings
+  // Behavioral findings - FIXED to respect profit factor
   const getFindings = () => {
     const findings = [];
     const profit = summary.totalRealizedProfit || 0;
     
-    if (winRate >= 55) findings.push({ type: 'positive', text: 'Above-average entry timing and token selection' });
-    else if (winRate < 35) findings.push({ type: 'negative', text: 'Entry timing suggests systematic adverse selection' });
+    // Win rate findings - CONTEXT AWARE
+    if (winRate >= 55) {
+      findings.push({ type: 'positive', text: 'Above-average entry timing and token selection' });
+    } else if (winRate < 35 && profit > 0 && parseFloat(profitFactor) > 2) {
+      findings.push({ type: 'positive', text: `Low win rate offset by ${profitFactor}x profit factor—winning big when it counts` });
+    } else if (winRate < 35 && profit < 0) {
+      findings.push({ type: 'negative', text: 'Entry timing suggests systematic adverse selection' });
+    }
     
+    // Profit factor
+    if (parseFloat(profitFactor) > 2.5) {
+      findings.push({ type: 'positive', text: `Exceptional ${profitFactor}x profit factor indicates strong risk/reward discipline` });
+    } else if (parseFloat(profitFactor) > 1.5) {
+      findings.push({ type: 'positive', text: 'Favorable profit factor indicates sound risk management' });
+    } else if (parseFloat(profitFactor) < 0.5 && profit < 0) {
+      findings.push({ type: 'negative', text: 'Poor profit factor—losses significantly outweigh wins' });
+    }
+    
+    // Fumbled gains
     if (fumbled > 5000) findings.push({ type: 'warning', text: `Premature exits resulted in ${fmtCur(fumbled)} unrealized gains` });
+    
+    // P&L based
     if (profit > 10000) findings.push({ type: 'positive', text: 'Consistent alpha generation across multiple positions' });
     if (profit < -5000) findings.push({ type: 'negative', text: 'Significant capital erosion requiring strategy review' });
     
-    if (avgLoss > avgWin * 1.5) findings.push({ type: 'warning', text: 'Loss magnitude exceeds win magnitude - position sizing review recommended' });
-    if (parseFloat(profitFactor) > 1.5) findings.push({ type: 'positive', text: 'Favorable profit factor indicates sound risk/reward management' });
+    // Position sizing
+    if (avgLoss > avgWin * 2 && profit < 0) {
+      findings.push({ type: 'warning', text: 'Loss magnitude far exceeds win magnitude—position sizing needs work' });
+    }
     
-    if (totalTokens > 100) findings.push({ type: 'neutral', text: 'High trading frequency - potential overtrading patterns detected' });
+    // Trading frequency
+    if (totalTokens > 100) findings.push({ type: 'neutral', text: 'High trading frequency—potential overtrading' });
     else if (totalTokens < 20 && profit > 0) findings.push({ type: 'positive', text: 'Selective approach with quality over quantity' });
     
     return findings.slice(0, 4);
   };
   const findings = getFindings();
 
-  // Generate detailed verdict
+  // Generate detailed verdict - SMARTER about profit vs win rate
   const generateVerdict = () => {
     if (auditNarrative) return auditNarrative;
     
     const profit = summary.totalRealizedProfit || 0;
     let verdict = '';
     
-    // Opening assessment
-    verdict += `Following a comprehensive analysis of ${userName}'s on-chain trading activity across the Base network, Trident LLC presents the following findings. `;
-    
-    // Performance summary
-    verdict += `The subject has executed ${totalTokens} token positions with a cumulative trading volume of ${fmtCur(summary.totalTradingVolume)}, resulting in a ${isProfit ? 'net profit' : 'net loss'} of ${fmtCur(Math.abs(profit))}. `;
-    
-    // Win rate analysis
-    if (winRate >= 55) {
-      verdict += `With a ${winRate.toFixed(0)}% win rate, the subject demonstrates above-average market timing abilities. `;
-    } else if (winRate >= 45) {
-      verdict += `A ${winRate.toFixed(0)}% win rate places the subject within normal parameters for retail traders. `;
+    // Opening based on overall result
+    if (isProfit && parseFloat(profitFactor) > 2) {
+      verdict += `${userName} demonstrates sophisticated risk management. `;
+    } else if (isProfit) {
+      verdict += `${userName} is net profitable on Base. `;
     } else {
-      verdict += `The ${winRate.toFixed(0)}% win rate suggests a tendency toward adverse selection—buying near local tops and selling near bottoms. `;
+      verdict += `Following analysis of ${userName}'s on-chain activity, `;
+    }
+    
+    // Core stats
+    verdict += `Across ${totalTokens} token positions and ${fmtCur(summary.totalTradingVolume)} in volume, the result is a ${isProfit ? 'profit' : 'loss'} of ${fmtCur(Math.abs(profit))}. `;
+    
+    // Win rate analysis - CONTEXT MATTERS
+    if (winRate < 40 && isProfit && parseFloat(profitFactor) > 2) {
+      // Low win rate but profitable = GOOD
+      verdict += `The ${winRate.toFixed(0)}% win rate is deceptive—a ${profitFactor} profit factor proves the strategy works. Loses small, wins big. This is how pros trade. `;
+    } else if (winRate >= 55) {
+      verdict += `A ${winRate.toFixed(0)}% hit rate shows strong entry timing. `;
+    } else if (winRate >= 45) {
+      verdict += `A ${winRate.toFixed(0)}% win rate is within normal range. `;
+    } else if (!isProfit) {
+      verdict += `The ${winRate.toFixed(0)}% win rate combined with negative returns suggests entry timing needs work. `;
     }
     
     // Notable trades
     if (biggestWin) {
-      verdict += `The most successful position was ${biggestWin.symbol}, generating +${fmtCur(biggestWin.realizedProfitUsd)} in realized gains. `;
+      verdict += `Best trade: ${biggestWin.symbol} at +${fmtCur(biggestWin.realizedProfitUsd)}. `;
     }
     if (biggestLoss) {
-      verdict += `Conversely, the most painful position was ${biggestLoss.symbol}, resulting in a ${fmtCur(biggestLoss.realizedProfitUsd)} loss. `;
+      verdict += `Worst: ${biggestLoss.symbol} at ${fmtCur(biggestLoss.realizedProfitUsd)}. `;
     }
     
     // Fumbled gains
-    if (fumbled > 1000) {
-      verdict += `Perhaps most notably, premature exit patterns cost an estimated ${fmtCur(fumbled)} in unrealized gains—tokens sold before reaching their peak value. `;
-      if (fumbled > profit * 2 && profit > 0) {
-        verdict += `This suggests the subject's primary weakness is conviction, not selection. `;
-      }
+    if (fumbled > 1000 && fumbled > profit) {
+      verdict += `${fmtCur(fumbled)} was left on the table from early exits. `;
     }
     
-    // Closing
-    verdict += `Final classification: ${archetype}. `;
-    if (parseFloat(profitFactor) > 1) {
-      verdict += `Risk management fundamentals appear sound.`;
+    // Closing assessment
+    verdict += `Classification: ${archetype}. `;
+    if (isProfit && parseFloat(profitFactor) > 1.5) {
+      verdict += `The numbers speak for themselves.`;
+    } else if (isProfit) {
+      verdict += `Profitable is profitable.`;
     } else {
-      verdict += `Risk management protocols require immediate attention.`;
+      verdict += `Room for improvement.`;
     }
     
     return verdict;
@@ -1855,28 +1889,31 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
         </div>
       </div>
 
-      {/* Trader Profile Scores */}
-      <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§3. TRADER PROFILE</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-          {[
-            { label: 'Diamond Hands', value: diamondHandsRating, color: diamondHandsRating > 60 ? '#22c55e' : '#f59e0b' },
-            { label: 'Paper Hands', value: paperHandsScore, color: paperHandsScore > 40 ? '#ef4444' : '#22c55e' },
-            { label: 'Degen Score', value: degenScore, color: degenScore > 60 ? '#8b5cf6' : '#3b82f6' },
-            { label: 'Luck Factor', value: luckScore, color: '#f59e0b' },
-            { label: 'Consistency', value: consistencyScore, color: consistencyScore > 60 ? '#22c55e' : '#78716c' },
-          ].map((item, i) => (
-            <div key={i} style={{ padding: '12px 8px', background: '#f5f5f4', borderRadius: '4px', textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: item.color }}>{item.value}</div>
-              <div style={{ fontSize: '8px', color: '#78716c', marginTop: '4px', letterSpacing: '0.05em' }}>{item.label.toUpperCase()}</div>
-            </div>
-          ))}
+      {/* Key Metrics Bar */}
+      <div style={{ padding: '16px 28px', background: '#f5f5f4', borderBottom: '1px solid #e7e5e4' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', textAlign: 'center' }}>
+          <div>
+            <div style={{ fontSize: '22px', fontWeight: '700', color: parseFloat(profitFactor) >= 1.5 ? '#16a34a' : parseFloat(profitFactor) >= 1 ? '#f59e0b' : '#dc2626' }}>{profitFactor}x</div>
+            <div style={{ fontSize: '9px', color: '#78716c', marginTop: '2px' }}>PROFIT FACTOR</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '22px', fontWeight: '700', color: parseFloat(roi) >= 10 ? '#16a34a' : parseFloat(roi) >= 0 ? '#f59e0b' : '#dc2626' }}>{roi}%</div>
+            <div style={{ fontSize: '9px', color: '#78716c', marginTop: '2px' }}>ROI</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '22px', fontWeight: '700', color: winRate >= 50 ? '#16a34a' : winRate >= 35 ? '#f59e0b' : '#dc2626' }}>{winRate.toFixed(0)}%</div>
+            <div style={{ fontSize: '9px', color: '#78716c', marginTop: '2px' }}>WIN RATE</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '22px', fontWeight: '700', color: '#1c1917' }}>{totalTokens}</div>
+            <div style={{ fontSize: '9px', color: '#78716c', marginTop: '2px' }}>TOKENS</div>
+          </div>
         </div>
       </div>
 
       {/* Risk Assessment */}
       <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§4. RISK ASSESSMENT</div>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§3. RISK ASSESSMENT</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: `${risk.color}10`, borderRadius: '4px', border: `1px solid ${risk.color}30` }}>
           <div style={{ padding: '6px 14px', background: risk.color, borderRadius: '2px' }}>
             <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff', letterSpacing: '0.1em' }}>{risk.level}</div>
@@ -1887,7 +1924,7 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
 
       {/* Notable Positions */}
       <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§5. NOTABLE POSITIONS</div>
+        <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§4. NOTABLE POSITIONS</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div>
             <div style={{ fontSize: '9px', color: '#16a34a', letterSpacing: '0.1em', marginBottom: '8px', fontWeight: '600' }}>TOP PERFORMERS</div>
@@ -1913,7 +1950,7 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
       {/* Behavioral Findings */}
       {findings.length > 0 && (
         <div style={{ padding: '20px 28px', borderBottom: '1px solid #e7e5e4' }}>
-          <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§6. BEHAVIORAL ANALYSIS</div>
+          <div style={{ fontSize: '10px', color: '#78716c', letterSpacing: '0.15em', marginBottom: '14px' }}>§5. BEHAVIORAL ANALYSIS</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {findings.map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px', background: '#fafaf9', borderRadius: '4px', borderLeft: `3px solid ${f.type === 'positive' ? '#22c55e' : f.type === 'negative' ? '#ef4444' : f.type === 'warning' ? '#f59e0b' : '#71717a'}` }}>
@@ -1926,7 +1963,7 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
 
       {/* Official Verdict - EXPANDED */}
       <div style={{ padding: '24px 28px', background: '#1c1917', color: '#fff' }}>
-        <div style={{ fontSize: '10px', color: '#a8a29e', letterSpacing: '0.15em', marginBottom: '14px' }}>§7. TRIDENT LLC VERDICT</div>
+        <div style={{ fontSize: '10px', color: '#a8a29e', letterSpacing: '0.15em', marginBottom: '14px' }}>§6. TRIDENT LLC VERDICT</div>
         <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#e7e5e4', fontStyle: 'italic' }}>
           "{generateVerdict()}"
         </div>
@@ -1985,18 +2022,83 @@ const TradingAudit = ({ pnlData, user, percentileData, auditNarrative, onShare }
   );
 };
 
-// Fallback narrative generator (no API needed)
-const getFallbackNarrative = (summary) => {
+// Fallback narrative generator - FIXED with proper logic
+const getFallbackNarrative = (summary, biggestWin, biggestLoss, userName) => {
   const profit = summary?.totalRealizedProfit || 0;
   const winRate = summary?.winRate || 0;
   const fumbled = summary?.totalFumbled || 0;
+  const totalTokens = summary?.totalTokensTraded || 0;
+  const volume = summary?.totalTradingVolume || 0;
   
-  if (profit > 10000 && winRate > 55) return "Subject demonstrates consistent alpha generation. Either genuinely skilled or running an exceptional heater.";
-  if (fumbled > profit * 2 && fumbled > 5000) return "Classic early-exit syndrome. Subject finds winners, then abandons them like commitment issues.";
-  if (winRate < 35 && profit < 0) return "A reliable counter-indicator. Subject buys local tops with conviction and sells bottoms with precision.";
-  if (winRate > 60 && profit < 0) return "Wins often but bleeds on losses. Position sizing needs work.";
-  if (profit > 0 && profit < 1000) return "Marginally profitable. Not losing money in crypto is a genuine achievement.";
-  return "Performance within normal parameters. Neither exceptional nor catastrophic. Perfectly mid.";
+  // Calculate profit factor properly
+  const profitFactor = summary?.profitFactor || 1;
+  
+  const name = userName || 'Subject';
+  const bestTrade = biggestWin?.symbol ? `$${biggestWin.symbol}` : 'their best play';
+  const worstTrade = biggestLoss?.symbol ? `$${biggestLoss.symbol}` : 'their worst position';
+  
+  // PROFITABLE WALLETS (profit > 0)
+  if (profit > 0) {
+    // Big winner with high win rate
+    if (profit > 10000 && winRate > 50) {
+      return `${name} is the real deal. With ${formatCurrency(profit)} in realized gains and a ${winRate.toFixed(0)}% hit rate across ${totalTokens} tokens, this isn't luck—it's skill. ${bestTrade} was the crown jewel. The kind of wallet you study, not fade.`;
+    }
+    // Big winner with low win rate but great risk/reward
+    if (profit > 5000 && winRate < 40 && profitFactor > 2) {
+      return `${name} plays the game differently. A ${winRate.toFixed(0)}% win rate looks bad until you see the ${profitFactor.toFixed(1)}x profit factor. Loses often, but wins BIG when it counts. ${bestTrade} alone proves the strategy works. Respect the process.`;
+    }
+    // Profitable with excellent profit factor
+    if (profitFactor > 2.5 && profit > 1000) {
+      return `${name} understands something most don't: you don't need to win often, you need to win big. A ${profitFactor.toFixed(1)}x profit factor means every $1 lost returns $${profitFactor.toFixed(1)} gained. ${bestTrade} delivered +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}. Textbook risk management.`;
+    }
+    // Solid profitable trader
+    if (profit > 1000 && winRate > 45) {
+      return `${name} is doing something right. ${formatCurrency(profit)} profit, ${winRate.toFixed(0)}% win rate, ${totalTokens} tokens traded. Not flashy, but consistently in the green. ${bestTrade} was the highlight at +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}. Keep cooking.`;
+    }
+    // Profitable despite low win rate
+    if (profit > 0 && winRate < 35) {
+      return `Don't let the ${winRate.toFixed(0)}% win rate fool you—${name} is profitable. The secret? Cutting losers fast and letting winners run. ${bestTrade} carried with +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}. A ${profitFactor.toFixed(1)}x profit factor tells the real story.`;
+    }
+    // Modest profit with fumbles
+    if (profit > 0 && fumbled > profit * 2) {
+      return `${name} is profitable at +${formatCurrency(profit)}, but the ${formatCurrency(fumbled)} in fumbled gains hurts to see. The entries are good—it's the exits that need work. Diamond hands would've changed everything here.`;
+    }
+    // Small but positive
+    if (profit > 0 && profit < 500) {
+      return `${name} is in the green with +${formatCurrency(profit)}. Not life-changing money, but in crypto, not losing IS winning. ${totalTokens} tokens traded, lessons learned, and still standing. The foundation is there.`;
+    }
+    // Default profitable
+    return `${name} walks away a winner with ${formatCurrency(profit)} in realized profits across ${totalTokens} positions. ${bestTrade} was the standout performer. A ${winRate.toFixed(0)}% win rate with positive returns—the math is mathing.`;
+  }
+  
+  // BREAK-EVEN / SMALL LOSS
+  if (profit >= -500 && profit <= 0) {
+    return `${name} is essentially flat—${formatCurrency(profit)} across ${totalTokens} tokens. In the casino of crypto, breaking even is an achievement. ${fumbled > 1000 ? `Though ${formatCurrency(fumbled)} in fumbled gains suggests the alpha was there, just left on the table.` : 'Live to trade another day.'}`;
+  }
+  
+  // LOSING WALLETS (profit < 0)
+  // Lost money but had good entries (high fumbles)
+  if (profit < 0 && fumbled > Math.abs(profit) * 2) {
+    return `${name} has a gift for finding winners—and an equal gift for selling them too early. Down ${formatCurrency(Math.abs(profit))}, but ${formatCurrency(fumbled)} was left on the table. The problem isn't selection, it's conviction. ${biggestWin ? `${bestTrade} proved they can pick 'em.` : ''}`;
+  }
+  // High win rate but still losing (bad position sizing)
+  if (profit < 0 && winRate > 50) {
+    return `${name} wins ${winRate.toFixed(0)}% of the time but is still down ${formatCurrency(Math.abs(profit))}. Classic case of cutting winners short and letting losers run. ${worstTrade} did the most damage at ${formatCurrency(biggestLoss?.realizedProfitUsd || 0)}. The entries are fine—it's the sizing that kills.`;
+  }
+  // Low win rate and losing
+  if (profit < 0 && winRate < 35) {
+    return `${name}'s ${winRate.toFixed(0)}% win rate across ${totalTokens} tokens tells a tough story. Down ${formatCurrency(Math.abs(profit))}, with ${worstTrade} being the biggest offender. The market has been taking notes—maybe it's time to inverse the strategy.`;
+  }
+  // Big loser
+  if (profit < -5000) {
+    return `${name} has paid ${formatCurrency(Math.abs(profit))} in tuition to the crypto markets. ${totalTokens} tokens, ${winRate.toFixed(0)}% win rate, and ${worstTrade} leading the losses. Expensive lessons, but lessons nonetheless. The comeback arc starts here.`;
+  }
+  // Moderate loss
+  if (profit < -1000) {
+    return `${name} is down ${formatCurrency(Math.abs(profit))} across ${totalTokens} positions. ${worstTrade} hurt the most. A ${winRate.toFixed(0)}% hit rate suggests the strategy needs refinement. Not blown up, but definitely bruised.`;
+  }
+  // Default losing
+  return `${name} has realized a ${formatCurrency(Math.abs(profit))} loss across ${totalTokens} token positions. ${biggestWin ? `${bestTrade} showed promise at +${formatCurrency(biggestWin?.realizedProfitUsd || 0)}, ` : ''}${biggestLoss ? `while ${worstTrade} did the damage.` : 'but overall execution needs work.'} The data doesn't lie—time for a strategy review.`;
 };
 
 
@@ -2325,6 +2427,11 @@ export default function PNLTrackerApp() {
       const wins = tokens.filter(t => t.isProfitable).length;
       const losses = tokens.filter(t => !t.isProfitable).length;
       
+      // Calculate profit factor
+      const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
+      const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
+      const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(2) : '∞';
+      
       const metrics = {
         longestHold: '~14 days',
         shortestHold: '~2 hrs', 
@@ -2337,11 +2444,18 @@ export default function PNLTrackerApp() {
         redDays: Math.max(1, losses),
         totalTrades: (pnlData?.summary?.totalTokensTraded || 0) * 3,
         firstTrade: 'Mar 2024',
+        profitFactor: profitFactor,
       };
       setAuditMetrics(metrics);
       
-      // Use fallback narrative
-      const narrative = getFallbackNarrative(pnlData?.summary);
+      // Generate narrative with all context
+      const summaryWithPF = { ...pnlData?.summary, profitFactor: parseFloat(profitFactor) };
+      const narrative = getFallbackNarrative(
+        summaryWithPF, 
+        pnlData?.biggestWin, 
+        pnlData?.biggestLoss,
+        user?.displayName || user?.username || 'Trader'
+      );
       setAuditNarrative(narrative);
     } catch (err) {
       console.error('Audit error:', err);
@@ -2362,19 +2476,52 @@ export default function PNLTrackerApp() {
       const winRate = summary.winRate || 0;
       const totalTokens = summary.totalTokensTraded || 0;
       const fumbled = summary.totalFumbled || 0;
+      const biggestWin = pnlData?.biggestWin;
+      const biggestLoss = pnlData?.biggestLoss;
+      
+      // Calculate profit factor
+      const tokens = pnlData?.tokens || [];
+      const totalWins = tokens.filter(t => t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0);
+      const totalLosses = Math.abs(tokens.filter(t => !t.isProfitable).reduce((a, t) => a + (t.realizedProfitUsd || 0), 0));
+      const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(1) : '∞';
       
       const appLink = 'https://farcaster.xyz/miniapps/BW_S6D-T82wa/pnl';
       
-      // Generate cast text based on performance
-      let castText = '';
-      if (profit > 10000) {
-        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: +${formatCurrency(profit)}\nWin Rate: ${winRate.toFixed(0)}%\n\nTurns out I actually know what I'm doing.`;
-      } else if (profit > 0) {
-        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: +${formatCurrency(profit)}\nWin Rate: ${winRate.toFixed(0)}%\n\nNot losing money is a W in crypto.`;
-      } else if (fumbled > Math.abs(profit) * 2) {
-        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: ${formatCurrency(profit)}\nFumbled: ${formatCurrency(fumbled)}\n\nI find winners. Then I sell them too early.`;
+      // Generate viral cast text based on performance - MORE VARIETY
+      let castText = `📋 TRIDENT LLC TRADING AUDIT\n\n`;
+      
+      // Score & Classification
+      castText += `Score: ${score}/100\n`;
+      castText += `Classification: "${archetype}"\n\n`;
+      
+      // Performance-specific roast/praise
+      if (profit > 10000 && winRate > 50) {
+        castText += `Verdict: Actually cracked at this. ${formatCurrency(profit)} up with a ${winRate.toFixed(0)}% hit rate.\n`;
+        castText += `${biggestWin ? `$${biggestWin.symbol} carried (+${formatCurrency(biggestWin.realizedProfitUsd)})` : ''}`;
+      } else if (profit > 5000 && winRate < 40 && parseFloat(profitFactor) > 2) {
+        castText += `Verdict: ${winRate.toFixed(0)}% win rate looks bad until you see the ${profitFactor}x profit factor.\n`;
+        castText += `Loses often. Wins BIG. +${formatCurrency(profit)} speaks for itself.`;
+      } else if (profit > 1000 && winRate < 40) {
+        castText += `Verdict: Only wins ${winRate.toFixed(0)}% of the time but still up ${formatCurrency(profit)}.\n`;
+        castText += `The secret? Cutting losers fast. Profit factor: ${profitFactor}x`;
+      } else if (profit > 0 && profit < 1000) {
+        castText += `Verdict: +${formatCurrency(profit)} across ${totalTokens} tokens.\n`;
+        castText += `Not life-changing but in crypto, green is green.`;
+      } else if (profit < 0 && fumbled > Math.abs(profit) * 2) {
+        castText += `Verdict: Down ${formatCurrency(Math.abs(profit))} but fumbled ${formatCurrency(fumbled)}.\n`;
+        castText += `The picks were right. The conviction wasn't.`;
+      } else if (profit < 0 && winRate > 50) {
+        castText += `Verdict: ${winRate.toFixed(0)}% win rate but still down ${formatCurrency(Math.abs(profit))}?\n`;
+        castText += `Cutting winners early, letting losers run. Classic.`;
+      } else if (profit < -5000) {
+        castText += `Verdict: ${formatCurrency(Math.abs(profit))} donated to the markets.\n`;
+        castText += `${biggestLoss ? `$${biggestLoss.symbol} did the most damage.` : 'Thank you for your service.'} 🫡`;
+      } else if (profit < 0) {
+        castText += `Verdict: Down ${formatCurrency(Math.abs(profit))} with a ${winRate.toFixed(0)}% hit rate.\n`;
+        castText += `The markets have spoken. Time to inverse?`;
       } else {
-        castText = `📋 Trident LLC Trading Audit\n\nScore: ${score}/100\nClassification: ${archetype}\nP&L: ${formatCurrency(profit)}\nWin Rate: ${winRate.toFixed(0)}%\n\nThank you for your service. 🫡`;
+        castText += `Verdict: ${formatCurrency(profit)} P&L | ${winRate.toFixed(0)}% win rate | ${totalTokens} tokens\n`;
+        castText += `Another day in the trenches.`;
       }
       
       castText += `\n\nGet your audit:`;
@@ -2741,6 +2888,12 @@ export default function PNLTrackerApp() {
     };
     initialize();
   }, []);
+
+  // Reset audit data when wallet scope changes
+  useEffect(() => {
+    setAuditMetrics(null);
+    setAuditNarrative(null);
+  }, [activeScope, primaryWallet]);
 
   const handleWalletScopeChange = async (event) => {
     const scope = event.target.value;
